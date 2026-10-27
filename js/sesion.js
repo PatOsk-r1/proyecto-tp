@@ -6,7 +6,8 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
 import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 export const configurado = Boolean(firebaseConfig);
-export const auth = configurado ? getAuth(initializeApp(firebaseConfig)) : null;
+export const app = configurado ? initializeApp(firebaseConfig) : null;
+export const auth = app ? getAuth(app) : null;
 
 const LOGIN = new URL("../login.html", import.meta.url).href;
 const INICIO = new URL("../", import.meta.url).href;
