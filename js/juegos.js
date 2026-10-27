@@ -17,4 +17,7 @@ const JUEGOS = [
     { categoria: "casino", nombre: "Blackjack", descripcion: "Llegá a 21 sin pasarte", emoji: "🃏", carpeta: "games/blackjack/" },
     { categoria: "casino", nombre: "Ruleta", descripcion: "Apostá a números, colores o docenas", emoji: "🎡", carpeta: "games/ruleta/" },
     { categoria: "casino", nombre: "Tragamonedas", descripcion: "Tres iguales y te llevás el premio", emoji: "🎰", carpeta: "games/tragamonedas/" },
+    { categoria: "casino", nombre: "Video póker", descripcion: "Guardá cartas y armá tu mejor mano", emoji: "♠️", carpeta: "games/poker/" },
+    { categoria: "casino", nombre: "Plinko", descripcion: "Soltá bolas entre clavos y multiplicá", emoji: "🔮", carpeta: "games/plinko/" },
+    { categoria: "casino", nombre: "Dados", descripcion: "¿Bajo, siete o sobre?", emoji: "🎲", carpeta: "games/dados/" },
 ];
