@@ -11,6 +11,7 @@ const JUEGOS = [
 
     { categoria: "multi", nombre: "Pool", descripcion: "Bola 8 contra un amigo o la compu", emoji: "🎱", carpeta: "games/pool/" },
     { categoria: "multi", nombre: "Tiro con arco", descripcion: "Duelo de 5 rondas con viento", emoji: "🏹", carpeta: "games/arco/" },
+    { categoria: "multi", nombre: "4 en línea", descripcion: "Juntá cuatro fichas antes que tu rival", emoji: "🔴", carpeta: "games/cuatro/" },
 
     { categoria: "casino", nombre: "Blackjack", descripcion: "Llegá a 21 sin pasarte", emoji: "🃏", carpeta: "games/blackjack/" },
     { categoria: "casino", nombre: "Ruleta", descripcion: "Apostá a números, colores o docenas", emoji: "🎡", carpeta: "games/ruleta/" },
