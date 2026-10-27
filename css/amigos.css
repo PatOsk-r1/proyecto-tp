@@ -121,6 +121,78 @@
     position: relative;
 }
 
+.foto-avatar,
+.inicial-avatar {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+}
+
+.foto-avatar {
+    display: block;
+    object-fit: cover;
+}
+
+.inicial-avatar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 900;
+    color: #1b1440;
+    background: var(--c);
+}
+
+.perfil-foto {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+}
+
+.avatar-grande {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    font-size: 3rem;
+    box-shadow: 0 0 0 4px #ffffff22, 0 8px 24px #0006;
+}
+
+.botones-foto {
+    display: flex;
+    gap: 8px;
+}
+
+.botones-foto label {
+    cursor: pointer;
+}
+
+.reglas-nombre {
+    margin-top: 6px;
+    font-size: 0.78rem;
+}
+
+.mini-perfil {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: inherit;
+    text-decoration: none;
+}
+
+.mini-perfil .avatar-mini {
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    font-size: 1.4rem;
+    flex-shrink: 0;
+}
+
+.mini-perfil .flecha {
+    margin-left: auto;
+    color: var(--acento);
+    font-weight: 800;
+}
+
 .conexion {
     position: absolute;
     right: -2px;
