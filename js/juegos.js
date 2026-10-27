@@ -50,4 +50,10 @@ const JUEGOS = [
         emoji: "🎱",
         carpeta: "games/pool/",
     },
+    {
+        nombre: "Tiro con arco",
+        descripcion: "Contra la compu o contra tus amigos",
+        emoji: "🏹",
+        carpeta: "games/arco/",
+    },
 ];
