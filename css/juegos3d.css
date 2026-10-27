@@ -134,6 +134,53 @@
     opacity: 0.4;
 }
 
+/* Controles comunes de casino: apuesta con − y +, botón principal */
+.controles-casino {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 10px 12px calc(12px + env(safe-area-inset-bottom));
+    background: var(--panel);
+    border-top: 1px solid var(--borde);
+}
+
+.apuesta-fila {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+}
+
+.apuesta-fila .apuesta {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    font-size: 0.8rem;
+    color: var(--texto-suave);
+    min-width: 80px;
+}
+
+.apuesta-fila .apuesta strong {
+    font-size: 1.5rem;
+    color: var(--acento);
+}
+
+.redondo {
+    width: 46px;
+    height: 46px;
+    border-radius: 50%;
+    font: inherit;
+    font-size: 1.5rem;
+    font-weight: 900;
+    color: #fff;
+    background: #ffffff1c;
+    border: 2px solid #ffffff40;
+}
+
+.redondo:disabled {
+    opacity: 0.35;
+}
+
 .tema-espiral {
     --fondo: #ff5f8f;
     --fondo-2: #ffb36b;
