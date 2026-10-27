@@ -17,7 +17,10 @@ service cloud.firestore {
     match /usuarios/{uid} {
       allow read: if conectado();
       allow create, update: if conectado() && request.auth.uid == uid
-        && request.resource.data.keys().hasOnly(['nombre', 'nombreMin', 'creado', 'visto', 'actividad'])
+        && request.resource.data.keys().hasOnly(['nombre', 'nombreMin', 'creado', 'visto', 'actividad', 'foto'])
+        && (!('foto' in request.resource.data) || (request.resource.data.foto is string
+            && request.resource.data.foto.size() < 90000
+            && request.resource.data.foto.matches('^data:image/jpeg;base64,[A-Za-z0-9+/=]+$')))
         && (!('visto' in request.resource.data) || request.resource.data.visto == request.time
             || request.resource.data.visto == resource.data.visto)
         && (!('actividad' in request.resource.data) || (request.resource.data.actividad is string && request.resource.data.actividad.size() <= 40))
