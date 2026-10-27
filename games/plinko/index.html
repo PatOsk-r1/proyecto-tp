@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="es" class="verificando">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>Plinko · Proyecto TP</title>
+    <meta name="theme-color" content="#14052e">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="../../icons/icon-180.png">
+    <link rel="manifest" href="../../manifest.webmanifest">
+
+    <link rel="stylesheet" href="../../css/estilos.css">
+    <link rel="stylesheet" href="../../css/juegos3d.css">
+    <style>
+        .tema-plinko {
+            --fondo: #0d0221;
+            --fondo-2: #2a0a5e;
+            --texto-suave: #d8c6ff;
+            --acento: #ff4fd8;
+            --acento-2: #8a2be2;
+            --panel: #08011acc;
+        }
+        .tema-plinko .accion { color: #fff; }
+        .zona-plinko {
+            flex: 1;
+            min-height: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 8px;
+        }
+        #tablero {
+            width: 100%;
+            height: 100%;
+            max-width: 520px;
+            touch-action: manipulation;
+        }
+        .ultimos {
+            display: flex;
+            gap: 4px;
+            min-height: 22px;
+        }
+        .ultimos span {
+            padding: 2px 7px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 900;
+            background: var(--c);
+            color: #10002b;
+        }
+    </style>
+</head>
+<body class="pantalla-3d tema-casino tema-plinko">
+    <header class="barra-juego">
+        <a class="boton-volver" href="../../">‹ Juegos</a>
+        <h1>Plinko</h1>
+        <div id="fichas" class="fichas-total"></div>
+    </header>
+
+    <main class="zona-plinko">
+        <div id="ultimos" class="ultimos"></div>
+        <canvas id="tablero"></canvas>
+    </main>
+
+    <div class="controles-casino">
+        <div class="apuesta-fila">
+            <button id="menos" class="redondo" type="button">−</button>
+            <div class="apuesta">Por bola<strong id="apuesta">10</strong></div>
+            <button id="mas" class="redondo" type="button">+</button>
+        </div>
+        <button id="soltar" class="accion" type="button">Soltar bola</button>
+        <button id="recargar" class="accion secundaria" type="button" hidden>Recargar fichas</button>
+    </div>
+
+    <script type="module">
+        import { exigirSesion } from "../../js/sesion.js";
+        exigirSesion();
+    </script>
+    <script type="module" src="juego.js"></script>
+</body>
+</html>
