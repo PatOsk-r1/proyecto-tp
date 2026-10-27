@@ -1,59 +1,16 @@
 // Lista de juegos que aparecen en la página principal.
-// Para agregar uno nuevo: copiá la carpeta games/_plantilla, renombrala
-// y sumá una entrada acá.
+// categoria: "solo" (de a uno), "multi" (con amigos online, también contra la compu) o "casino" (usan las fichas).
+// Para agregar uno nuevo: copiá la carpeta games/_plantilla, renombrala y sumá una entrada acá.
 const JUEGOS = [
-    {
-        nombre: "Reflejos",
-        descripcion: "Tocá apenas la pantalla se ponga verde",
-        emoji: "⚡",
-        carpeta: "games/reflejos/",
-    },
-    {
-        nombre: "Mina Profunda",
-        descripcion: "Picá, juntá recursos y construí máquinas",
-        emoji: "⛏️",
-        carpeta: "games/mina/",
-    },
-    {
-        nombre: "Marea",
-        descripcion: "Elegí puertas que suman y multiplican tu grupo",
-        emoji: "🏃",
-        carpeta: "games/marea/",
-    },
-    {
-        nombre: "Fusión",
-        descripcion: "Juntá dos iguales para crear algo mejor",
-        emoji: "🧩",
-        carpeta: "games/fusion/",
-    },
-    {
-        nombre: "Apilar",
-        descripcion: "Soltá cada bloque justo encima del anterior",
-        emoji: "🧱",
-        carpeta: "games/apilar/",
-    },
-    {
-        nombre: "Espiral",
-        descripcion: "Girá la torre y hacé caer la pelota",
-        emoji: "🌀",
-        carpeta: "games/espiral/",
-    },
-    {
-        nombre: "Blackjack",
-        descripcion: "Llegá a 21 sin pasarte y ganale a la banca",
-        emoji: "🃏",
-        carpeta: "games/blackjack/",
-    },
-    {
-        nombre: "Pool",
-        descripcion: "Bola 8 contra la computadora",
-        emoji: "🎱",
-        carpeta: "games/pool/",
-    },
-    {
-        nombre: "Tiro con arco",
-        descripcion: "Contra la compu o contra tus amigos",
-        emoji: "🏹",
-        carpeta: "games/arco/",
-    },
+    { categoria: "solo", nombre: "Reflejos", descripcion: "Tocá apenas la pantalla se ponga verde", emoji: "⚡", carpeta: "games/reflejos/" },
+    { categoria: "solo", nombre: "Mina Profunda", descripcion: "Picá, juntá recursos y construí máquinas", emoji: "⛏️", carpeta: "games/mina/" },
+    { categoria: "solo", nombre: "Marea", descripcion: "Elegí puertas que suman y multiplican tu grupo", emoji: "🏃", carpeta: "games/marea/" },
+    { categoria: "solo", nombre: "Fusión", descripcion: "Juntá dos iguales para crear algo mejor", emoji: "🧩", carpeta: "games/fusion/" },
+    { categoria: "solo", nombre: "Apilar", descripcion: "Soltá cada bloque justo encima del anterior", emoji: "🧱", carpeta: "games/apilar/" },
+    { categoria: "solo", nombre: "Espiral", descripcion: "Girá la torre y hacé caer la pelota", emoji: "🌀", carpeta: "games/espiral/" },
+
+    { categoria: "multi", nombre: "Pool", descripcion: "Bola 8 contra un amigo o la compu", emoji: "🎱", carpeta: "games/pool/" },
+    { categoria: "multi", nombre: "Tiro con arco", descripcion: "Duelo de 5 rondas con viento", emoji: "🏹", carpeta: "games/arco/" },
+
+    { categoria: "casino", nombre: "Blackjack", descripcion: "Llegá a 21 sin pasarte", emoji: "🃏", carpeta: "games/blackjack/" },
 ];
