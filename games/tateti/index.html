@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="es" class="verificando">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>Ta-te-tí · Proyecto TP</title>
+    <meta name="theme-color" content="#3a0ca3">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="../../icons/icon-180.png">
+    <link rel="manifest" href="../../manifest.webmanifest">
+
+    <link rel="stylesheet" href="../../css/estilos.css">
+    <link rel="stylesheet" href="../../css/juegos3d.css">
+    <link rel="stylesheet" href="../arco/estilo.css">
+    <style>
+        .tema-tateti {
+            --fondo: #240046;
+            --fondo-2: #5a189a;
+            --texto-suave: #e0c3fc;
+            --acento: #ffd23f;
+            --acento-2: #ff9f1c;
+            --panel: #10002bcc;
+        }
+        .zona {
+            position: relative;
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+        }
+        .tablero {
+            width: min(88vw, 380px);
+            aspect-ratio: 1;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            padding: 10px;
+            border-radius: 24px;
+            background: #ffffff14;
+            box-shadow: 0 16px 40px #0007, inset 0 0 0 2px #ffffff22;
+        }
+        .celda {
+            font: inherit;
+            font-size: min(18vw, 84px);
+            font-weight: 900;
+            line-height: 1;
+            border: none;
+            border-radius: 16px;
+            background: linear-gradient(160deg, #ffffff22, #ffffff08);
+            color: #fff;
+            box-shadow: 0 4px 0 #0005;
+        }
+        .celda:active:not(:disabled) {
+            transform: translateY(3px);
+            box-shadow: 0 1px 0 #0005;
+        }
+        .celda.x { color: #ff4d6d; text-shadow: 0 0 18px #ff4d6d88; }
+        .celda.o { color: #4cc9f0; text-shadow: 0 0 18px #4cc9f088; }
+        .celda.nueva { animation: aparecer 0.25s ease-out; }
+        .celda.ganadora { background: #ffd23f44; box-shadow: 0 0 22px #ffd23f; }
+        .simbolo-x { color: #ff4d6d; font-weight: 900; margin-right: 6px; }
+        .simbolo-o { color: #4cc9f0; font-weight: 900; margin-right: 6px; }
+    </style>
+</head>
+<body class="pantalla-3d tema-arco tema-tateti">
+    <header class="barra-juego">
+        <a class="boton-volver" href="../../">‹ Juegos</a>
+        <h1>Ta-te-tí</h1>
+    </header>
+
+    <div class="marcador-arco">
+        <div id="p0" class="tirador"><span class="nombre">Vos</span></div>
+        <div class="ronda"><span id="estado-turno">Tu turno</span></div>
+        <div id="p1" class="tirador"><span class="nombre">Rival</span></div>
+    </div>
+
+    <div class="zona">
+        <div id="tablero" class="tablero"></div>
+        <div id="centro" class="mensaje-centro">
+            <div id="titulo-centro">Ta-te-tí<div class="chico">Tres en línea gana</div></div>
+            <div id="opciones" class="dificultad">
+                <button data-nivel="0">Fácil</button>
+                <button data-nivel="1">Normal</button>
+                <button data-nivel="2">Imbatible</button>
+            </div>
+            <button id="jugar" class="boton-grande" type="button">Jugar contra la compu</button>
+            <a id="ir-amigos" class="enlace-amigos" href="../../amigos.html">👥 Jugar con un amigo</a>
+        </div>
+    </div>
+
+    <script type="module">
+        import { exigirSesion } from "../../js/sesion.js";
+        exigirSesion();
+    </script>
+    <script type="module" src="juego.js"></script>
+</body>
+</html>
