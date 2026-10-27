@@ -1,0 +1,28 @@
+# Sistema operativo
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# Editores
+.vscode/
+.idea/
+*.swp
+
+# Dependencias y entornos
+node_modules/
+venv/
+.venv/
+__pycache__/
+*.pyc
+
+# Compilados y salidas
+dist/
+build/
+bin/
+obj/
+*.exe
+*.class
+
+# Logs y variables de entorno
+*.log
+.env
