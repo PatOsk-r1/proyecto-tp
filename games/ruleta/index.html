@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="es" class="verificando">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>Ruleta · Proyecto TP</title>
+    <meta name="theme-color" content="#072a18">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="../../icons/icon-180.png">
+    <link rel="manifest" href="../../manifest.webmanifest">
+
+    <link rel="stylesheet" href="../../css/estilos.css">
+    <link rel="stylesheet" href="../../css/juegos3d.css">
+    <link rel="stylesheet" href="estilo.css">
+</head>
+<body class="pantalla-3d tema-casino">
+    <header class="barra-juego">
+        <a class="boton-volver" href="../../">‹ Juegos</a>
+        <h1>Ruleta</h1>
+        <div id="fichas" class="fichas-total"></div>
+    </header>
+
+    <main class="ruleta">
+        <div class="zona-rueda">
+            <canvas id="rueda" width="560" height="560"></canvas>
+            <div id="resultado" class="resultado" hidden></div>
+        </div>
+        <div id="historial" class="historial"></div>
+        <div id="mensaje" class="mensaje-mesa">Elegí una ficha y tocá dónde apostar</div>
+        <div id="pano" class="pano"></div>
+    </main>
+
+    <div class="controles">
+        <div class="fichas-apuesta">
+            <button class="ficha clara" data-valor="10" style="--c:#e8e8e8">10</button>
+            <button class="ficha" data-valor="50" style="--c:#e53935">50</button>
+            <button class="ficha" data-valor="100" style="--c:#1e88e5">100</button>
+            <button class="ficha" data-valor="500" style="--c:#212121">500</button>
+        </div>
+        <div class="botones">
+            <button id="borrar" class="accion secundaria" type="button">Borrar</button>
+            <button id="girar" class="accion" type="button">Girar</button>
+        </div>
+        <button id="recargar" class="accion" type="button" hidden>Recargar fichas</button>
+    </div>
+
+    <script type="module">
+        import { exigirSesion } from "../../js/sesion.js";
+        exigirSesion();
+    </script>
+    <script type="module" src="juego.js"></script>
+</body>
+</html>
