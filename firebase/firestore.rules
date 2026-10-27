@@ -1,0 +1,73 @@
+rules_version = '2';
+
+// Reglas de seguridad de la base de datos (Firestore) del multijugador.
+// Se suben con: firebase deploy --only firestore:rules (desde esta carpeta)
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function conectado() {
+      return request.auth != null;
+    }
+
+    function idAmistad(a, b) {
+      return a < b ? a + '_' + b : b + '_' + a;
+    }
+
+    // Perfil público: solo el nombre de usuario. Cada uno edita solo el suyo.
+    match /usuarios/{uid} {
+      allow read: if conectado();
+      allow create, update: if conectado() && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['nombre', 'nombreMin', 'creado'])
+        && request.resource.data.nombre is string
+        && request.resource.data.nombreMin == request.resource.data.nombre.lower()
+        && getAfter(/databases/$(database)/documents/nombres/$(request.resource.data.nombreMin)).data.uid == uid;
+      allow delete: if false;
+    }
+
+    // Reserva de nombres de usuario (el id del documento es el nombre en minúsculas): no se repiten.
+    match /nombres/{nombre} {
+      allow read: if conectado();
+      allow create: if conectado()
+        && nombre.matches('^[a-z0-9_]{3,20}$')
+        && request.resource.data.keys().hasOnly(['uid'])
+        && request.resource.data.uid == request.auth.uid
+        && getAfter(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.nombreMin == nombre;
+      allow delete: if conectado() && resource.data.uid == request.auth.uid;
+    }
+
+    // Amistades: se crean pendientes y solo el invitado puede aceptarlas.
+    match /amistades/{id} {
+      allow read: if conectado() && request.auth.uid in resource.data.uids;
+      allow create: if conectado()
+        && request.resource.data.keys().hasOnly(['uids', 'de', 'para', 'nombres', 'estado', 'creada'])
+        && request.resource.data.de == request.auth.uid
+        && request.resource.data.para != request.auth.uid
+        && request.resource.data.uids.size() == 2
+        && request.resource.data.uids.hasAll([request.resource.data.de, request.resource.data.para])
+        && request.resource.data.estado == 'pendiente'
+        && id == idAmistad(request.resource.data.de, request.resource.data.para);
+      allow update: if conectado()
+        && resource.data.para == request.auth.uid
+        && resource.data.estado == 'pendiente'
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['estado'])
+        && request.resource.data.estado == 'aceptada';
+      allow delete: if conectado() && request.auth.uid in resource.data.uids;
+    }
+
+    // Partidas entre dos amigos. Solo ellos dos pueden verlas y jugarlas.
+    match /partidas/{id} {
+      allow read: if conectado() && request.auth.uid in resource.data.jugadores;
+      allow create: if conectado()
+        && request.resource.data.creador == request.auth.uid
+        && request.resource.data.jugadores.size() == 2
+        && request.auth.uid in request.resource.data.jugadores
+        && request.resource.data.estado == 'invitada'
+        && get(/databases/$(database)/documents/amistades/$(idAmistad(request.resource.data.jugadores[0], request.resource.data.jugadores[1]))).data.estado == 'aceptada';
+      allow update: if conectado()
+        && request.auth.uid in resource.data.jugadores
+        && request.resource.data.jugadores == resource.data.jugadores
+        && request.resource.data.creador == resource.data.creador;
+      allow delete: if conectado() && request.auth.uid in resource.data.jugadores;
+    }
+  }
+}
