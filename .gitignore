@@ -23,6 +23,7 @@ obj/
 *.exe
 *.class
 
-# Logs y variables de entorno
+# Logs, variables de entorno y datos privados (publicar.ps1 tampoco los sube)
 *.log
 .env
+privado/
