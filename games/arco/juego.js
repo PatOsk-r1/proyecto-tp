@@ -483,6 +483,7 @@ for (const b of document.querySelectorAll(".dificultad button")) {
 
 async function iniciarOnline() {
     online = await import("../../js/multijugador.js");
+    online.iniciarPresencia("Tiro con arco");
     $("centro").hidden = true;
     online.escucharPartida(
         idPartida,
