@@ -12,6 +12,7 @@ Proyecto TP/
 ├── manifest.webmanifest  # Nombre, colores e íconos de la app instalada
 ├── sw.js                 # Service worker: guarda archivos para usar sin internet
 ├── servidor.ps1          # Servidor para probar en la PC
+├── publicar.ps1          # Sube los cambios a GitHub Pages
 ├── css/estilos.css       # Estilos compartidos
 ├── js/
 │   ├── juegos.js         # ← LISTA DE JUEGOS (acá se agregan los nuevos)
@@ -31,7 +32,7 @@ Proyecto TP/
    ```js
    { nombre: "Memoria", descripcion: "Encontrá las parejas", emoji: "🧠", carpeta: "games/memoria/" },
    ```
-4. En `sw.js`, subí el número de `VERSION` (v1 → v2) para que el iPhone baje los cambios.
+4. Publicalo con `publicar.ps1` (ver abajo).
 
 ## Probar en la PC
 
@@ -41,11 +42,21 @@ Ejecutá en la carpeta del proyecto y abrí http://localhost:8080:
 powershell -ExecutionPolicy Bypass -File servidor.ps1
 ```
 
+## Publicar cambios
+
+La app está publicada en **https://patosk-r1.github.io/proyecto-tp/** (repo `PatOsk-r1/proyecto-tp`).
+
+Para subir lo que cambiaste, ejecutá en la carpeta del proyecto:
+
+```bash
+powershell -ExecutionPolicy Bypass -File publicar.ps1
+```
+
+El script sube solo los archivos nuevos o modificados y aumenta solo la `VERSION` de `sw.js`, para que el iPhone baje los cambios. Con `-Probar` muestra qué subiría sin subir nada. Necesita GitHub CLI con la sesión iniciada (`gh auth login`).
+
 ## Instalar en el iPhone
 
-El iPhone solo instala la app si la página está publicada con **https**. Opciones gratuitas: GitHub Pages, Netlify o Cloudflare Pages (en Netlify alcanza con arrastrar la carpeta a su web).
-
-Después, en el iPhone:
+En el iPhone:
 
 1. Abrí la dirección en **Safari**.
 2. Tocá **Compartir** → **Agregar a inicio**.
