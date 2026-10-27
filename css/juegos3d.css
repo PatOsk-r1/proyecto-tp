@@ -180,10 +180,13 @@
     font-size: 0.8rem;
 }
 
+.mejora .precio .costo {
+    display: inline-flex;
+    align-items: center;
+    margin-right: 10px;
+}
+
 .mejora .precio {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 4px 10px;
     color: var(--acento);
     font-weight: 800;
     font-size: 0.9rem;
