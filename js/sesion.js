@@ -25,6 +25,13 @@ export function usuarioActual() {
 // Para páginas que requieren sesión: si no hay usuario, manda al login.
 // La página arranca oculta (clase "verificando" en <html>) para que no se vea antes de chequear.
 export async function exigirSesion() {
+    // Solo en la PC (localhost): permite probar los juegos sin cuenta.
+    // Activar desde la consola del navegador: localStorage.setItem("modo-prueba", "1")
+    if (location.hostname === "localhost" && localStorage.getItem("modo-prueba") === "1") {
+        document.documentElement.classList.remove("verificando");
+        return { displayName: "Prueba", email: "prueba@localhost" };
+    }
+
     const usuario = await usuarioActual();
     if (!usuario) {
         location.replace(`${LOGIN}?volver=${encodeURIComponent(location.pathname)}`);
