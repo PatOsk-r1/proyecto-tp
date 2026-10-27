@@ -9,10 +9,10 @@ const JUEGOS = [
         carpeta: "games/reflejos/",
     },
     {
-        nombre: "Isla Fábrica",
-        descripcion: "Tocá el cristal y comprá máquinas que producen solas",
-        emoji: "🏝️",
-        carpeta: "games/isla-fabrica/",
+        nombre: "Mina Profunda",
+        descripcion: "Picá, juntá recursos y construí máquinas",
+        emoji: "⛏️",
+        carpeta: "games/mina/",
     },
     {
         nombre: "Marea",
