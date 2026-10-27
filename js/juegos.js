@@ -44,4 +44,10 @@ const JUEGOS = [
         emoji: "🃏",
         carpeta: "games/blackjack/",
     },
+    {
+        nombre: "Pool",
+        descripcion: "Bola 8 contra la computadora",
+        emoji: "🎱",
+        carpeta: "games/pool/",
+    },
 ];
