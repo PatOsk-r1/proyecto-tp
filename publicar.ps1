@@ -8,6 +8,10 @@ param(
 
 $gh = "C:\Program Files\GitHub CLI\gh.exe"
 $raiz = $PSScriptRoot
+
+# Nunca se publican: el repo es publico y cualquiera puede leerlo.
+# Guarda datos privados en la carpeta "privado" o con alguno de estos nombres.
+$noPublicar = @("privado/*", "*.env", ".env*", "*.pem", "*.key", "*.p12", "*.pfx", "*secret*", "*password*", "node_modules/*")
 $sha1 = [System.Security.Cryptography.SHA1]::Create()
 
 # Mismo calculo que usa Git para identificar el contenido de un archivo
@@ -21,9 +25,31 @@ function ArchivosLocales {
     $lista = @{}
     Get-ChildItem $raiz -Recurse -File -Force | ForEach-Object {
         $rel = $_.FullName.Substring($raiz.Length + 1).Replace('\', '/')
-        $lista[$rel] = $_.FullName
+        $nombre = $_.Name
+        $excluido = $noPublicar | Where-Object { $rel -like $_ -or $nombre -like $_ }
+        if ($excluido) {
+            Write-Host "Omitido (privado): $rel"
+        } else {
+            $lista[$rel] = $_.FullName
+        }
     }
     $lista
+}
+
+# Frena todo si un archivo parece tener una clave privada o un token adentro
+function RevisarSecretos($archivos) {
+    $patrones = "PRIVATE KEY-----", "ghp_[A-Za-z0-9]{30,}", "github_pat_[A-Za-z0-9_]{30,}", "sk_live_[A-Za-z0-9]{20,}"
+    $encontrados = foreach ($rel in $archivos) {
+        if ($rel -eq "publicar.ps1") { continue }
+        $texto = [IO.File]::ReadAllText($locales[$rel])
+        foreach ($p in $patrones) { if ($texto -match $p) { $rel; break } }
+    }
+    if ($encontrados) {
+        Write-Host "PUBLICACION CANCELADA: posible dato secreto en:"
+        $encontrados | ForEach-Object { Write-Host "  $_" }
+        Write-Host "Sacalo del archivo o movelo a la carpeta 'privado'."
+        exit 1
+    }
 }
 
 # Archivos que ya estan en GitHub (ruta -> sha)
@@ -37,6 +63,13 @@ $locales = ArchivosLocales
 $cambiados = @($locales.Keys | Where-Object { $remotos[$_] -ne (ShaGit ([IO.File]::ReadAllBytes($locales[$_]))) } | Sort-Object)
 
 if ($cambiados.Count -eq 0) { Write-Host "No hay cambios para publicar."; exit 0 }
+RevisarSecretos $cambiados
+
+# Sin la configuracion de Firebase nadie podria entrar a la pagina publicada
+if ([IO.File]::ReadAllText((Join-Path $raiz "js/firebase-config.js")) -match "firebaseConfig = null") {
+    Write-Host "PUBLICACION CANCELADA: falta completar js/firebase-config.js."
+    exit 1
+}
 
 # Sube la VERSION del service worker para que el iPhone baje lo nuevo
 $sw = Join-Path $raiz "sw.js"
