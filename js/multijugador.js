@@ -3,7 +3,7 @@
 import { app, auth } from "./sesion.js";
 import {
     getFirestore, doc, getDoc, collection, query, where, onSnapshot, writeBatch, setDoc, updateDoc, deleteDoc, addDoc,
-    serverTimestamp,
+    serverTimestamp, deleteField,
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 export const db = app ? getFirestore(app) : null;
@@ -26,8 +26,38 @@ export async function elegirNombre(nombre, anterior) {
     const lote = writeBatch(db);
     if (anterior && anterior.nombreMin !== min) lote.delete(doc(db, "nombres", anterior.nombreMin));
     if (!reservado.exists()) lote.set(doc(db, "nombres", min), { uid: yo() });
-    lote.set(doc(db, "usuarios", yo()), { nombre, nombreMin: min, creado: anterior?.creado ?? serverTimestamp() });
+    // merge: conserva la foto y el estado de conexión
+    lote.set(doc(db, "usuarios", yo()), { nombre, nombreMin: min, creado: anterior?.creado ?? serverTimestamp() }, { merge: true });
     await lote.commit();
+}
+
+// Achica la imagen a un cuadrado de 128 px (unos 10 KB) para guardarla en el perfil
+export function prepararFoto(archivo) {
+    return new Promise((resolver, rechazar) => {
+        const img = new Image();
+        img.onload = () => {
+            const lado = Math.min(img.width, img.height);
+            const c = document.createElement("canvas");
+            c.width = c.height = 128;
+            c.getContext("2d").drawImage(img, (img.width - lado) / 2, (img.height - lado) / 2, lado, lado, 0, 0, 128, 128);
+            URL.revokeObjectURL(img.src);
+            resolver(c.toDataURL("image/jpeg", 0.8));
+        };
+        img.onerror = () => rechazar(new Error("No se pudo leer la imagen."));
+        img.src = URL.createObjectURL(archivo);
+    });
+}
+
+export const guardarFoto = (foto) => updateDoc(doc(db, "usuarios", yo()), { foto });
+export const quitarFoto = () => updateDoc(doc(db, "usuarios", yo()), { foto: deleteField() });
+
+// Avatar: la foto si tiene, si no la inicial sobre un color
+const COLORES_AVATAR = ["#ffcc33", "#7df9ff", "#ff8fab", "#a0f0a0", "#c9a7ff", "#ffb36b"];
+export function htmlAvatar(datos, nombre = "?") {
+    if (datos?.foto) return `<img class="foto-avatar" src="${datos.foto}" alt="">`;
+    const n = datos?.nombre ?? nombre;
+    const color = COLORES_AVATAR[[...n].reduce((s, c) => s + c.charCodeAt(0), 0) % COLORES_AVATAR.length];
+    return `<span class="inicial-avatar" style="--c:${color}">${n[0]?.toUpperCase() ?? "?"}</span>`;
 }
 
 export async function buscarUsuario(nombre) {
