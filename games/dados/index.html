@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="es" class="verificando">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>Dados · Proyecto TP</title>
+    <meta name="theme-color" content="#3d0b0b">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="../../icons/icon-180.png">
+    <link rel="manifest" href="../../manifest.webmanifest">
+
+    <link rel="stylesheet" href="../../css/estilos.css">
+    <link rel="stylesheet" href="../../css/juegos3d.css">
+    <style>
+        .tema-dados {
+            --fondo: #2a0606;
+            --fondo-2: #6b1010;
+            --texto-suave: #ffd6cc;
+            --acento: #ffd166;
+            --acento-2: #e0a020;
+            --panel: #1a0303cc;
+        }
+        .mesa-dados {
+            flex: 1;
+            min-height: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-evenly;
+            padding: 10px;
+            background: radial-gradient(ellipse at 50% 40%, #1c8a4e, #0b4a26 70%);
+            margin: 0 10px;
+            border-radius: 24px;
+            border: 6px solid #5a2e10;
+            box-shadow: inset 0 0 40px #0009;
+        }
+        .dados {
+            display: flex;
+            gap: 40px;
+            perspective: 600px;
+            height: 110px;
+            align-items: center;
+        }
+        .dado {
+            position: relative;
+            width: 70px;
+            height: 70px;
+            transform-style: preserve-3d;
+            transition: transform 1.2s cubic-bezier(0.2, 0.7, 0.2, 1);
+        }
+        .cara-dado {
+            position: absolute;
+            inset: 0;
+            display: grid;
+            grid-template: repeat(3, 1fr) / repeat(3, 1fr);
+            padding: 8px;
+            border-radius: 12px;
+            background: linear-gradient(145deg, #ffffff, #e9e4dc);
+            box-shadow: inset 0 0 8px #0003;
+        }
+        .cara-dado i {
+            width: 12px;
+            height: 12px;
+            margin: auto;
+            border-radius: 50%;
+            background: #c62828;
+            box-shadow: inset 1px 1px 2px #0006;
+        }
+        .suma {
+            font-size: 1.8rem;
+            font-weight: 900;
+            min-height: 1.3em;
+            text-shadow: 0 2px 6px #000a;
+        }
+        .suma.gano { color: var(--acento); animation: aparecer 0.35s ease-out; }
+        .apuestas-dados {
+            width: min(100%, 460px);
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 8px;
+        }
+        .opcion-dado {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+            padding: 12px 6px;
+            font: inherit;
+            color: #fff;
+            background: #0006;
+            border: 2px solid #ffffff33;
+            border-radius: 14px;
+        }
+        .opcion-dado strong { font-size: 1.1rem; }
+        .opcion-dado span { font-size: 0.75rem; color: var(--texto-suave); }
+        .opcion-dado.elegida { border-color: var(--acento); background: #ffd16633; box-shadow: 0 0 14px #ffd16666; }
+    </style>
+</head>
+<body class="pantalla-3d tema-casino tema-dados">
+    <header class="barra-juego">
+        <a class="boton-volver" href="../../">‹ Juegos</a>
+        <h1>Dados</h1>
+        <div id="fichas" class="fichas-total"></div>
+    </header>
+
+    <main class="mesa-dados">
+        <div class="dados"><div id="dado1" class="dado"></div><div id="dado2" class="dado"></div></div>
+        <div id="suma" class="suma">¿Bajo, siete o sobre?</div>
+        <div class="apuestas-dados">
+            <button class="opcion-dado" data-apuesta="bajo"><strong>Bajo 7</strong><span>2 a 6 · paga 1 a 1</span></button>
+            <button class="opcion-dado" data-apuesta="siete"><strong>Siete</strong><span>paga 4 a 1</span></button>
+            <button class="opcion-dado" data-apuesta="sobre"><strong>Sobre 7</strong><span>8 a 12 · paga 1 a 1</span></button>
+        </div>
+    </main>
+
+    <div class="controles-casino">
+        <div class="apuesta-fila">
+            <button id="menos" class="redondo" type="button">−</button>
+            <div class="apuesta">Apuesta<strong id="apuesta">10</strong></div>
+            <button id="mas" class="redondo" type="button">+</button>
+        </div>
+        <button id="tirar" class="accion" type="button">Tirar dados</button>
+        <button id="recargar" class="accion secundaria" type="button" hidden>Recargar fichas</button>
+    </div>
+
+    <script type="module">
+        import { exigirSesion } from "../../js/sesion.js";
+        exigirSesion();
+    </script>
+    <script type="module" src="juego.js"></script>
+</body>
+</html>
