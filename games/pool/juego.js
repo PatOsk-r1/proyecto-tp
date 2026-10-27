@@ -585,8 +585,10 @@ function puntoEnMesa(e) {
     return raycaster.ray.intersectPlane(planoMesa, new THREE.Vector3());
 }
 
-// Tocar o arrastrar sobre la mesa: el taco apunta hacia el dedo
-let apuntandoConDedo = false;
+// Tocar la mesa: el taco apunta hacia ese punto.
+// Deslizar: gira el taco desde donde está (de a poco), sin saltar al dedo.
+const SENSIBILIDAD_GIRO = 0.0035; // radianes por píxel
+let toque = null;
 function apuntarHacia(e) {
     const p = puntoEnMesa(e);
     const b = blanca();
@@ -598,11 +600,24 @@ function apuntarHacia(e) {
 }
 renderer.domElement.addEventListener("pointerdown", (e) => {
     if (juego.fase !== "apuntando") return;
-    apuntandoConDedo = true;
-    apuntarHacia(e);
+    toque = { x: e.clientX, y: e.clientY, ultimoX: e.clientX, ultimoY: e.clientY, deslizo: false };
 });
-renderer.domElement.addEventListener("pointermove", (e) => apuntandoConDedo && juego.fase === "apuntando" && apuntarHacia(e));
-addEventListener("pointerup", () => (apuntandoConDedo = false));
+renderer.domElement.addEventListener("pointermove", (e) => {
+    if (!toque || juego.fase !== "apuntando") return;
+    if (!toque.deslizo && Math.hypot(e.clientX - toque.x, e.clientY - toque.y) < 10) return;
+    toque.deslizo = true;
+    // El movimiento del dedo (horizontal o vertical) se suma al ángulo actual
+    const delta = e.clientX - toque.ultimoX - (e.clientY - toque.ultimoY) * 0.6;
+    const a = Math.atan2(apunte.dz, apunte.dx) + delta * SENSIBILIDAD_GIRO;
+    apunte = { dx: Math.cos(a), dz: Math.sin(a) };
+    toque.ultimoX = e.clientX;
+    toque.ultimoY = e.clientY;
+});
+renderer.domElement.addEventListener("pointerup", (e) => {
+    if (toque && !toque.deslizo && juego.fase === "apuntando") apuntarHacia(e);
+    toque = null;
+});
+renderer.domElement.addEventListener("pointercancel", () => (toque = null));
 
 // Ajuste fino: mantener apretado gira de a poquito
 function girar(sentido) {
