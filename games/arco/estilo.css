@@ -1,0 +1,191 @@
+.tema-arco {
+    --fondo: #1d4f8c;
+    --fondo-2: #2e6db4;
+    --texto-suave: #d4e6ff;
+    --acento: #ffd23f;
+    --acento-2: #ff9f1c;
+    --panel: #0c2a4dcc;
+}
+
+.marcador-arco {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 10px;
+    background: var(--panel);
+    border-bottom: 1px solid var(--borde);
+}
+
+.tirador {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    padding: 6px 10px;
+    border-radius: 12px;
+    background: #ffffff12;
+    border: 2px solid transparent;
+}
+
+.tirador.turno {
+    border-color: var(--acento);
+    box-shadow: 0 0 12px #ffd23f55;
+}
+
+.tirador .nombre {
+    font-weight: 800;
+    font-size: 0.85rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.tirador .total {
+    font-weight: 900;
+    font-size: 1.3rem;
+    color: var(--acento);
+}
+
+.tirador .flechitas {
+    grid-column: 1 / -1;
+    display: flex;
+    gap: 3px;
+    margin-top: 3px;
+}
+
+.flechitas span {
+    flex: 1;
+    max-width: 22px;
+    padding: 1px 0;
+    border-radius: 5px;
+    background: #0004;
+    font-size: 0.7rem;
+    font-weight: 800;
+    text-align: center;
+}
+
+#p0 .flechitas span.hecho {
+    background: #3a86ff;
+}
+
+#p1 .flechitas span.hecho {
+    background: #e63946;
+}
+
+.ronda {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    font-size: 0.75rem;
+    font-weight: 800;
+    color: var(--texto-suave);
+    white-space: nowrap;
+}
+
+.ronda span:last-child {
+    color: var(--acento);
+}
+
+.mira {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 34px;
+    height: 34px;
+    transform: translate(-50%, -50%);
+    border: 2px solid #fff;
+    border-radius: 50%;
+    box-shadow: 0 0 0 1px #0008, inset 0 0 0 1px #0008;
+    pointer-events: none;
+}
+
+.mira::before,
+.mira::after {
+    content: "";
+    position: absolute;
+    background: #fff;
+    box-shadow: 0 0 0 1px #0006;
+}
+
+.mira::before {
+    left: 50%;
+    top: -10px;
+    bottom: -10px;
+    width: 2px;
+    transform: translateX(-50%);
+}
+
+.mira::after {
+    top: 50%;
+    left: -10px;
+    right: -10px;
+    height: 2px;
+    transform: translateY(-50%);
+}
+
+.viento {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
+    border-radius: 999px;
+    background: #0009;
+    font-weight: 900;
+    pointer-events: none;
+}
+
+#flecha-viento {
+    display: inline-block;
+    color: #7df9ff;
+    font-size: 1.1rem;
+    transition: transform 0.3s;
+}
+
+.ayuda-tiro {
+    position: absolute;
+    bottom: 12px;
+    left: 12px;
+    right: 12px;
+    text-align: center;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #fff;
+    text-shadow: 0 1px 3px #000;
+    pointer-events: none;
+}
+
+.dificultad {
+    display: flex;
+    gap: 6px;
+    pointer-events: auto;
+}
+
+.dificultad button {
+    font: inherit;
+    font-size: 0.85rem;
+    font-weight: 800;
+    color: var(--texto);
+    background: #0008;
+    border: 2px solid #fff3;
+    border-radius: 999px;
+    padding: 6px 12px;
+}
+
+.dificultad button.activa {
+    border-color: var(--acento);
+    color: var(--acento);
+}
+
+.enlace-amigos {
+    pointer-events: auto;
+    font-size: 1rem;
+    font-weight: 800;
+    color: #fff;
+    text-decoration: none;
+    padding: 8px 14px;
+    border-radius: 999px;
+    background: #0007;
+}
