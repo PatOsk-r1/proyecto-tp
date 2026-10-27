@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="es" class="verificando">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>Tiro con arco · Proyecto TP</title>
+    <meta name="theme-color" content="#2e6db4">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="../../icons/icon-180.png">
+    <link rel="manifest" href="../../manifest.webmanifest">
+
+    <link rel="stylesheet" href="../../css/estilos.css">
+    <link rel="stylesheet" href="../../css/juegos3d.css">
+    <link rel="stylesheet" href="estilo.css">
+</head>
+<body class="pantalla-3d tema-arco">
+    <header class="barra-juego">
+        <a class="boton-volver" href="../../">‹ Juegos</a>
+        <h1>Tiro con arco</h1>
+    </header>
+
+    <div class="marcador-arco">
+        <div id="p0" class="tirador"><span class="nombre">Vos</span><span class="total">0</span><div class="flechitas"></div></div>
+        <div class="ronda"><span id="ronda">Ronda 1/5</span><span id="estado-turno">Tu turno</span></div>
+        <div id="p1" class="tirador"><span class="nombre">Rival</span><span class="total">0</span><div class="flechitas"></div></div>
+    </div>
+
+    <div id="lienzo" class="lienzo-3d">
+        <div id="mira" class="mira" hidden></div>
+        <div id="viento" class="viento"><span id="flecha-viento">➜</span><span id="valor-viento">0</span></div>
+        <div id="ayuda" class="ayuda-tiro" hidden>Mantené apretado, mové para apuntar y soltá. Ojo con la caída y el viento.</div>
+        <div id="aviso" class="mensaje-centro" hidden></div>
+        <div id="centro" class="mensaje-centro">
+            <div id="titulo-centro">Tiro con arco<div class="chico">5 rondas · gana el que suma más</div></div>
+            <div id="opciones" class="dificultad">
+                <button data-nivel="0">Fácil</button>
+                <button data-nivel="1">Normal</button>
+                <button data-nivel="2">Difícil</button>
+            </div>
+            <button id="jugar" class="boton-grande" type="button">Jugar contra la compu</button>
+            <a id="ir-amigos" class="enlace-amigos" href="../../amigos.html">👥 Desafiar a un amigo</a>
+        </div>
+    </div>
+
+    <script type="module">
+        import { exigirSesion } from "../../js/sesion.js";
+        exigirSesion();
+    </script>
+    <script type="module" src="juego.js"></script>
+</body>
+</html>
