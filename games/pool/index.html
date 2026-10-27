@@ -34,6 +34,13 @@
     </div>
 
     <div id="lienzo" class="lienzo-3d">
+        <button id="abrir-skins" class="boton-skins" type="button" aria-label="Skins">🎨</button>
+        <div id="panel-skins" class="panel-skins" hidden>
+            <div class="hoja-skins">
+                <div class="titulo-skins"><strong>Skins</strong><span>Todas gratis</span><button id="cerrar-skins" type="button">✕</button></div>
+                <div id="lista-skins"></div>
+            </div>
+        </div>
         <!-- Barra para tirar: se desliza el taco hacia abajo y se suelta -->
         <div id="barra" class="barra-taco" hidden>
             <div class="riel">
@@ -56,7 +63,9 @@
                 <button data-nivel="1">Normal</button>
                 <button data-nivel="2">Difícil</button>
             </div>
+            <button id="continuar" class="boton-grande" type="button" hidden>Continuar partida</button>
             <button id="jugar" class="boton-grande" type="button">Jugar contra la compu</button>
+            <div id="en-curso" class="en-curso"></div>
             <a id="ir-amigos" class="enlace-amigos" href="../../amigos.html">👥 Jugar con un amigo</a>
             <div id="record" class="chico"></div>
         </div>
