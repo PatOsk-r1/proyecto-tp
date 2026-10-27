@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="es" class="verificando">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>4 en línea · Proyecto TP</title>
+    <meta name="theme-color" content="#0d1b4d">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="../../icons/icon-180.png">
+    <link rel="manifest" href="../../manifest.webmanifest">
+
+    <link rel="stylesheet" href="../../css/estilos.css">
+    <link rel="stylesheet" href="../../css/juegos3d.css">
+    <link rel="stylesheet" href="../arco/estilo.css">
+    <style>
+        .tema-cuatro {
+            --fondo: #0d1b4d;
+            --fondo-2: #1f3a93;
+            --texto-suave: #c9d6ff;
+            --acento: #ffd23f;
+            --acento-2: #ff9f1c;
+            --panel: #081236cc;
+        }
+        .ficha-color {
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            margin-right: 6px;
+            vertical-align: -2px;
+            box-shadow: inset -2px -2px 3px #0006;
+        }
+        .ficha-color.roja { background: #e63946; }
+        .ficha-color.amarilla { background: #ffd23f; }
+    </style>
+</head>
+<body class="pantalla-3d tema-arco tema-cuatro">
+    <header class="barra-juego">
+        <a class="boton-volver" href="../../">‹ Juegos</a>
+        <h1>4 en línea</h1>
+    </header>
+
+    <div class="marcador-arco">
+        <div id="p0" class="tirador"><span class="nombre"><i class="ficha-color roja"></i>Vos</span></div>
+        <div class="ronda"><span id="estado-turno">Tu turno</span></div>
+        <div id="p1" class="tirador"><span class="nombre"><i class="ficha-color amarilla"></i>Rival</span></div>
+    </div>
+
+    <div id="lienzo" class="lienzo-3d">
+        <div id="ayuda" class="ayuda-tiro">Tocá una columna para soltar tu ficha</div>
+        <div id="centro" class="mensaje-centro">
+            <div id="titulo-centro">4 en línea<div class="chico">Juntá cuatro fichas en línea: horizontal, vertical o diagonal</div></div>
+            <div id="opciones" class="dificultad">
+                <button data-nivel="0">Fácil</button>
+                <button data-nivel="1">Normal</button>
+                <button data-nivel="2">Difícil</button>
+            </div>
+            <button id="jugar" class="boton-grande" type="button">Jugar contra la compu</button>
+            <a id="ir-amigos" class="enlace-amigos" href="../../amigos.html">👥 Jugar con un amigo</a>
+        </div>
+    </div>
+
+    <script type="module">
+        import { exigirSesion } from "../../js/sesion.js";
+        exigirSesion();
+    </script>
+    <script type="module" src="juego.js"></script>
+</body>
+</html>
