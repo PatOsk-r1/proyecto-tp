@@ -162,4 +162,5 @@ export const JUEGOS_ONLINE = {
     arco: { nombre: "Tiro con arco", emoji: "🏹", carpeta: "games/arco/", reglas: "../games/arco/reglas.js" },
     pool: { nombre: "Pool", emoji: "🎱", carpeta: "games/pool/", reglas: "../games/pool/reglas.js" },
     cuatro: { nombre: "4 en línea", emoji: "🔴", carpeta: "games/cuatro/", reglas: "../games/cuatro/reglas.js" },
+    tateti: { nombre: "Ta-te-tí", emoji: "❌", carpeta: "games/tateti/", reglas: "../games/tateti/reglas.js" },
 };
