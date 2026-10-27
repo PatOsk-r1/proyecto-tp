@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" class="verificando">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -19,8 +19,11 @@
 </head>
 <body>
     <header class="encabezado">
-        <h1>Proyecto TP</h1>
-        <p>Elegí un juego</p>
+        <div>
+            <h1>Proyecto TP</h1>
+            <p id="saludo">Elegí un juego</p>
+        </div>
+        <button id="salir" class="boton-texto" type="button">Salir</button>
     </header>
 
     <main>
@@ -29,5 +32,13 @@
 
     <script src="js/juegos.js"></script>
     <script src="js/app.js"></script>
+    <script type="module">
+        import { exigirSesion, cerrarSesion } from "./js/sesion.js";
+
+        const usuario = await exigirSesion();
+        const nombre = usuario.displayName || usuario.email;
+        document.getElementById("saludo").textContent = `Hola, ${nombre}. Elegí un juego`;
+        document.getElementById("salir").addEventListener("click", cerrarSesion);
+    </script>
 </body>
 </html>
