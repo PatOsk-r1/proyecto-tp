@@ -1,0 +1,195 @@
+.tema-tragamonedas {
+    --fondo: #1a0626;
+    --fondo-2: #3d0d52;
+    --texto-suave: #e3c8f5;
+    --acento: #ffd166;
+    --acento-2: #ff7a1a;
+    --panel: #12031acc;
+}
+
+.sala {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+    padding: 10px 14px;
+}
+
+.maquina {
+    position: relative;
+    width: min(100%, 360px);
+    padding: 18px 16px 14px;
+    border-radius: 26px;
+    background: linear-gradient(180deg, #e53935, #8e0e0e);
+    border: 4px solid #ffd166;
+    box-shadow: 0 0 0 4px #7a4a00, 0 18px 40px #000a, inset 0 2px 0 #fff6;
+}
+
+/* Bombitas alrededor que se prenden y apagan */
+.luces {
+    position: absolute;
+    inset: 6px;
+    border-radius: 20px;
+    pointer-events: none;
+    background:
+        radial-gradient(circle, #fff7c2 0 3px, transparent 4px) 0 0 / 22px 22px;
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+    padding: 6px;
+    animation: titilar 0.8s steps(2) infinite;
+}
+
+.maquina.premio .luces {
+    animation-duration: 0.2s;
+}
+
+@keyframes titilar {
+    50% {
+        opacity: 0.35;
+    }
+}
+
+.cartel {
+    text-align: center;
+    font-weight: 900;
+    letter-spacing: 0.08em;
+    color: #ffd166;
+    text-shadow: 0 2px 0 #7a1a00, 0 0 12px #ffd166aa;
+    margin-bottom: 10px;
+}
+
+.ventana {
+    position: relative;
+    display: flex;
+    gap: 8px;
+    padding: 10px;
+    border-radius: 14px;
+    background: #2b0b0b;
+    box-shadow: inset 0 6px 14px #000;
+}
+
+.rodillo {
+    flex: 1;
+    height: 210px;
+    overflow: hidden;
+    border-radius: 10px;
+    background: linear-gradient(180deg, #ccc 0%, #fff 25%, #fff 75%, #ccc 100%);
+    box-shadow: inset 0 10px 14px -6px #000a, inset 0 -10px 14px -6px #000a;
+}
+
+.tira {
+    display: flex;
+    flex-direction: column;
+    will-change: transform;
+}
+
+.simbolo {
+    height: 70px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2.6rem;
+}
+
+.linea {
+    position: absolute;
+    left: 4px;
+    right: 4px;
+    top: 50%;
+    height: 3px;
+    transform: translateY(-50%);
+    background: #ff1744aa;
+    box-shadow: 0 0 8px #ff1744;
+    pointer-events: none;
+}
+
+.mensaje-maquina {
+    margin-top: 12px;
+    text-align: center;
+    font-size: 1.15rem;
+    font-weight: 900;
+    color: #fff;
+    min-height: 1.5em;
+    text-shadow: 0 2px 4px #0008;
+}
+
+.maquina.premio .mensaje-maquina {
+    color: #ffd166;
+    animation: aparecer 0.35s ease-out;
+}
+
+.tabla {
+    width: min(100%, 360px);
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+}
+
+.tabla div {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 10px;
+    border-radius: 10px;
+    background: #ffffff10;
+    font-size: 0.85rem;
+}
+
+.tabla .ancho {
+    grid-column: span 2;
+}
+
+.tabla b {
+    color: var(--acento);
+}
+
+.controles {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 10px 12px 12px;
+    background: var(--panel);
+    border-top: 1px solid var(--borde);
+}
+
+.apuesta-fila {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+}
+
+.apuesta {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    font-size: 0.8rem;
+    color: var(--texto-suave);
+    min-width: 80px;
+}
+
+.apuesta strong {
+    font-size: 1.5rem;
+    color: var(--acento);
+}
+
+.redondo {
+    width: 46px;
+    height: 46px;
+    border-radius: 50%;
+    font: inherit;
+    font-size: 1.5rem;
+    font-weight: 900;
+    color: #fff;
+    background: #ffffff1c;
+    border: 2px solid #ffffff40;
+}
+
+.palanca {
+    font-size: 1.3rem;
+    letter-spacing: 0.1em;
+    padding: 16px;
+}
