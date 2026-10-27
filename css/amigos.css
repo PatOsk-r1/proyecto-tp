@@ -1,0 +1,157 @@
+.amigos {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding: 4px 16px 32px;
+    max-width: 560px;
+    margin: 0 auto;
+    -webkit-user-select: auto;
+    user-select: auto;
+}
+
+.bloque {
+    padding: 14px;
+    border-radius: var(--radio);
+    background: var(--tarjeta);
+}
+
+.bloque h2 {
+    font-size: 1.05rem;
+    margin-bottom: 8px;
+}
+
+.suave {
+    color: var(--texto-suave);
+    font-size: 0.9rem;
+}
+
+.fila-form {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.fila-form input {
+    flex: 1;
+    min-width: 0;
+    font: inherit;
+    font-size: 16px;
+    color: var(--texto);
+    background: #ffffff12;
+    border: 1px solid #ffffff22;
+    border-radius: 12px;
+    padding: 11px 12px;
+    outline: none;
+}
+
+.fila-form input:focus {
+    border-color: var(--acento);
+}
+
+.boton-chico {
+    font: inherit;
+    font-weight: 800;
+    font-size: 0.9rem;
+    color: var(--fondo);
+    background: var(--acento);
+    border: none;
+    border-radius: 12px;
+    padding: 10px 14px;
+    white-space: nowrap;
+}
+
+.boton-chico.secundario {
+    color: var(--texto);
+    background: #ffffff18;
+}
+
+.boton-chico.peligro {
+    color: #ffb4a8;
+    background: #c0392b33;
+}
+
+.boton-chico:disabled {
+    opacity: 0.5;
+}
+
+.aviso-linea {
+    margin-top: 8px;
+    font-size: 0.9rem;
+    padding: 8px 10px;
+    border-radius: 10px;
+    background: #c0392b33;
+    color: #ffb4a8;
+}
+
+.aviso-linea.ok {
+    background: #27ae6033;
+    color: #a8f0c0;
+}
+
+.lista {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px;
+    border-radius: 12px;
+    background: #ffffff0d;
+}
+
+.item .avatar {
+    flex-shrink: 0;
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 900;
+    color: #1b1440;
+    background: var(--c, var(--acento));
+}
+
+.item .info {
+    flex: 1;
+    min-width: 0;
+}
+
+.item .info strong {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.item .info span {
+    font-size: 0.8rem;
+    color: var(--texto-suave);
+}
+
+.item .acciones {
+    display: flex;
+    gap: 6px;
+}
+
+.item.destacado {
+    outline: 2px solid var(--acento);
+}
+
+.insignia {
+    display: inline-block;
+    min-width: 20px;
+    padding: 1px 6px;
+    margin-left: 6px;
+    border-radius: 999px;
+    background: #ff4d6d;
+    color: #fff;
+    font-size: 0.75rem;
+    font-weight: 900;
+    text-align: center;
+}
