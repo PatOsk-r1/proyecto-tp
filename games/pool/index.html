@@ -18,7 +18,16 @@
     <header class="barra-juego">
         <a class="boton-volver" href="../../">‹ Juegos</a>
         <h1>Pool</h1>
+        <button id="abrir-skins" class="boton-skins" type="button">🎨 Skins</button>
     </header>
+
+    <div id="panel-skins" class="panel-skins" hidden>
+        <div class="hoja-skins">
+            <div class="titulo-skins"><strong>🎨 Skins</strong><span>Todas gratis</span><button id="cerrar-skins" type="button" aria-label="Cerrar">✕</button></div>
+            <div id="lista-skins"></div>
+            <button id="listo-skins" class="boton-grande listo" type="button">Listo</button>
+        </div>
+    </div>
 
     <div class="jugadores">
         <div id="j0" class="jugador">
@@ -34,13 +43,6 @@
     </div>
 
     <div id="lienzo" class="lienzo-3d">
-        <button id="abrir-skins" class="boton-skins" type="button" aria-label="Skins">🎨</button>
-        <div id="panel-skins" class="panel-skins" hidden>
-            <div class="hoja-skins">
-                <div class="titulo-skins"><strong>Skins</strong><span>Todas gratis</span><button id="cerrar-skins" type="button">✕</button></div>
-                <div id="lista-skins"></div>
-            </div>
-        </div>
         <!-- Barra para tirar: se desliza el taco hacia abajo y se suelta -->
         <div id="barra" class="barra-taco" hidden>
             <div class="riel">
