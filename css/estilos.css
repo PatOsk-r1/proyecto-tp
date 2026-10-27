@@ -35,9 +35,161 @@ body {
     overscroll-behavior: none;
 }
 
+[hidden] {
+    display: none !important;
+}
+
+/* Oculta la página mientras se chequea la sesión */
+.verificando body {
+    visibility: hidden;
+}
+
+/* ---------- Login ---------- */
+
+.pagina-login {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100%;
+    -webkit-user-select: auto;
+    user-select: auto;
+}
+
+.caja-login {
+    width: 100%;
+    max-width: 360px;
+    padding: 24px 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+}
+
+.logo-login {
+    border-radius: 18px;
+}
+
+.formulario {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 8px;
+}
+
+.campo {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: 0.9rem;
+    color: var(--texto-suave);
+}
+
+.campo input {
+    font: inherit;
+    font-size: 16px; /* 16px o más evita que el iPhone haga zoom al escribir */
+    color: var(--texto);
+    background: var(--tarjeta);
+    border: 1px solid #ffffff22;
+    border-radius: 12px;
+    padding: 12px 14px;
+    outline: none;
+}
+
+.campo input:focus {
+    border-color: var(--acento);
+}
+
+.boton-principal {
+    font: inherit;
+    font-weight: 700;
+    font-size: 1rem;
+    color: var(--fondo);
+    background: var(--acento);
+    border: none;
+    border-radius: 12px;
+    padding: 14px;
+    margin-top: 4px;
+}
+
+.boton-principal:disabled {
+    opacity: 0.5;
+}
+
+.boton-google {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    font: inherit;
+    font-weight: 600;
+    font-size: 1rem;
+    color: #1f1f1f;
+    background: #ffffff;
+    border: none;
+    border-radius: 12px;
+    padding: 13px;
+    margin-top: 8px;
+}
+
+.boton-google:disabled {
+    opacity: 0.5;
+}
+
+.separador {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--texto-suave);
+    font-size: 0.85rem;
+}
+
+.separador::before,
+.separador::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: #ffffff22;
+}
+
+.boton-texto {
+    font: inherit;
+    font-size: 0.95rem;
+    color: var(--acento);
+    background: none;
+    border: none;
+    padding: 6px;
+}
+
+.boton-texto:disabled {
+    opacity: 0.4;
+}
+
+.aviso {
+    font-size: 0.9rem;
+    padding: 10px 12px;
+    border-radius: 10px;
+}
+
+.aviso.error {
+    background: #c0392b33;
+    color: #ffb4a8;
+}
+
+.aviso.ok {
+    background: #27ae6033;
+    color: #a8f0c0;
+}
+
 /* ---------- Página principal ---------- */
 
 .encabezado {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
     padding: 32px 20px 16px;
 }
 
@@ -48,6 +200,11 @@ body {
 .encabezado p {
     color: var(--texto-suave);
     margin-top: 4px;
+}
+
+.encabezado .boton-texto {
+    flex-shrink: 0;
+    margin-top: 6px;
 }
 
 .lista-juegos {
