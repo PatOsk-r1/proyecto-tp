@@ -38,4 +38,10 @@ const JUEGOS = [
         emoji: "🌀",
         carpeta: "games/espiral/",
     },
+    {
+        nombre: "Blackjack",
+        descripcion: "Llegá a 21 sin pasarte y ganale a la banca",
+        emoji: "🃏",
+        carpeta: "games/blackjack/",
+    },
 ];
