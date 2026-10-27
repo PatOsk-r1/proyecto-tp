@@ -11,15 +11,15 @@ const SEGMENTO = (Math.PI * 2) / ORDEN.length;
 
 // Apuestas de afuera: qué números cubren y cuánto pagan (además de devolver lo apostado)
 const AFUERA = {
-    d1: { texto: "1ª docena", paga: 2, gana: (n) => n >= 1 && n <= 12 },
-    d2: { texto: "2ª docena", paga: 2, gana: (n) => n >= 13 && n <= 24 },
-    d3: { texto: "3ª docena", paga: 2, gana: (n) => n >= 25 },
-    bajo: { texto: "1 a 18", paga: 1, gana: (n) => n >= 1 && n <= 18 },
+    d1: { texto: "1ª 12", paga: 2, gana: (n) => n >= 1 && n <= 12 },
+    d2: { texto: "2ª 12", paga: 2, gana: (n) => n >= 13 && n <= 24 },
+    d3: { texto: "3ª 12", paga: 2, gana: (n) => n >= 25 },
+    bajo: { texto: "1-18", paga: 1, gana: (n) => n >= 1 && n <= 18 },
     par: { texto: "Par", paga: 1, gana: (n) => n > 0 && n % 2 === 0 },
     rojo: { texto: "Rojo", paga: 1, gana: (n) => ROJOS.has(n), clase: "rojo" },
     negro: { texto: "Negro", paga: 1, gana: (n) => n > 0 && !ROJOS.has(n), clase: "negro" },
     impar: { texto: "Impar", paga: 1, gana: (n) => n % 2 === 1 },
-    alto: { texto: "19 a 36", paga: 1, gana: (n) => n >= 19 },
+    alto: { texto: "19-36", paga: 1, gana: (n) => n >= 19 },
 };
 
 let apuestas = {};
@@ -134,19 +134,34 @@ function girarRueda(resultado) {
 }
 
 // ---------- Paño ----------
+// Disposición clásica: el 0 ocupa la primera columna; los números van de a 3 por columna
+// (abajo 1, 4, 7…; al medio 2, 5, 8…; arriba 3, 6, 9…) y debajo las apuestas de afuera.
+const UBICACION_AFUERA = {
+    d1: [2, 6, 4], d2: [6, 10, 4], d3: [10, 14, 4],
+    bajo: [2, 4, 5], par: [4, 6, 5], rojo: [6, 8, 5], negro: [8, 10, 5], impar: [10, 12, 5], alto: [12, 14, 5],
+};
 function crearPano() {
     const pano = $("pano");
-    const agregar = (clave, texto, clase) => {
+    const agregar = (clave, texto, clase, columna, fila) => {
         const b = document.createElement("button");
         b.className = `casilla ${clase}`;
         b.dataset.clave = clave;
         b.textContent = texto;
+        b.style.gridColumn = columna;
+        b.style.gridRow = fila;
         b.addEventListener("click", () => apostar(clave));
         pano.appendChild(b);
     };
-    agregar("n0", "0", "verde cero");
-    for (let n = 1; n <= 36; n++) agregar(`n${n}`, n, colorDe(n));
-    for (const [clave, a] of Object.entries(AFUERA)) agregar(clave, a.texto, `ancha ${a.clase ?? ""}`);
+    agregar("n0", "0", "verde", "1", "1 / 4");
+    for (let n = 1; n <= 36; n++) {
+        const columna = Math.ceil(n / 3) + 1;
+        const fila = 3 - ((n - 1) % 3);
+        agregar(`n${n}`, n, colorDe(n), `${columna}`, `${fila}`);
+    }
+    for (const [clave, a] of Object.entries(AFUERA)) {
+        const [desde, hasta, fila] = UBICACION_AFUERA[clave];
+        agregar(clave, a.texto, `afuera ${a.clase ?? ""}`, `${desde} / ${hasta}`, `${fila}`);
+    }
 }
 
 function apostar(clave) {
