@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="es" class="verificando">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>Espiral · Proyecto TP</title>
+    <meta name="theme-color" content="#ff5f8f">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="../../icons/icon-180.png">
+    <link rel="manifest" href="../../manifest.webmanifest">
+
+    <link rel="stylesheet" href="../../css/estilos.css">
+    <link rel="stylesheet" href="../../css/juegos3d.css">
+</head>
+<body class="pantalla-3d tema-espiral">
+    <header class="barra-juego">
+        <a class="boton-volver" href="../../">‹ Juegos</a>
+        <h1>Espiral</h1>
+    </header>
+
+    <div id="lienzo" class="lienzo-3d">
+        <div class="marcador">
+            <div id="nivel" class="grande">Nivel 1</div>
+            <div class="barra-progreso"><div id="progreso"></div></div>
+            <div id="monedas" class="chico">0</div>
+        </div>
+        <div id="centro" class="mensaje-centro">
+            <div id="titulo-centro">Deslizá para girar la torre<div class="chico">Caé por los huecos, evitá lo rojo</div></div>
+            <button id="jugar" class="boton-grande" type="button">Jugar</button>
+        </div>
+    </div>
+
+    <div id="mejoras" class="panel-mejoras"></div>
+
+    <script type="module">
+        import { exigirSesion } from "../../js/sesion.js";
+        exigirSesion();
+    </script>
+    <script type="module" src="juego.js"></script>
+</body>
+</html>
