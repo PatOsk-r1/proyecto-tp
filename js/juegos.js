@@ -32,4 +32,10 @@ const JUEGOS = [
         emoji: "🧱",
         carpeta: "games/apilar/",
     },
+    {
+        nombre: "Espiral",
+        descripcion: "Girá la torre y hacé caer la pelota",
+        emoji: "🌀",
+        carpeta: "games/espiral/",
+    },
 ];
