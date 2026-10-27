@@ -38,6 +38,37 @@ export async function buscarUsuario(nombre) {
     return perfil.exists() ? { uid, ...perfil.data() } : null;
 }
 
+// ---------- Conexión ----------
+// Mientras la app está abierta se avisa "estoy acá" cada minuto. Un amigo está en línea si avisó hace poco.
+const EN_LINEA_MS = 150000;
+let actividadActual = "";
+
+export function iniciarPresencia(actividad = "") {
+    if (!db || !auth.currentUser) return;
+    actividadActual = actividad;
+    const latido = () =>
+        updateDoc(doc(db, "usuarios", yo()), { visto: serverTimestamp(), actividad: actividadActual }).catch(() => {});
+    latido();
+    setInterval(() => document.visibilityState === "visible" && latido(), 60000);
+    document.addEventListener("visibilitychange", () => document.visibilityState === "visible" && latido());
+}
+
+export function escucharUsuario(uid, alCambiar) {
+    return onSnapshot(doc(db, "usuarios", uid), (d) => alCambiar(d.exists() ? d.data() : null), () => {});
+}
+
+export const enLinea = (u) => Boolean(u?.visto && Date.now() - u.visto.toMillis() < EN_LINEA_MS);
+
+export function textoConexion(u) {
+    if (!u?.visto) return "Desconectado";
+    if (enLinea(u)) return u.actividad ? `En línea · ${u.actividad}` : "En línea";
+    const minutos = Math.floor((Date.now() - u.visto.toMillis()) / 60000);
+    if (minutos < 60) return `Visto hace ${minutos} min`;
+    const horas = Math.floor(minutos / 60);
+    if (horas < 24) return `Visto hace ${horas} h`;
+    return `Visto hace ${Math.floor(horas / 24)} d`;
+}
+
 // ---------- Amigos ----------
 export function escucharAmistades(alCambiar) {
     const q = query(collection(db, "amistades"), where("uids", "array-contains", yo()));
@@ -98,5 +129,5 @@ export const actualizarPartida = (id, cambios) => updateDoc(doc(db, "partidas", 
 export const borrarPartida = (id) => deleteDoc(doc(db, "partidas", id));
 
 export const JUEGOS_ONLINE = {
-    arco: { nombre: "Tiro con arco", emoji: "🏹", carpeta: "games/arco/" },
+    arco: { nombre: "Tiro con arco", emoji: "🏹", carpeta: "games/arco/", reglas: "../games/arco/reglas.js" },
 };
