@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="es" class="verificando">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>Amigos · Proyecto TP</title>
+    <meta name="theme-color" content="#1b1440">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="icons/icon-180.png">
+    <link rel="manifest" href="manifest.webmanifest">
+
+    <link rel="stylesheet" href="css/estilos.css">
+    <link rel="stylesheet" href="css/amigos.css">
+</head>
+<body>
+    <header class="barra-juego">
+        <a class="boton-volver" href="./">‹ Juegos</a>
+        <h1>Multijugador</h1>
+    </header>
+
+    <main class="amigos">
+        <section id="seccion-nombre" class="bloque">
+            <h2>Tu nombre de usuario</h2>
+            <p id="nombre-actual" class="suave">Elegí cómo te van a encontrar tus amigos.</p>
+            <form id="form-nombre" class="fila-form">
+                <input id="nombre" type="text" placeholder="ej: pato_99" autocomplete="off" autocapitalize="off" maxlength="20">
+                <button class="boton-chico" type="submit">Guardar</button>
+            </form>
+            <p id="aviso-nombre" class="aviso-linea" hidden></p>
+        </section>
+
+        <div id="resto" hidden>
+            <section class="bloque">
+                <h2>Agregar amigo</h2>
+                <form id="form-amigo" class="fila-form">
+                    <input id="buscar" type="text" placeholder="Nombre de usuario" autocomplete="off" autocapitalize="off" maxlength="20">
+                    <button class="boton-chico" type="submit">Enviar</button>
+                </form>
+                <p id="aviso-amigo" class="aviso-linea" hidden></p>
+            </section>
+
+            <section id="seccion-partidas" class="bloque">
+                <h2>Partidas</h2>
+                <ul id="partidas" class="lista"></ul>
+                <p id="sin-partidas" class="suave">Desafiá a un amigo desde la lista de abajo.</p>
+            </section>
+
+            <section id="seccion-solicitudes" class="bloque" hidden>
+                <h2>Solicitudes</h2>
+                <ul id="solicitudes" class="lista"></ul>
+            </section>
+
+            <section class="bloque">
+                <h2>Amigos</h2>
+                <ul id="amigos" class="lista"></ul>
+                <p id="sin-amigos" class="suave">Todavía no tenés amigos agregados.</p>
+            </section>
+        </div>
+    </main>
+
+    <script type="module" src="js/amigos.js"></script>
+</body>
+</html>
