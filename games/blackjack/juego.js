@@ -1,10 +1,10 @@
 // Blackjack contra la banca. 6 mazos, la banca se planta en 17, blackjack paga 3 a 2.
 import { formatear, cargar, guardar, textoFlotante, vibrar, MONEDA } from "../../js/comun3d.js";
+import { fichas, cambiarFichas, recargar, RECARGA } from "../../js/fichas.js";
 
 const $ = (id) => document.getElementById(id);
 const CLAVE = "blackjack";
 const MAZOS = 6;
-const RECARGA = 500;
 const PAUSA = 450;
 
 const PALOS = ["♠", "♥", "♦", "♣"];
@@ -98,17 +98,17 @@ function mensaje(texto, tipo = "") {
 }
 
 function actualizar() {
-    $("fichas").innerHTML = `${MONEDA}${formatear(estado.fichas)}`;
+    $("fichas").innerHTML = `${MONEDA}${formatear(fichas())}`;
     $("apuesta").textContent = formatear(ronda.apuesta);
     const apostando = ronda.fase === "apostando";
     $("zona-apuesta").hidden = !apostando;
     $("zona-juego").hidden = ronda.fase !== "jugando";
-    for (const f of document.querySelectorAll(".ficha")) f.disabled = Number(f.dataset.valor) > estado.fichas - ronda.apuesta;
+    for (const f of document.querySelectorAll(".ficha")) f.disabled = Number(f.dataset.valor) > fichas() - ronda.apuesta;
     $("repartir").disabled = ronda.apuesta === 0;
     $("borrar").disabled = ronda.apuesta === 0;
-    const sinFichas = estado.fichas + ronda.apuesta < 10;
+    const sinFichas = fichas() + ronda.apuesta < 10;
     $("recargar").hidden = !sinFichas;
-    $("doblar").disabled = ronda.jugador.length !== 2 || estado.fichas < ronda.apuesta;
+    $("doblar").disabled = ronda.jugador.length !== 2 || fichas() < ronda.apuesta;
     const porcentaje = estado.jugadas ? Math.round((estado.ganadas / estado.jugadas) * 100) : 0;
     $("estadisticas").textContent = `Manos: ${estado.jugadas} · Ganadas: ${porcentaje}% · Mejor racha: ${estado.mejorRacha}`;
 }
@@ -116,7 +116,7 @@ function actualizar() {
 // ---------- Ronda ----------
 async function repartir() {
     if (!ronda.apuesta || ronda.fase !== "apostando") return;
-    estado.fichas -= ronda.apuesta;
+    cambiarFichas(-ronda.apuesta);
     ronda.base = ronda.apuesta;
     ronda.fase = "repartiendo";
     ronda.jugador = [];
@@ -151,8 +151,8 @@ async function pedir() {
 }
 
 async function doblar() {
-    if (ronda.fase !== "jugando" || ronda.jugador.length !== 2 || estado.fichas < ronda.apuesta) return;
-    estado.fichas -= ronda.apuesta;
+    if (ronda.fase !== "jugando" || ronda.jugador.length !== 2 || fichas() < ronda.apuesta) return;
+    cambiarFichas(-ronda.apuesta);
     ronda.apuesta *= 2;
     ronda.fase = "repartiendo";
     actualizar();
@@ -221,7 +221,7 @@ function resolver() {
     }
     pintarTotales();
 
-    estado.fichas += pago;
+    cambiarFichas(pago);
     estado.jugadas++;
     if (tipo === "gano") {
         estado.ganadas++;
@@ -239,7 +239,7 @@ function resolver() {
 
     // La próxima mano arranca con la misma apuesta inicial (sin el doble) si alcanza
     ronda.fase = "apostando";
-    ronda.apuesta = ronda.base <= estado.fichas ? ronda.base : 0;
+    ronda.apuesta = ronda.base <= fichas() ? ronda.base : 0;
     actualizar();
 }
 
@@ -247,7 +247,7 @@ function resolver() {
 for (const f of document.querySelectorAll(".ficha")) {
     f.addEventListener("click", () => {
         const valor = Number(f.dataset.valor);
-        if (ronda.fase !== "apostando" || valor > estado.fichas - ronda.apuesta) return;
+        if (ronda.fase !== "apostando" || valor > fichas() - ronda.apuesta) return;
         ronda.apuesta += valor;
         vibrar(10);
         mensaje(`Apuesta: ${formatear(ronda.apuesta)}`);
@@ -265,7 +265,7 @@ $("pedir").addEventListener("click", pedir);
 $("plantarse").addEventListener("click", () => ronda.fase === "jugando" && turnoBanca());
 $("doblar").addEventListener("click", doblar);
 $("recargar").addEventListener("click", () => {
-    estado.fichas += RECARGA;
+    recargar();
     guardar(CLAVE, estado);
     mensaje("¡Fichas recargadas!", "gano");
     actualizar();
