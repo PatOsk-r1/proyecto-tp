@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="es" class="verificando">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>Blackjack · Proyecto TP</title>
+    <meta name="theme-color" content="#0b3d24">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="../../icons/icon-180.png">
+    <link rel="manifest" href="../../manifest.webmanifest">
+
+    <link rel="stylesheet" href="../../css/estilos.css">
+    <link rel="stylesheet" href="../../css/juegos3d.css">
+    <link rel="stylesheet" href="estilo.css">
+</head>
+<body class="pantalla-3d tema-casino">
+    <header class="barra-juego">
+        <a class="boton-volver" href="../../">‹ Juegos</a>
+        <h1>Blackjack</h1>
+        <div id="fichas" class="fichas-total"></div>
+    </header>
+
+    <main class="mesa">
+        <section class="lado">
+            <div class="etiqueta">Banca <span id="total-banca" class="total" hidden></span></div>
+            <div id="cartas-banca" class="cartas"></div>
+        </section>
+
+        <div class="centro-mesa">
+            <div id="mensaje" class="mensaje-mesa">Elegí tu apuesta</div>
+            <div class="regla">La banca se planta en 17 · Blackjack paga 3 a 2</div>
+        </div>
+
+        <section class="lado">
+            <div id="cartas-jugador" class="cartas"></div>
+            <div class="etiqueta">Vos <span id="total-jugador" class="total" hidden></span></div>
+        </section>
+    </main>
+
+    <div class="controles">
+        <div id="zona-apuesta" class="fila">
+            <div class="apuesta-actual">Apuesta <strong id="apuesta">0</strong></div>
+            <div class="fichas-apuesta">
+                <button class="ficha" data-valor="10" style="--c:#e8e8e8">10</button>
+                <button class="ficha" data-valor="50" style="--c:#e53935">50</button>
+                <button class="ficha" data-valor="100" style="--c:#1e88e5">100</button>
+                <button class="ficha" data-valor="500" style="--c:#212121">500</button>
+            </div>
+            <div class="botones">
+                <button id="borrar" class="accion secundaria" type="button">Borrar</button>
+                <button id="repartir" class="accion" type="button">Repartir</button>
+            </div>
+            <button id="recargar" class="accion" type="button" hidden>Recargar 500 fichas</button>
+        </div>
+        <div id="zona-juego" class="fila botones" hidden>
+            <button id="pedir" class="accion" type="button">Pedir</button>
+            <button id="plantarse" class="accion" type="button">Plantarse</button>
+            <button id="doblar" class="accion secundaria" type="button">Doblar</button>
+        </div>
+        <div id="estadisticas" class="estadisticas"></div>
+    </div>
+
+    <script type="module">
+        import { exigirSesion } from "../../js/sesion.js";
+        exigirSesion();
+    </script>
+    <script type="module" src="juego.js"></script>
+</body>
+</html>
