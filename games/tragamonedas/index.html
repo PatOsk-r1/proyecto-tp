@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="es" class="verificando">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>Tragamonedas · Proyecto TP</title>
+    <meta name="theme-color" content="#2a0a3d">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="../../icons/icon-180.png">
+    <link rel="manifest" href="../../manifest.webmanifest">
+
+    <link rel="stylesheet" href="../../css/estilos.css">
+    <link rel="stylesheet" href="../../css/juegos3d.css">
+    <link rel="stylesheet" href="estilo.css">
+</head>
+<body class="pantalla-3d tema-casino tema-tragamonedas">
+    <header class="barra-juego">
+        <a class="boton-volver" href="../../">‹ Juegos</a>
+        <h1>Tragamonedas</h1>
+        <div id="fichas" class="fichas-total"></div>
+    </header>
+
+    <main class="sala">
+        <div id="maquina" class="maquina">
+            <div class="luces"></div>
+            <div class="cartel">★ GRAN PREMIO ★</div>
+            <div class="ventana">
+                <div class="rodillo"><div class="tira"></div></div>
+                <div class="rodillo"><div class="tira"></div></div>
+                <div class="rodillo"><div class="tira"></div></div>
+                <div class="linea"></div>
+            </div>
+            <div id="mensaje" class="mensaje-maquina">¡Suerte!</div>
+        </div>
+
+        <div class="tabla">
+            <div><span>7️⃣7️⃣7️⃣</span><b>×200</b></div>
+            <div><span>💎💎💎</span><b>×80</b></div>
+            <div><span>⭐⭐⭐</span><b>×40</b></div>
+            <div><span>🔔🔔🔔</span><b>×25</b></div>
+            <div><span>🍋🍋🍋</span><b>×12</b></div>
+            <div><span>🍒🍒🍒</span><b>×8</b></div>
+            <div class="ancho"><span>Dos iguales al principio</span><b>×1</b></div>
+        </div>
+    </main>
+
+    <div class="controles">
+        <div class="apuesta-fila">
+            <button id="menos" class="redondo" type="button">−</button>
+            <div class="apuesta">Apuesta<strong id="apuesta">10</strong></div>
+            <button id="mas" class="redondo" type="button">+</button>
+        </div>
+        <button id="girar" class="accion palanca" type="button">GIRAR</button>
+        <button id="recargar" class="accion secundaria" type="button" hidden>Recargar fichas</button>
+    </div>
+
+    <script type="module">
+        import { exigirSesion } from "../../js/sesion.js";
+        exigirSesion();
+    </script>
+    <script type="module" src="juego.js"></script>
+</body>
+</html>
