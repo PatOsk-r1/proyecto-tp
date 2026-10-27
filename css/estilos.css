@@ -207,11 +207,156 @@ body {
     margin-top: 6px;
 }
 
+/* ---------- Pestañas de la página principal ---------- */
+
+.pestanas {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    display: flex;
+    gap: 6px;
+    margin: 0 20px 10px;
+    padding: 5px;
+    border-radius: 16px;
+    background: #0004;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+}
+
+.pestana {
+    flex: 1;
+    position: relative;
+    font: inherit;
+    font-size: 0.85rem;
+    font-weight: 800;
+    color: var(--texto-suave);
+    background: none;
+    border: none;
+    border-radius: 12px;
+    padding: 10px 4px;
+    white-space: nowrap;
+}
+
+.pestana.activa {
+    color: #1b1440;
+    background: var(--acento);
+    box-shadow: 0 3px 10px #0005;
+}
+
+.insignia.chica {
+    position: absolute;
+    top: -6px;
+    right: -2px;
+    min-width: 18px;
+    padding: 1px 5px;
+    font-size: 0.7rem;
+}
+
+.seccion {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 0 20px;
+}
+
+.seccion[hidden] {
+    display: none;
+}
+
+.titulo-seccion {
+    margin-top: 8px;
+    font-size: 1rem;
+    color: var(--texto-suave);
+}
+
+.tarjeta-perfil {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    border-radius: var(--radio);
+    background: var(--tarjeta);
+    color: inherit;
+    text-decoration: none;
+}
+
+.tarjeta-perfil .texto {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.tarjeta-perfil .texto span {
+    font-size: 0.82rem;
+    color: var(--texto-suave);
+}
+
+.tarjeta-perfil .flecha {
+    font-size: 1.6rem;
+    color: var(--acento);
+}
+
+.avatar-inicio {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    overflow: hidden;
+    flex-shrink: 0;
+    font-size: 1.3rem;
+}
+
+.avatar-inicio img,
+.avatar-inicio span {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 900;
+    color: #1b1440;
+    background: var(--c, var(--acento));
+}
+
+.billetera {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 16px;
+    border-radius: var(--radio);
+    background: linear-gradient(135deg, #0e5a31, #1c8a4e);
+    box-shadow: 0 6px 18px #0005;
+}
+
+.billetera strong {
+    display: block;
+    font-size: 1.8rem;
+    color: #ffd166;
+}
+
+.billetera span {
+    font-size: 0.85rem;
+    color: #d8f3e2;
+}
+
+.moneda-grande {
+    width: 48px;
+    height: 48px;
+    flex-shrink: 0;
+    border-radius: 50%;
+    background:
+        radial-gradient(circle, #e53935 50%, transparent 51%),
+        repeating-conic-gradient(#e53935 0 20deg, #fff 20deg 40deg);
+    border: 3px solid #0004;
+    box-shadow: 0 4px 0 #0006;
+}
+
 .tarjeta-multijugador {
     display: flex;
     align-items: center;
     gap: 12px;
-    margin: 4px 20px 6px;
+    margin: 0;
     padding: 14px 16px;
     border-radius: var(--radio);
     background: linear-gradient(135deg, #3a86ff, #8338ec);
