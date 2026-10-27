@@ -207,6 +207,49 @@ body {
     margin-top: 6px;
 }
 
+.tarjeta-multijugador {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 4px 20px 6px;
+    padding: 14px 16px;
+    border-radius: var(--radio);
+    background: linear-gradient(135deg, #3a86ff, #8338ec);
+    color: #fff;
+    text-decoration: none;
+    box-shadow: 0 6px 18px #0005;
+}
+
+.tarjeta-multijugador:active {
+    transform: scale(0.98);
+}
+
+.tarjeta-multijugador .emoji {
+    font-size: 2rem;
+}
+
+.tarjeta-multijugador .texto {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.tarjeta-multijugador .texto span {
+    font-size: 0.85rem;
+    opacity: 0.85;
+}
+
+.insignia {
+    min-width: 24px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: #ff4d6d;
+    color: #fff;
+    font-size: 0.85rem;
+    font-weight: 900;
+    text-align: center;
+}
+
 .lista-juegos {
     list-style: none;
     display: grid;
