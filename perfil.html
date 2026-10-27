@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="es" class="verificando">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>Perfil · Proyecto TP</title>
+    <meta name="theme-color" content="#1b1440">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="icons/icon-180.png">
+    <link rel="manifest" href="manifest.webmanifest">
+
+    <link rel="stylesheet" href="css/estilos.css">
+    <link rel="stylesheet" href="css/amigos.css">
+</head>
+<body>
+    <header class="barra-juego">
+        <a id="volver" class="boton-volver" href="./">‹ Volver</a>
+        <h1>Tu perfil</h1>
+    </header>
+
+    <main class="amigos">
+        <section class="bloque perfil-foto">
+            <div id="avatar" class="avatar-grande"></div>
+            <div class="botones-foto">
+                <label class="boton-chico">
+                    📷 Cambiar foto
+                    <input id="archivo" type="file" accept="image/*" hidden>
+                </label>
+                <button id="quitar" class="boton-chico secundario" type="button" hidden>Quitar</button>
+            </div>
+            <p id="aviso-foto" class="aviso-linea" hidden></p>
+        </section>
+
+        <section class="bloque">
+            <h2>Nombre de usuario</h2>
+            <p class="suave">Tus amigos te buscan con este nombre. No puede haber dos iguales.</p>
+            <form id="form-nombre" class="fila-form">
+                <input id="nombre" type="text" placeholder="ej: pato_99" autocomplete="off" autocapitalize="off" maxlength="20">
+                <button class="boton-chico" type="submit">Guardar</button>
+            </form>
+            <p class="suave reglas-nombre">3 a 20 letras, números o guion bajo (_), sin espacios.</p>
+            <p id="aviso-nombre" class="aviso-linea" hidden></p>
+        </section>
+
+        <section class="bloque">
+            <h2>Cuenta</h2>
+            <p id="email" class="suave"></p>
+        </section>
+    </main>
+
+    <script type="module" src="js/perfil.js"></script>
+</body>
+</html>
