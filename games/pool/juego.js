@@ -1018,6 +1018,7 @@ $("abrir-skins").addEventListener("click", () => {
     $("panel-skins").hidden = false;
 });
 $("cerrar-skins").addEventListener("click", () => ($("panel-skins").hidden = true));
+$("listo-skins").addEventListener("click", () => ($("panel-skins").hidden = true));
 $("panel-skins").addEventListener("click", (e) => e.target === $("panel-skins") && ($("panel-skins").hidden = true));
 
 armarMesa(armarTriangulo());
