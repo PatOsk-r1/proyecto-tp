@@ -1,7 +1,7 @@
 // Service worker: guarda los archivos para que la app funcione sin internet.
 // Cada vez que publiques cambios, subí el número de VERSION para que
 // el iPhone descargue la versión nueva.
-const VERSION = "v1";
+const VERSION = "v2";
 const CACHE = `proyecto-tp-${VERSION}`;
 
 const ARCHIVOS_BASE = [
