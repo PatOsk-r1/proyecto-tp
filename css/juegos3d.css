@@ -51,6 +51,41 @@
     --panel: #4b2a5c88;
 }
 
+.tema-espiral {
+    --fondo: #ff5f8f;
+    --fondo-2: #ffb36b;
+    --texto-suave: #fff1e6;
+    --acento: #ffffff;
+    --acento-2: #ffe0ec;
+    --panel: #5a1d3a88;
+}
+
+.tema-espiral .boton-grande {
+    color: #d81b60;
+}
+
+.tema-espiral .texto-flotante,
+.tema-espiral .marcador {
+    text-shadow: 0 2px 6px #7a1a40, 0 0 2px #7a1a40;
+}
+
+.barra-progreso {
+    width: min(70%, 260px);
+    height: 10px;
+    margin: 6px auto 0;
+    border-radius: 999px;
+    background: #0003;
+    overflow: hidden;
+}
+
+.barra-progreso > div {
+    height: 100%;
+    width: 0;
+    border-radius: inherit;
+    background: #fff;
+    transition: width 0.2s;
+}
+
 .tema-apilar .boton-grande {
     color: #c2185b;
 }
