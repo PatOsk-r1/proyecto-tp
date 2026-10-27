@@ -161,4 +161,5 @@ export const borrarPartida = (id) => deleteDoc(doc(db, "partidas", id));
 export const JUEGOS_ONLINE = {
     arco: { nombre: "Tiro con arco", emoji: "🏹", carpeta: "games/arco/", reglas: "../games/arco/reglas.js" },
     pool: { nombre: "Pool", emoji: "🎱", carpeta: "games/pool/", reglas: "../games/pool/reglas.js" },
+    cuatro: { nombre: "4 en línea", emoji: "🔴", carpeta: "games/cuatro/", reglas: "../games/cuatro/reglas.js" },
 };
