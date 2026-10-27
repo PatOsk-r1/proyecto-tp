@@ -55,6 +55,11 @@
     color: #c2185b;
 }
 
+.tema-apilar .texto-flotante,
+.tema-apilar .marcador {
+    text-shadow: 0 2px 6px #7a2050, 0 0 2px #7a2050;
+}
+
 /* ---------- Escena ---------- */
 
 .lienzo-3d {
