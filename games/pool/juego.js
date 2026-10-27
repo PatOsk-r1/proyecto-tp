@@ -55,28 +55,148 @@ function caja(w, h, d, mat, x, y, z) {
     return m;
 }
 
-// Paño, bandas, madera y troneras
-const pano = new THREE.Mesh(new THREE.PlaneGeometry(ANCHO + 0.5, LARGO + 0.5), material(0x1f8a4c, { roughness: 0.95 }));
+// ---------- Skins (todas gratis) ----------
+const SKINS = {
+    pano: [
+        { id: "verde", nombre: "Verde clásico", color: 0x1f8a4c },
+        { id: "azul", nombre: "Azul torneo", color: 0x1d5fa8 },
+        { id: "rojo", nombre: "Rojo", color: 0x9e1d2a },
+        { id: "violeta", nombre: "Violeta", color: 0x5b2a8c },
+        { id: "negro", nombre: "Negro", color: 0x23262b },
+        { id: "arena", nombre: "Arena", color: 0xb08a55 },
+    ],
+    madera: [
+        { id: "nogal", nombre: "Nogal", color: 0x6b3a1c },
+        { id: "roble", nombre: "Roble claro", color: 0xa8743f },
+        { id: "ebano", nombre: "Ébano", color: 0x1f1410 },
+        { id: "blanco", nombre: "Laca blanca", color: 0xe9e4da },
+    ],
+    taco: [
+        { id: "clasico", nombre: "Clásico", varilla: 0xe3c08d, mango: 0x3b1f0e, anillo: 0xd9d9d9 },
+        { id: "fuego", nombre: "Fuego", varilla: 0xf0d2a0, mango: 0xd62828, anillo: 0xffb703 },
+        { id: "oceano", nombre: "Océano", varilla: 0xe8dcc4, mango: 0x0077b6, anillo: 0x90e0ef },
+        { id: "noche", nombre: "Noche", varilla: 0x3a3a44, mango: 0x0b0b10, anillo: 0x9d4edd },
+        { id: "oro", nombre: "Oro", varilla: 0xf3e5c0, mango: 0x1a1a1a, anillo: 0xffd23f },
+        { id: "rosa", nombre: "Chicle", varilla: 0xfde2e4, mango: 0xff4d8d, anillo: 0xffffff },
+    ],
+    fondo: [
+        { id: "bar", nombre: "Bar", arriba: "#2a170a", abajo: "#0a0503" },
+        { id: "noche", nombre: "Noche", arriba: "#0f2040", abajo: "#03060d" },
+        { id: "neon", nombre: "Neón", arriba: "#3a0d5c", abajo: "#0b0216" },
+        { id: "atardecer", nombre: "Atardecer", arriba: "#ff8a5b", abajo: "#4a1c3a" },
+        { id: "bosque", nombre: "Bosque", arriba: "#1f4d2e", abajo: "#08140c" },
+    ],
+};
+const skins = cargar("pool-skins", { pano: "verde", madera: "nogal", taco: "clasico", fondo: "bar" });
+const skin = (tipo) => SKINS[tipo].find((s) => s.id === skins[tipo]) ?? SKINS[tipo][0];
+
+// Textura del paño: un granulado suave para que no se vea plástico
+function texturaPano() {
+    const c = document.createElement("canvas");
+    c.width = c.height = 256;
+    const ctx = c.getContext("2d");
+    const datos = ctx.createImageData(256, 256);
+    for (let i = 0; i < datos.data.length; i += 4) {
+        const v = 225 + Math.random() * 30;
+        datos.data[i] = datos.data[i + 1] = datos.data[i + 2] = v;
+        datos.data[i + 3] = 255;
+    }
+    ctx.putImageData(datos, 0, 0);
+    const t = new THREE.CanvasTexture(c);
+    t.wrapS = t.wrapT = THREE.RepeatWrapping;
+    t.repeat.set(4, 8);
+    t.colorSpace = THREE.SRGBColorSpace;
+    return t;
+}
+
+// ---------- Mesa ----------
+const matPano = new THREE.MeshStandardMaterial({ map: texturaPano(), roughness: 1, color: skin("pano").color });
+const matBanda = new THREE.MeshStandardMaterial({ roughness: 0.85, color: skin("pano").color });
+const matMadera = new THREE.MeshPhysicalMaterial({ color: skin("madera").color, roughness: 0.35, clearcoat: 1, clearcoatRoughness: 0.15 });
+const matMetal = new THREE.MeshStandardMaterial({ color: 0xc9a227, metalness: 0.9, roughness: 0.25 });
+
+// El paño tiene agujeros donde están las troneras, así las bolas caen adentro de verdad
+const formaPano = new THREE.Shape();
+formaPano.moveTo(-ANCHO / 2 - 0.3, -LARGO / 2 - 0.3);
+formaPano.lineTo(ANCHO / 2 + 0.3, -LARGO / 2 - 0.3);
+formaPano.lineTo(ANCHO / 2 + 0.3, LARGO / 2 + 0.3);
+formaPano.lineTo(-ANCHO / 2 - 0.3, LARGO / 2 + 0.3);
+formaPano.closePath();
+for (const t of TRONERAS) {
+    const agujero = new THREE.Path();
+    agujero.absarc(t.x, -t.z, t.r, 0, Math.PI * 2, true);
+    formaPano.holes.push(agujero);
+}
+const geoPano = new THREE.ShapeGeometry(formaPano, 24);
+const uv = geoPano.attributes.uv;
+for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) / 2, uv.getY(i) / 2);
+const pano = new THREE.Mesh(geoPano, matPano);
 pano.rotation.x = -Math.PI / 2;
 pano.receiveShadow = true;
 scene.add(pano);
 
-const matBanda = material(0x177a40, { roughness: 0.8 });
-const matMadera = material(0x6b3a1c, { roughness: 0.5, metalness: 0.1 });
-const BOCA = 0.32;
-const largoLateral = LARGO / 2 - BOCA * 1.4;
-for (const lado of [-1, 1]) {
-    for (const mitad of [-1, 1]) caja(0.14, 0.12, largoLateral, matBanda, lado * (ANCHO / 2 + 0.07), 0.06, (mitad * LARGO) / 4);
-    caja(ANCHO - BOCA * 1.6, 0.12, 0.14, matBanda, 0, 0.06, lado * (LARGO / 2 + 0.07));
-    caja(0.4, 0.2, LARGO + 1.05, matMadera, lado * (ANCHO / 2 + 0.33), 0.08, 0);
-    caja(ANCHO + 1.05, 0.2, 0.4, matMadera, 0, 0.08, lado * (LARGO / 2 + 0.33));
+// Bandas con forma de cuña (como las reales), cortadas en las troneras
+function banda(largo, x, z, giro) {
+    const perfil = new THREE.Shape();
+    perfil.moveTo(0, 0);
+    perfil.lineTo(0.18, 0);
+    perfil.lineTo(0.18, 0.14);
+    perfil.lineTo(0.02, 0.12);
+    perfil.closePath();
+    const geo = new THREE.ExtrudeGeometry(perfil, { depth: largo, bevelEnabled: true, bevelSize: 0.02, bevelThickness: 0.02, bevelSegments: 2 });
+    geo.translate(0, 0, -largo / 2);
+    const m = new THREE.Mesh(geo, matBanda);
+    m.position.set(x, 0, z);
+    m.rotation.y = giro;
+    m.castShadow = true;
+    m.receiveShadow = true;
+    scene.add(m);
 }
-const matTronera = new THREE.MeshBasicMaterial({ color: 0x050505 });
+const BOCA_ESQUINA = 0.36;
+const BOCA_MEDIO = 0.3;
+const largoLateral = LARGO / 2 - BOCA_ESQUINA - BOCA_MEDIO / 2;
+for (const lado of [-1, 1]) {
+    for (const mitad of [-1, 1]) {
+        const z = mitad * (BOCA_MEDIO / 2 + largoLateral / 2);
+        banda(largoLateral, lado * (ANCHO / 2 + 0.02), z, lado > 0 ? 0 : Math.PI);
+    }
+    banda(ANCHO - BOCA_ESQUINA * 2, 0, lado * (LARGO / 2 + 0.02), lado > 0 ? -Math.PI / 2 : Math.PI / 2);
+}
+
+// Marco de madera barnizada con bordes redondeados
+function marco(largo, x, z, horizontal) {
+    const geo = new THREE.BoxGeometry(horizontal ? largo : 0.42, 0.22, horizontal ? 0.42 : largo);
+    const m = new THREE.Mesh(geo, matMadera);
+    m.position.set(x, 0.09, z);
+    m.castShadow = true;
+    m.receiveShadow = true;
+    scene.add(m);
+    const borde = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, largo, 12), matMadera);
+    borde.rotation[horizontal ? "z" : "x"] = Math.PI / 2;
+    borde.position.set(x + (horizontal ? 0 : Math.sign(x) * 0.2), 0.17, z + (horizontal ? Math.sign(z) * 0.2 : 0));
+    scene.add(borde);
+}
+for (const lado of [-1, 1]) {
+    marco(LARGO + 1.1, lado * (ANCHO / 2 + 0.36), 0, false);
+    marco(ANCHO + 1.1, 0, lado * (LARGO / 2 + 0.36), true);
+}
+
+// Troneras: agujero con profundidad y una tapa de metal
+const matHueco = new THREE.MeshBasicMaterial({ color: 0x020202, side: THREE.BackSide });
+const matFondo = new THREE.MeshBasicMaterial({ color: 0x000000 });
 for (const t of TRONERAS) {
-    const agujero = new THREE.Mesh(new THREE.CircleGeometry(t.r, 24), matTronera);
-    agujero.rotation.x = -Math.PI / 2;
-    agujero.position.set(t.x, 0.005, t.z);
-    scene.add(agujero);
+    const hueco = new THREE.Mesh(new THREE.CylinderGeometry(t.r, t.r * 0.9, 0.5, 28, 1, true), matHueco);
+    hueco.position.set(t.x, -0.24, t.z);
+    scene.add(hueco);
+    const fondo = new THREE.Mesh(new THREE.CircleGeometry(t.r, 28), matFondo);
+    fondo.rotation.x = -Math.PI / 2;
+    fondo.position.set(t.x, -0.48, t.z);
+    scene.add(fondo);
+    const tapa = new THREE.Mesh(new THREE.TorusGeometry(t.r + 0.04, 0.045, 10, 32, Math.PI), matMetal);
+    tapa.rotation.x = -Math.PI / 2;
+    tapa.rotation.z = Math.atan2(t.z === 0 ? 0 : -Math.sign(t.z), -Math.sign(t.x)) - Math.PI / 2;
+    tapa.position.set(t.x, 0.12, t.z);
+    scene.add(tapa);
 }
 const matDiamante = material(0xf5f0e0, { metalness: 0.4 });
 for (let i = 1; i < 8; i++) {
@@ -235,6 +355,8 @@ function paso(dt) {
 function embocar(b) {
     b.activa = false;
     b.cayendo = 1;
+    // Sigue rodando hacia el centro de la tronera más cercana y cae
+    b.tronera = TRONERAS.reduce((a, t) => (Math.hypot(b.x - t.x, b.z - t.z) < Math.hypot(b.x - a.x, b.z - a.z) ? t : a));
     b.vx = b.vz = 0;
     juego.embocadasTiro.push(b.n);
     vibrar(30);
@@ -274,15 +396,43 @@ const fantasma = new THREE.Mesh(new THREE.RingGeometry(R * 0.85, R, 24), new THR
 fantasma.rotation.x = -Math.PI / 2;
 scene.add(lineaTiro, lineaObjeto, fantasma);
 
+// Taco armado por partes: punta, virola, varilla, anillo y mango (los colores salen del skin)
 const taco = new THREE.Group();
-const varilla = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.055, 3.4, 12), material(0xd9a066, { roughness: 0.4 }));
-varilla.rotation.x = Math.PI / 2;
-taco.add(varilla);
-const puntaTaco = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.06, 12), material(0x3a6fd8));
-puntaTaco.rotation.x = Math.PI / 2;
-taco.add(puntaTaco);
-taco.position.y = R + 0.05;
+const cuerpoTaco = new THREE.Group();
+taco.add(cuerpoTaco);
+const matVarilla = new THREE.MeshPhysicalMaterial({ roughness: 0.35, clearcoat: 0.6 });
+const matMango = new THREE.MeshPhysicalMaterial({ roughness: 0.3, clearcoat: 1 });
+const matAnillo = new THREE.MeshStandardMaterial({ metalness: 0.9, roughness: 0.2 });
+let zTaco = 0;
+function tramo(largo, r1, r2, mat) {
+    const m = new THREE.Mesh(new THREE.CylinderGeometry(r1, r2, largo, 16), mat);
+    m.rotation.x = Math.PI / 2;
+    m.position.z = zTaco + largo / 2;
+    m.castShadow = true;
+    cuerpoTaco.add(m);
+    zTaco += largo;
+}
+tramo(0.03, 0.027, 0.027, new THREE.MeshStandardMaterial({ color: 0x2f6fd8, roughness: 0.9 }));
+tramo(0.07, 0.028, 0.028, new THREE.MeshStandardMaterial({ color: 0xf4f1e8, roughness: 0.4 }));
+tramo(1.9, 0.028, 0.042, matVarilla);
+tramo(0.05, 0.043, 0.043, matAnillo);
+tramo(1.35, 0.043, 0.06, matMango);
+tramo(0.05, 0.06, 0.06, new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.6 }));
+taco.position.y = R + 0.06;
 scene.add(taco);
+
+function aplicarSkins() {
+    matPano.color.setHex(skin("pano").color);
+    matBanda.color.setHex(new THREE.Color(skin("pano").color).multiplyScalar(0.85).getHex());
+    matMadera.color.setHex(skin("madera").color);
+    const t = skin("taco");
+    matVarilla.color.setHex(t.varilla);
+    matMango.color.setHex(t.mango);
+    matAnillo.color.setHex(t.anillo);
+    const f = skin("fondo");
+    scene.background = fondoDegradado(f.arriba, f.abajo);
+}
+aplicarSkins();
 
 function mostrarMira(visible) {
     lineaTiro.visible = lineaObjeto.visible = fantasma.visible = taco.visible = visible;
@@ -309,11 +459,31 @@ function dibujarMira(dx, dz, potencia) {
         lineaObjeto.visible = false;
     }
     // El taco se ubica detrás de la blanca, más lejos cuanto más fuerza
-    const atras = 0.16 + potencia * 1.1;
-    taco.position.set(b.x, R + 0.05, b.z);
+    taco.position.set(b.x, R + 0.06, b.z);
     taco.rotation.y = Math.atan2(-dx, -dz);
-    varilla.position.z = 1.7 + atras;
-    puntaTaco.position.z = 0.03 + atras;
+    cuerpoTaco.position.z = R + 0.04 + potencia * 1.1;
+}
+
+// Animación del golpe: el taco avanza rápido hasta la blanca y recién ahí sale la bola
+let golpe = null;
+function golpear(dx, dz, fuerza, alPegar) {
+    golpe = { dx, dz, desde: fuerza, t: 0, alPegar };
+    mostrarMira(true);
+}
+function animarGolpe(dt) {
+    if (!golpe) return;
+    golpe.t += dt;
+    const duracion = 0.12;
+    const avance = Math.min(1, golpe.t / duracion);
+    dibujarMira(golpe.dx, golpe.dz, golpe.desde * (1 - avance * avance) - avance * 0.08);
+    lineaTiro.visible = lineaObjeto.visible = fantasma.visible = false;
+    if (avance >= 1) {
+        const fin = golpe.alPegar;
+        golpe = null;
+        fin();
+        // El taco queda un instante y desaparece
+        setTimeout(() => juego.fase !== "apuntando" && (taco.visible = false), 250);
+    }
 }
 
 // ---------- Turnos y reglas ----------
@@ -338,12 +508,14 @@ function tirar(dx, dz, fuerza) {
     juego.primerContacto = null;
     juego.embocadasTiro = [];
     juego.restantesAntes = juego.grupos[juego.turno] ? restantes(juego.grupos[juego.turno]) : 7;
-    b.vx = dx * fuerza * VELOCIDAD_MAX;
-    b.vz = dz * fuerza * VELOCIDAD_MAX;
-    juego.fase = "moviendo";
-    mostrarMira(false);
+    juego.fase = "golpe";
     pintarControles();
-    vibrar(20);
+    golpear(dx, dz, fuerza, () => {
+        b.vx = dx * fuerza * VELOCIDAD_MAX;
+        b.vz = dz * fuerza * VELOCIDAD_MAX;
+        juego.fase = "moviendo";
+        vibrar(20);
+    });
 }
 
 function reponerBlanca() {
@@ -418,11 +590,14 @@ function empezarTurno() {
         juego.fase = "esperando";
     }
     pintarControles();
+    guardarPartida();
 }
 
 function terminar(ganador, motivo) {
     juego.fase = "fin";
     mostrarMira(false);
+    borrarPartidaGuardada();
+    $("continuar").hidden = true;
     if (!online) {
         const d = estado.dificultad;
         if (ganador === 0) estado.victorias[d]++;
@@ -493,10 +668,11 @@ function alCambiarPartida(p) {
         mostrarMira(true);
         dibujarMira(u.dx, u.dz, u.potencia);
         setTimeout(() => {
-            b.vx = u.dx * u.potencia * VELOCIDAD_MAX;
-            b.vz = u.dz * u.potencia * VELOCIDAD_MAX;
-            juego.fase = "repeticion";
-            mostrarMira(false);
+            golpear(u.dx, u.dz, u.potencia, () => {
+                b.vx = u.dx * u.potencia * VELOCIDAD_MAX;
+                b.vz = u.dz * u.potencia * VELOCIDAD_MAX;
+                juego.fase = "repeticion";
+            });
         }, 700);
         pintarControles();
     }
@@ -693,6 +869,7 @@ alAnimar((dt) => {
     camera.position.set(0, distancia * 0.97, distancia * 0.22);
     camera.lookAt(0, 0, 0.1);
 
+    animarGolpe(dt);
     if (juego.fase === "moviendo" || juego.fase === "repeticion") {
         const pasos = Math.ceil(dt / (1 / 240));
         for (let i = 0; i < pasos; i++) paso(dt / pasos);
@@ -716,9 +893,13 @@ alAnimar((dt) => {
 
     for (const b of bolas) {
         if (b.cayendo > 0) {
-            b.cayendo = Math.max(0, b.cayendo - dt * 3);
-            b.malla.scale.setScalar(b.cayendo);
-            b.malla.position.y = R - (1 - b.cayendo) * 0.2;
+            b.cayendo = Math.max(0, b.cayendo - dt * 2.2);
+            const avance = 1 - b.cayendo;
+            const t = b.tronera ?? { x: b.x, z: b.z };
+            b.malla.position.x += (t.x - b.malla.position.x) * Math.min(1, dt * 14);
+            b.malla.position.z += (t.z - b.malla.position.z) * Math.min(1, dt * 14);
+            b.malla.position.y = R - avance * avance * 0.55;
+            b.malla.rotation.x += dt * 8;
             if (b.cayendo === 0) b.malla.visible = false;
         } else if (b.activa) {
             b.malla.position.set(b.x, R, b.z);
@@ -775,10 +956,69 @@ $("jugar").addEventListener("click", async () => {
     }
     armarMesa(armarTriangulo());
     tiroN = 0;
+    misTiros = 0;
     juego = { fase: "apuntando", turno: 0, grupos: [null, null], primerContacto: null, embocadasTiro: [], restantesAntes: 7 };
     $("centro").hidden = true;
     empezarTurno();
 });
+
+// ---------- Partida guardada (contra la compu) ----------
+// Salir no borra la partida: se guarda al empezar cada turno y se puede continuar después.
+const CLAVE_GUARDADA = "pool-guardada";
+function guardarPartida() {
+    if (online || juego.fase === "fin") return;
+    guardar(CLAVE_GUARDADA, { bolas: fotoBolas(), grupos: juego.grupos, turno: juego.turno, misTiros, dificultad: estado.dificultad });
+}
+function borrarPartidaGuardada() {
+    try {
+        localStorage.removeItem(CLAVE_GUARDADA);
+    } catch {}
+}
+const guardada = cargar(CLAVE_GUARDADA, {});
+$("continuar").hidden = !guardada.bolas;
+$("continuar").addEventListener("click", () => {
+    armarMesa(guardada.bolas);
+    estado.dificultad = guardada.dificultad ?? estado.dificultad;
+    pintarRecord();
+    misTiros = guardada.misTiros ?? 0;
+    juego = { fase: "apuntando", turno: guardada.turno ?? 0, grupos: guardada.grupos ?? [null, null], primerContacto: null, embocadasTiro: [], restantesAntes: 7 };
+    $("centro").hidden = true;
+    empezarTurno();
+});
+
+// ---------- Menú de skins ----------
+function muestraSkin(tipo, s) {
+    if (tipo === "fondo") return `background: linear-gradient(${s.arriba}, ${s.abajo})`;
+    if (tipo === "taco") {
+        const c = (n) => `#${n.toString(16).padStart(6, "0")}`;
+        return `background: linear-gradient(90deg, ${c(s.varilla)} 0 55%, ${c(s.anillo)} 55% 60%, ${c(s.mango)} 60%)`;
+    }
+    return `background: #${s.color.toString(16).padStart(6, "0")}`;
+}
+function pintarSkins() {
+    const titulos = { taco: "Taco", pano: "Paño", madera: "Madera de la mesa", fondo: "Fondo" };
+    $("lista-skins").innerHTML = Object.entries(titulos)
+        .map(([tipo, titulo]) => `<div class="grupo-skins"><h3>${titulo}</h3><div class="opciones-skins">${SKINS[tipo]
+            .map((s) => `<button class="opcion-skin${skins[tipo] === s.id ? " elegida" : ""}" data-tipo="${tipo}" data-id="${s.id}">
+                <span class="muestra" style="${muestraSkin(tipo, s)}"></span>${s.nombre}</button>`)
+            .join("")}</div></div>`)
+        .join("");
+}
+$("lista-skins").addEventListener("click", (e) => {
+    const b = e.target.closest(".opcion-skin");
+    if (!b) return;
+    skins[b.dataset.tipo] = b.dataset.id;
+    guardar("pool-skins", skins);
+    aplicarSkins();
+    pintarSkins();
+    vibrar(10);
+});
+$("abrir-skins").addEventListener("click", () => {
+    pintarSkins();
+    $("panel-skins").hidden = false;
+});
+$("cerrar-skins").addEventListener("click", () => ($("panel-skins").hidden = true));
+$("panel-skins").addEventListener("click", (e) => e.target === $("panel-skins") && ($("panel-skins").hidden = true));
 
 armarMesa(armarTriangulo());
 mostrarMira(false);
@@ -793,5 +1033,17 @@ if (idPartida) {
         $("titulo-centro").innerHTML = "No tenés acceso a esta partida";
         $("jugar").hidden = true;
         $("centro").hidden = false;
+    });
+} else if (usuario.uid) {
+    // Volver a conectarse: partidas online de pool que siguen en curso
+    const m = await import("../../js/multijugador.js");
+    m.escucharPartidas((lista) => {
+        const activas = lista.filter((p) => p.juego === "pool" && p.estado !== "terminada");
+        $("en-curso").innerHTML = activas
+            .map((p) => {
+                const otro = p.jugadores.find((j) => j !== yo);
+                return `<a href="?partida=${p.id}">🎱 Seguir con ${p.nombres[otro]}${p.turno === yo ? " · tu turno" : ""}</a>`;
+            })
+            .join("");
     });
 }
