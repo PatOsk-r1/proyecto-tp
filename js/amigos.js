@@ -1,7 +1,7 @@
 // Página de multijugador: nombre de usuario, amigos y partidas.
 import { exigirSesion } from "./sesion.js";
 import {
-    miPerfil, elegirNombre, escucharAmistades, enviarSolicitud, aceptarAmistad, borrarAmistad,
+    miPerfil, htmlAvatar, escucharAmistades, enviarSolicitud, aceptarAmistad, borrarAmistad,
     escucharPartidas, crearPartida, actualizarPartida, borrarPartida, JUEGOS_ONLINE,
     iniciarPresencia, escucharUsuario, enLinea, textoConexion,
 } from "./multijugador.js";
@@ -15,8 +15,6 @@ let escuchando = false;
 const perfiles = {}; // datos de conexión de cada amigo
 const escuchados = new Set();
 
-const COLORES = ["#ffcc33", "#7df9ff", "#ff8fab", "#a0f0a0", "#c9a7ff", "#ffb36b"];
-const colorDe = (texto) => COLORES[[...texto].reduce((s, c) => s + c.charCodeAt(0), 0) % COLORES.length];
 const escapar = (t) => String(t).replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
 
 function avisar(id, texto, ok = false) {
@@ -26,9 +24,10 @@ function avisar(id, texto, ok = false) {
 }
 
 function pintarPerfil() {
+    $("mi-avatar").innerHTML = htmlAvatar(perfil, usuario.email ?? "?");
     if (perfil) {
-        $("nombre-actual").innerHTML = `Sos <strong>${escapar(perfil.nombre)}</strong>. Tus amigos te encuentran con ese nombre.`;
-        $("nombre").placeholder = "Cambiar nombre";
+        $("mi-nombre").textContent = perfil.nombre;
+        $("mi-detalle").textContent = "Tus amigos te encuentran con este nombre";
         $("resto").hidden = false;
         if (!escuchando) {
             escuchando = true;
@@ -44,21 +43,6 @@ function pintarPerfil() {
     }
 }
 
-$("form-nombre").addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const nombre = $("nombre").value.trim();
-    if (!nombre) return;
-    try {
-        await elegirNombre(nombre, perfil);
-        perfil = await miPerfil();
-        $("nombre").value = "";
-        avisar("aviso-nombre", "¡Listo!", true);
-        pintarPerfil();
-    } catch (error) {
-        avisar("aviso-nombre", error.code === "permission-denied" ? "Ese nombre ya lo tiene otra persona." : error.message);
-    }
-});
-
 $("form-amigo").addEventListener("submit", async (e) => {
     e.preventDefault();
     const nombre = $("buscar").value.trim();
@@ -72,12 +56,12 @@ $("form-amigo").addEventListener("submit", async (e) => {
     }
 });
 
-function item({ nombre, detalle, acciones, destacado, conexion }) {
+function item({ nombre, detalle, acciones, destacado, conexion, datos }) {
     const li = document.createElement("li");
     li.className = `item${destacado ? " destacado" : ""}`;
     const punto = conexion === undefined ? "" : `<i class="conexion${conexion ? " si" : ""}"></i>`;
     li.innerHTML = `
-        <div class="avatar" style="--c:${colorDe(nombre)}">${escapar(nombre[0].toUpperCase())}${punto}</div>
+        <div class="avatar">${htmlAvatar(datos, escapar(nombre))}${punto}</div>
         <div class="info"><strong>${escapar(nombre)}</strong><span>${detalle}</span></div>
         <div class="acciones"></div>`;
     for (const a of acciones) {
@@ -150,6 +134,7 @@ function pintarAmistades() {
                 nombre: datos?.nombre ?? otro.nombre,
                 detalle: textoConexion(datos),
                 conexion: enLinea(datos),
+                datos,
                 acciones: [
                     { texto: "⚔️ Desafiar", accion: () => elegirJuego(otro) },
                     {
