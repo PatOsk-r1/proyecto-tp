@@ -8,4 +8,28 @@ const JUEGOS = [
         emoji: "⚡",
         carpeta: "games/reflejos/",
     },
+    {
+        nombre: "Isla Fábrica",
+        descripcion: "Tocá el cristal y comprá máquinas que producen solas",
+        emoji: "🏝️",
+        carpeta: "games/isla-fabrica/",
+    },
+    {
+        nombre: "Marea",
+        descripcion: "Elegí puertas que suman y multiplican tu grupo",
+        emoji: "🏃",
+        carpeta: "games/marea/",
+    },
+    {
+        nombre: "Fusión",
+        descripcion: "Juntá dos iguales para crear algo mejor",
+        emoji: "🧩",
+        carpeta: "games/fusion/",
+    },
+    {
+        nombre: "Apilar",
+        descripcion: "Soltá cada bloque justo encima del anterior",
+        emoji: "🧱",
+        carpeta: "games/apilar/",
+    },
 ];
