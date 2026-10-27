@@ -48,7 +48,8 @@
 
         // Cuántas cosas esperan respuesta: solicitudes de amistad, desafíos y turnos
         if (usuario.uid) {
-            const { escucharAmistades, escucharPartidas } = await import("./js/multijugador.js");
+            const { escucharAmistades, escucharPartidas, iniciarPresencia } = await import("./js/multijugador.js");
+            iniciarPresencia();
             let solicitudes = 0;
             let turnos = 0;
             const pintar = () => {
