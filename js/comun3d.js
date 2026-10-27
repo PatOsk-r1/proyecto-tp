@@ -6,8 +6,11 @@ export { THREE };
 // Crea renderer, escena, cámara y luces dentro de `contenedor`.
 // `alAnimar(fn)` registra una función que recibe los segundos transcurridos en cada cuadro.
 export function crearEscena(contenedor, { fondo = 0x1b1440, fov = 50 } = {}) {
+    THREE.ColorManagement.enabled = true;
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.1;
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     contenedor.appendChild(renderer.domElement);
@@ -46,6 +49,90 @@ export function crearEscena(contenedor, { fondo = 0x1b1440, fov = 50 } = {}) {
     return { renderer, scene, camera, sol, alAnimar: (fn) => tareas.push(fn) };
 }
 
+// Fondo con degradado vertical (se usa como scene.background)
+export function fondoDegradado(arriba, abajo) {
+    const c = document.createElement("canvas");
+    c.width = 2;
+    c.height = 256;
+    const ctx = c.getContext("2d");
+    const g = ctx.createLinearGradient(0, 0, 0, 256);
+    g.addColorStop(0, arriba);
+    g.addColorStop(1, abajo);
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, 2, 256);
+    const textura = new THREE.CanvasTexture(c);
+    textura.colorSpace = THREE.SRGBColorSpace;
+    return textura;
+}
+
+// Roca irregular de caras planas
+export function geometriaRoca(radio, detalle = 1, irregularidad = 0.25) {
+    const geo = new THREE.IcosahedronGeometry(radio, detalle);
+    const pos = geo.attributes.position;
+    const v = new THREE.Vector3();
+    const desplazados = new Map();
+    for (let i = 0; i < pos.count; i++) {
+        v.fromBufferAttribute(pos, i);
+        // Los vértices repetidos se mueven igual para que no queden agujeros
+        const clave = `${v.x.toFixed(3)},${v.y.toFixed(3)},${v.z.toFixed(3)}`;
+        if (!desplazados.has(clave)) desplazados.set(clave, 1 + (Math.random() - 0.5) * 2 * irregularidad);
+        v.multiplyScalar(desplazados.get(clave));
+        pos.setXYZ(i, v.x, v.y, v.z);
+    }
+    geo.computeVertexNormals();
+    return geo;
+}
+
+// Sistema de partículas simple: cubitos que saltan, caen y se achican
+export function crearParticulas(scene) {
+    const geo = new THREE.BoxGeometry(1, 1, 1);
+    const materiales = new Map();
+    const vivas = [];
+
+    function emitir(posicion, color, cantidad = 8, { velocidad = 3, arriba = 4, tamano = 0.15, gravedad = 12, vida = 0.9, brillo = false } = {}) {
+        const clave = `${color}-${brillo}`;
+        if (!materiales.has(clave)) {
+            materiales.set(clave, material(color, brillo ? { emissive: color, emissiveIntensity: 0.8 } : {}));
+        }
+        for (let i = 0; i < cantidad; i++) {
+            const p = new THREE.Mesh(geo, materiales.get(clave));
+            p.position.copy(posicion);
+            const a = Math.random() * Math.PI * 2;
+            const v = velocidad * (0.4 + Math.random() * 0.6);
+            p.userData = {
+                vel: new THREE.Vector3(Math.cos(a) * v, arriba * (0.5 + Math.random() * 0.7), Math.sin(a) * v),
+                vida,
+                total: vida,
+                tamano: tamano * (0.6 + Math.random() * 0.8),
+                gravedad,
+            };
+            p.scale.setScalar(p.userData.tamano);
+            p.rotation.set(Math.random() * 3, Math.random() * 3, 0);
+            scene.add(p);
+            vivas.push(p);
+        }
+    }
+
+    function actualizar(dt) {
+        for (let i = vivas.length - 1; i >= 0; i--) {
+            const p = vivas[i];
+            const d = p.userData;
+            d.vida -= dt;
+            if (d.vida <= 0) {
+                scene.remove(p);
+                vivas.splice(i, 1);
+                continue;
+            }
+            d.vel.y -= d.gravedad * dt;
+            p.position.addScaledVector(d.vel, dt);
+            p.rotation.x += dt * 6;
+            p.scale.setScalar(d.tamano * (d.vida / d.total));
+        }
+    }
+
+    return { emitir, actualizar };
+}
+
 // Material simple con un color
 export function material(color, extra = {}) {
     return new THREE.MeshStandardMaterial({ color, roughness: 0.6, ...extra });
@@ -54,6 +141,7 @@ export function material(color, extra = {}) {
 // 1234 → "1.2K", 5600000 → "5.6M"
 const SUFIJOS = ["", "K", "M", "B", "T", "Qa", "Qi", "Sx", "Sp", "Oc"];
 export function formatear(n) {
+    if (n < 1 && n % 1 !== 0) return (Math.floor(n * 100) / 100).toString();
     if (n < 10 && n % 1 !== 0) return (Math.floor(n * 10) / 10).toString();
     if (n < 1000) return Math.floor(n).toString();
     const nivel = Math.min(Math.floor(Math.log10(n) / 3), SUFIJOS.length - 1);
