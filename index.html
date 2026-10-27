@@ -26,13 +26,34 @@
         <button id="salir" class="boton-texto" type="button">Salir</button>
     </header>
 
-    <a class="tarjeta-multijugador" href="amigos.html">
-        <span class="emoji">👥</span>
-        <span class="texto"><strong>Multijugador</strong><span>Agregá amigos y desafialos</span></span>
-        <span id="pendientes" class="insignia" hidden></span>
-    </a>
+    <nav class="pestanas" role="tablist">
+        <button class="pestana" data-seccion="solo" role="tab">🎮 Solo</button>
+        <button class="pestana" data-seccion="multi" role="tab">👥 Multijugador<span id="pendientes" class="insignia chica" hidden></span></button>
+        <button class="pestana" data-seccion="casino" role="tab">🎰 Casino</button>
+    </nav>
 
     <main>
+        <section id="seccion-multi" class="seccion" hidden>
+            <a class="tarjeta-perfil" href="perfil.html">
+                <span id="mi-avatar" class="avatar-inicio"></span>
+                <span class="texto"><strong id="mi-nombre">Tu perfil</strong><span>Foto y nombre de usuario</span></span>
+                <span class="flecha">›</span>
+            </a>
+            <a class="tarjeta-multijugador" href="amigos.html">
+                <span class="emoji">👥</span>
+                <span class="texto"><strong>Amigos y partidas</strong><span id="detalle-amigos">Agregá amigos y desafialos</span></span>
+                <span id="pendientes-amigos" class="insignia" hidden></span>
+            </a>
+            <h2 class="titulo-seccion">Juegos online</h2>
+        </section>
+
+        <section id="seccion-casino" class="seccion" hidden>
+            <div class="billetera">
+                <span class="moneda-grande"></span>
+                <div><strong id="fichas-casino">1000</strong><span>fichas para todos los juegos del casino</span></div>
+            </div>
+        </section>
+
         <ul id="lista-juegos" class="lista-juegos"></ul>
     </main>
 
@@ -40,29 +61,38 @@
     <script src="js/app.js"></script>
     <script type="module">
         import { exigirSesion, cerrarSesion } from "./js/sesion.js";
+        import { fichas } from "./js/fichas.js";
 
         const usuario = await exigirSesion();
         const nombre = usuario.displayName || usuario.email;
-        document.getElementById("saludo").textContent = `Hola, ${nombre}. Elegí un juego`;
+        document.getElementById("saludo").textContent = `Hola, ${nombre}`;
         document.getElementById("salir").addEventListener("click", cerrarSesion);
+        document.getElementById("fichas-casino").textContent = fichas().toLocaleString("es-AR");
 
-        // Cuántas cosas esperan respuesta: solicitudes de amistad, desafíos y turnos
+        // Perfil y cuántas cosas esperan respuesta: solicitudes de amistad, desafíos y turnos
         if (usuario.uid) {
-            const { escucharAmistades, escucharPartidas, iniciarPresencia } = await import("./js/multijugador.js");
-            iniciarPresencia();
+            const m = await import("./js/multijugador.js");
+            m.iniciarPresencia();
+            const perfil = await m.miPerfil().catch(() => null);
+            document.getElementById("mi-avatar").innerHTML = m.htmlAvatar(perfil, nombre);
+            document.getElementById("mi-nombre").textContent = perfil?.nombre ?? "Elegí tu nombre de usuario";
             let solicitudes = 0;
             let turnos = 0;
             const pintar = () => {
                 const total = solicitudes + turnos;
-                const insignia = document.getElementById("pendientes");
-                insignia.hidden = total === 0;
-                insignia.textContent = total;
+                for (const id of ["pendientes", "pendientes-amigos"]) {
+                    const insignia = document.getElementById(id);
+                    insignia.hidden = total === 0;
+                    insignia.textContent = total;
+                }
+                document.getElementById("detalle-amigos").textContent =
+                    total ? `${turnos} turno(s) y ${solicitudes} solicitud(es) esperando` : "Agregá amigos y desafialos";
             };
-            escucharAmistades((lista) => {
+            m.escucharAmistades((lista) => {
                 solicitudes = lista.filter((a) => a.estado === "pendiente" && a.para === usuario.uid).length;
                 pintar();
             });
-            escucharPartidas((lista) => {
+            m.escucharPartidas((lista) => {
                 turnos = lista.filter((p) => p.estado !== "terminada" && p.turno === usuario.uid).length;
                 pintar();
             });
