@@ -26,6 +26,12 @@
         <button id="salir" class="boton-texto" type="button">Salir</button>
     </header>
 
+    <a class="tarjeta-multijugador" href="amigos.html">
+        <span class="emoji">👥</span>
+        <span class="texto"><strong>Multijugador</strong><span>Agregá amigos y desafialos</span></span>
+        <span id="pendientes" class="insignia" hidden></span>
+    </a>
+
     <main>
         <ul id="lista-juegos" class="lista-juegos"></ul>
     </main>
@@ -39,6 +45,27 @@
         const nombre = usuario.displayName || usuario.email;
         document.getElementById("saludo").textContent = `Hola, ${nombre}. Elegí un juego`;
         document.getElementById("salir").addEventListener("click", cerrarSesion);
+
+        // Cuántas cosas esperan respuesta: solicitudes de amistad, desafíos y turnos
+        if (usuario.uid) {
+            const { escucharAmistades, escucharPartidas } = await import("./js/multijugador.js");
+            let solicitudes = 0;
+            let turnos = 0;
+            const pintar = () => {
+                const total = solicitudes + turnos;
+                const insignia = document.getElementById("pendientes");
+                insignia.hidden = total === 0;
+                insignia.textContent = total;
+            };
+            escucharAmistades((lista) => {
+                solicitudes = lista.filter((a) => a.estado === "pendiente" && a.para === usuario.uid).length;
+                pintar();
+            });
+            escucharPartidas((lista) => {
+                turnos = lista.filter((p) => p.estado !== "terminada" && p.turno === usuario.uid).length;
+                pintar();
+            });
+        }
     </script>
 </body>
 </html>
