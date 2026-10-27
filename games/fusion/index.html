@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="es" class="verificando">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>Fusión · Proyecto TP</title>
+    <meta name="theme-color" content="#1b1440">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="../../icons/icon-180.png">
+    <link rel="manifest" href="../../manifest.webmanifest">
+
+    <link rel="stylesheet" href="../../css/estilos.css">
+</head>
+<body class="pantalla-3d">
+    <header class="barra-juego">
+        <a class="boton-volver" href="../../">‹ Juegos</a>
+        <h1>Fusión</h1>
+    </header>
+
+    <div id="lienzo" class="lienzo-3d">
+        <div class="marcador">
+            <div id="monedas" class="grande">0</div>
+            <div id="por-segundo" class="chico">Arrastrá dos iguales para fusionarlos</div>
+        </div>
+        <div id="aviso" class="mensaje-centro" hidden></div>
+    </div>
+
+    <div id="mejoras" class="panel-mejoras"></div>
+
+    <script type="module">
+        import { exigirSesion } from "../../js/sesion.js";
+        exigirSesion();
+    </script>
+    <script type="module" src="juego.js"></script>
+</body>
+</html>
