@@ -51,6 +51,89 @@
     --panel: #4b2a5c88;
 }
 
+.tema-casino {
+    --fondo: #072a18;
+    --fondo-2: #0b3d24;
+    --texto-suave: #b9dcc6;
+    --acento: #ffd166;
+    --acento-2: #e0a020;
+    --panel: #04170dcc;
+}
+
+/* Fichas de apuesta compartidas por los juegos de casino */
+.fichas-total {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    font-weight: 900;
+    font-size: 1.1rem;
+    color: var(--acento);
+}
+
+.ficha {
+    width: 52px;
+    height: 52px;
+    flex-shrink: 0;
+    border-radius: 50%;
+    font: inherit;
+    font-weight: 900;
+    font-size: 0.9rem;
+    color: #fff;
+    text-shadow: 0 1px 2px #000a;
+    background:
+        radial-gradient(circle, var(--c) 52%, transparent 53%),
+        repeating-conic-gradient(var(--c) 0 20deg, #ffffff 20deg 40deg);
+    border: 3px solid #0004;
+    box-shadow: 0 4px 0 #0007;
+}
+
+.ficha.clara {
+    color: #222;
+    text-shadow: none;
+}
+
+.ficha.elegida {
+    outline: 3px solid var(--acento);
+    outline-offset: 2px;
+}
+
+.ficha:active {
+    transform: translateY(3px);
+    box-shadow: 0 1px 0 #0007;
+}
+
+.ficha:disabled {
+    opacity: 0.35;
+}
+
+.accion {
+    flex: 1;
+    font: inherit;
+    font-weight: 900;
+    font-size: 1.05rem;
+    padding: 14px 10px;
+    border: none;
+    border-radius: 14px;
+    color: #2a1600;
+    background: linear-gradient(180deg, var(--acento), var(--acento-2));
+    box-shadow: 0 4px 0 #0008;
+}
+
+.accion.secundaria {
+    color: var(--texto);
+    background: linear-gradient(180deg, #ffffff2a, #ffffff10);
+    border: 1px solid var(--borde);
+}
+
+.accion:active {
+    transform: translateY(3px);
+    box-shadow: 0 1px 0 #0008;
+}
+
+.accion:disabled {
+    opacity: 0.4;
+}
+
 .tema-espiral {
     --fondo: #ff5f8f;
     --fondo-2: #ffb36b;
