@@ -1,7 +1,7 @@
 // Service worker: guarda los archivos para que la app funcione sin internet.
-// Cada vez que publiques cambios, subí el número de VERSION para que
+// publicar.ps1 sube solo el número de VERSION en cada publicación para que
 // el iPhone descargue la versión nueva.
-const VERSION = "v2";
+const VERSION = "v3";
 const CACHE = `proyecto-tp-${VERSION}`;
 
 const ARCHIVOS_BASE = [
@@ -11,6 +11,10 @@ const ARCHIVOS_BASE = [
     "css/estilos.css",
     "js/juegos.js",
     "js/app.js",
+    "js/sesion.js",
+    "js/login.js",
+    "js/firebase-config.js",
+    "login.html",
     "icons/icon-180.png",
     "icons/icon-192.png",
     "icons/icon-512.png",
@@ -31,11 +35,16 @@ self.addEventListener("activate", (evento) => {
     self.clients.claim();
 });
 
+// Además de los archivos propios, guarda la librería de Firebase para que
+// la sesión funcione sin internet. Los pedidos de login a Firebase nunca se guardan.
+const FIREBASE_SDK = "https://www.gstatic.com/firebasejs/";
+
 // Responde rápido con lo guardado y actualiza en segundo plano.
 // Así los juegos nuevos quedan guardados la primera vez que se abren.
 self.addEventListener("fetch", (evento) => {
     const pedido = evento.request;
-    if (pedido.method !== "GET" || !pedido.url.startsWith(self.location.origin)) return;
+    const propio = pedido.url.startsWith(self.location.origin);
+    if (pedido.method !== "GET" || !(propio || pedido.url.startsWith(FIREBASE_SDK))) return;
 
     evento.respondWith(
         caches.open(CACHE).then(async (cache) => {
