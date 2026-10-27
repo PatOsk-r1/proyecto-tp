@@ -1,7 +1,7 @@
 // Service worker: guarda los archivos para que la app funcione sin internet.
 // publicar.ps1 sube solo el número de VERSION en cada publicación para que
 // el iPhone descargue la versión nueva.
-const VERSION = "v10";
+const VERSION = "v11";
 const CACHE = `proyecto-tp-${VERSION}`;
 
 const ARCHIVOS_BASE = [
@@ -17,6 +17,10 @@ const ARCHIVOS_BASE = [
     "js/firebase-config.js",
     "js/comun3d.js",
     "login.html",
+    "amigos.html",
+    "css/amigos.css",
+    "js/amigos.js",
+    "js/multijugador.js",
     "icons/icon-180.png",
     "icons/icon-192.png",
     "icons/icon-512.png",
