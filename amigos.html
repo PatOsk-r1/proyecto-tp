@@ -20,14 +20,15 @@
     </header>
 
     <main class="amigos">
-        <section id="seccion-nombre" class="bloque">
-            <h2>Tu nombre de usuario</h2>
-            <p id="nombre-actual" class="suave">Elegí cómo te van a encontrar tus amigos.</p>
-            <form id="form-nombre" class="fila-form">
-                <input id="nombre" type="text" placeholder="ej: pato_99" autocomplete="off" autocapitalize="off" maxlength="20">
-                <button class="boton-chico" type="submit">Guardar</button>
-            </form>
-            <p id="aviso-nombre" class="aviso-linea" hidden></p>
+        <section class="bloque">
+            <a class="mini-perfil" href="perfil.html?volver=amigos">
+                <div id="mi-avatar" class="avatar-mini"></div>
+                <div>
+                    <strong id="mi-nombre">Sin nombre todavía</strong>
+                    <div id="mi-detalle" class="suave">Elegí tu nombre de usuario y tu foto</div>
+                </div>
+                <span class="flecha">Ajustes ›</span>
+            </a>
         </section>
 
         <div id="resto" hidden>
