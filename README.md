@@ -42,6 +42,18 @@ Ejecutá en la carpeta del proyecto y abrí http://localhost:8080:
 powershell -ExecutionPolicy Bypass -File servidor.ps1
 ```
 
+## Login
+
+Para entrar hace falta una cuenta (Google o email y contraseña), gestionada por Firebase Authentication (proyecto `proyecto-tp-255f4`).
+
+- `login.html` + `js/login.js`: pantalla de acceso.
+- `js/sesion.js`: `exigirSesion()` manda al login si no hay sesión. Todo juego nuevo debe llamarla (la plantilla ya lo hace).
+- `js/firebase-config.js`: configuración pública de Firebase. No es secreta.
+- Las contraseñas las guarda Firebase cifradas; nunca pasan por este repo.
+- Si cambia el dominio de la página, agregalo en Firebase → Authentication → Configuración → Dominios autorizados.
+
+Ojo: el login controla quién usa la app, pero el código de los juegos sigue siendo público en GitHub.
+
 ## Publicar cambios
 
 La app está publicada en **https://patosk-r1.github.io/proyecto-tp/** (repo `PatOsk-r1/proyecto-tp`).
