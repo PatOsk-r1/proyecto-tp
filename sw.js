@@ -1,7 +1,7 @@
 // Service worker: guarda los archivos para que la app funcione sin internet.
 // publicar.ps1 sube solo el número de VERSION en cada publicación para que
 // el iPhone descargue la versión nueva.
-const VERSION = "v3";
+const VERSION = "v4";
 const CACHE = `proyecto-tp-${VERSION}`;
 
 const ARCHIVOS_BASE = [
@@ -14,6 +14,7 @@ const ARCHIVOS_BASE = [
     "js/sesion.js",
     "js/login.js",
     "js/firebase-config.js",
+    "js/comun3d.js",
     "login.html",
     "icons/icon-180.png",
     "icons/icon-192.png",
@@ -35,16 +36,18 @@ self.addEventListener("activate", (evento) => {
     self.clients.claim();
 });
 
-// Además de los archivos propios, guarda la librería de Firebase para que
-// la sesión funcione sin internet. Los pedidos de login a Firebase nunca se guardan.
-const FIREBASE_SDK = "https://www.gstatic.com/firebasejs/";
+// Además de los archivos propios, guarda las librerías externas (Firebase y
+// Three.js para los juegos 3D) para que funcionen sin internet.
+// Los pedidos de login a Firebase nunca se guardan.
+const LIBRERIAS = ["https://www.gstatic.com/firebasejs/", "https://cdn.jsdelivr.net/npm/three@"];
 
 // Responde rápido con lo guardado y actualiza en segundo plano.
 // Así los juegos nuevos quedan guardados la primera vez que se abren.
 self.addEventListener("fetch", (evento) => {
     const pedido = evento.request;
     const propio = pedido.url.startsWith(self.location.origin);
-    if (pedido.method !== "GET" || !(propio || pedido.url.startsWith(FIREBASE_SDK))) return;
+    const libreria = LIBRERIAS.some((prefijo) => pedido.url.startsWith(prefijo));
+    if (pedido.method !== "GET" || !(propio || libreria)) return;
 
     evento.respondWith(
         caches.open(CACHE).then(async (cache) => {
