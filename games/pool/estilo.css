@@ -1,0 +1,195 @@
+.tema-pool {
+    --fondo: #140b05;
+    --fondo-2: #2a170a;
+    --texto-suave: #d9c3a5;
+    --acento: #7ee08f;
+    --acento-2: #2fb350;
+    --panel: #0d0703cc;
+}
+
+.jugadores {
+    display: flex;
+    gap: 8px;
+    padding: 8px 12px;
+    background: var(--panel);
+    border-bottom: 1px solid var(--borde);
+}
+
+.jugador {
+    flex: 1;
+    min-width: 0;
+    padding: 6px 10px;
+    border-radius: 12px;
+    border: 2px solid transparent;
+    background: #ffffff10;
+}
+
+.jugador.turno {
+    border-color: var(--acento);
+    box-shadow: 0 0 12px #7ee08f55;
+}
+
+.jugador .nombre {
+    font-weight: 800;
+    font-size: 0.9rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.jugador .grupo {
+    font-size: 0.75rem;
+    color: var(--texto-suave);
+}
+
+.bolitas {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 3px;
+    margin-top: 4px;
+    min-height: 14px;
+}
+
+.bolita {
+    width: 13px;
+    height: 13px;
+    border-radius: 50%;
+    background: var(--c);
+    box-shadow: inset -2px -2px 3px #0006;
+}
+
+.bolita.rayada {
+    background: linear-gradient(#fff 28%, var(--c) 28% 72%, #fff 72%);
+}
+
+.bolita.ya {
+    opacity: 0.2;
+}
+
+/* ---------- Barra del taco ---------- */
+
+.barra-taco {
+    position: absolute;
+    right: 8px;
+    top: 12%;
+    bottom: 16%;
+    width: 58px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    touch-action: none;
+}
+
+.riel {
+    position: relative;
+    flex: 1;
+    width: 34px;
+    border-radius: 18px;
+    background: #000a;
+    border: 2px solid #ffffff30;
+    overflow: hidden;
+    box-shadow: inset 0 0 10px #000;
+}
+
+.relleno {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    height: 0;
+    background: linear-gradient(180deg, #7ee08f, #ffd23f 60%, #ff5a4a);
+    opacity: 0.85;
+}
+
+/* El taco dibujado dentro de la barra: baja al deslizar */
+.taco-barra {
+    position: absolute;
+    left: 50%;
+    top: 4px;
+    width: 12px;
+    height: 85%;
+    transform: translateX(-50%);
+    border-radius: 6px 6px 4px 4px;
+    background:
+        linear-gradient(180deg, #3a6fd8 0 5px, #f2e3c6 5px 9px, #d9a066 9px 60%, #3b2414 60% 64%, #6b3a1c 64%);
+    box-shadow: 0 2px 6px #000a;
+    pointer-events: none;
+}
+
+.barra-taco span {
+    font-size: 0.72rem;
+    font-weight: 800;
+    color: var(--texto-suave);
+    text-shadow: 0 1px 2px #000;
+}
+
+.ajuste {
+    position: absolute;
+    left: 10px;
+    bottom: 42px;
+    display: flex;
+    gap: 8px;
+}
+
+.ajuste button {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    font: inherit;
+    font-size: 1.4rem;
+    font-weight: 900;
+    color: #fff;
+    background: #000a;
+    border: 2px solid #ffffff40;
+}
+
+.ajuste button:active {
+    background: #7ee08f55;
+}
+
+.ayuda-tiro {
+    position: absolute;
+    bottom: 10px;
+    left: 0;
+    right: 0;
+    text-align: center;
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--texto-suave);
+    text-shadow: 0 1px 3px #000;
+    pointer-events: none;
+}
+
+.dificultad {
+    display: flex;
+    gap: 6px;
+    pointer-events: auto;
+}
+
+.dificultad button {
+    font: inherit;
+    font-size: 0.85rem;
+    font-weight: 800;
+    color: var(--texto);
+    background: #0008;
+    border: 2px solid #fff3;
+    border-radius: 999px;
+    padding: 6px 12px;
+}
+
+.dificultad button.activa {
+    border-color: var(--acento);
+    color: var(--acento);
+}
+
+.enlace-amigos {
+    pointer-events: auto;
+    font-size: 1rem;
+    font-weight: 800;
+    color: #fff;
+    text-decoration: none;
+    padding: 8px 14px;
+    border-radius: 999px;
+    background: #0007;
+}
