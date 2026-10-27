@@ -13,4 +13,6 @@ const JUEGOS = [
     { categoria: "multi", nombre: "Tiro con arco", descripcion: "Duelo de 5 rondas con viento", emoji: "🏹", carpeta: "games/arco/" },
 
     { categoria: "casino", nombre: "Blackjack", descripcion: "Llegá a 21 sin pasarte", emoji: "🃏", carpeta: "games/blackjack/" },
+    { categoria: "casino", nombre: "Ruleta", descripcion: "Apostá a números, colores o docenas", emoji: "🎡", carpeta: "games/ruleta/" },
+    { categoria: "casino", nombre: "Tragamonedas", descripcion: "Tres iguales y te llevás el premio", emoji: "🎰", carpeta: "games/tragamonedas/" },
 ];
