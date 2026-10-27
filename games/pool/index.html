@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="es" class="verificando">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>Pool · Proyecto TP</title>
+    <meta name="theme-color" content="#1a0f08">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="../../icons/icon-180.png">
+    <link rel="manifest" href="../../manifest.webmanifest">
+
+    <link rel="stylesheet" href="../../css/estilos.css">
+    <link rel="stylesheet" href="../../css/juegos3d.css">
+    <style>
+        .tema-pool {
+            --fondo: #140b05;
+            --fondo-2: #2a170a;
+            --texto-suave: #d9c3a5;
+            --acento: #7ee08f;
+            --acento-2: #2fb350;
+            --panel: #0d0703cc;
+        }
+        .jugadores {
+            display: flex;
+            gap: 8px;
+            padding: 8px 12px;
+            background: var(--panel);
+            border-bottom: 1px solid var(--borde);
+        }
+        .jugador {
+            flex: 1;
+            padding: 6px 10px;
+            border-radius: 12px;
+            border: 2px solid transparent;
+            background: #ffffff10;
+        }
+        .jugador.turno {
+            border-color: var(--acento);
+            box-shadow: 0 0 12px #7ee08f55;
+        }
+        .jugador .nombre {
+            font-weight: 800;
+            font-size: 0.9rem;
+        }
+        .jugador .grupo {
+            font-size: 0.75rem;
+            color: var(--texto-suave);
+        }
+        .bolitas {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 3px;
+            margin-top: 4px;
+            min-height: 14px;
+        }
+        .bolita {
+            width: 13px;
+            height: 13px;
+            border-radius: 50%;
+            background: var(--c);
+            box-shadow: inset -2px -2px 3px #0006;
+        }
+        .bolita.rayada {
+            background: linear-gradient(#fff 28%, var(--c) 28% 72%, #fff 72%);
+        }
+        .bolita.ya {
+            opacity: 0.2;
+        }
+        .potencia {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            width: 12px;
+            height: 40%;
+            transform: translateY(-50%);
+            border-radius: 999px;
+            background: #0007;
+            border: 1px solid #fff3;
+            overflow: hidden;
+            pointer-events: none;
+        }
+        .potencia > div {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 0;
+            background: linear-gradient(0deg, #7ee08f, #ffd23f, #ff5a4a);
+        }
+        .dificultad {
+            display: flex;
+            gap: 6px;
+            pointer-events: auto;
+        }
+        .dificultad button {
+            font: inherit;
+            font-size: 0.85rem;
+            font-weight: 800;
+            color: var(--texto);
+            background: #0008;
+            border: 2px solid #fff3;
+            border-radius: 999px;
+            padding: 6px 12px;
+        }
+        .dificultad button.activa {
+            border-color: var(--acento);
+            color: var(--acento);
+        }
+        .ayuda-tiro {
+            position: absolute;
+            bottom: 10px;
+            left: 0;
+            right: 0;
+            text-align: center;
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: var(--texto-suave);
+            text-shadow: 0 1px 3px #000;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body class="pantalla-3d tema-pool">
+    <header class="barra-juego">
+        <a class="boton-volver" href="../../">‹ Juegos</a>
+        <h1>Pool</h1>
+    </header>
+
+    <div class="jugadores">
+        <div id="j0" class="jugador">
+            <div class="nombre">Vos</div>
+            <div class="grupo">Mesa abierta</div>
+            <div class="bolitas"></div>
+        </div>
+        <div id="j1" class="jugador">
+            <div class="nombre">Compu</div>
+            <div class="grupo">Mesa abierta</div>
+            <div class="bolitas"></div>
+        </div>
+    </div>
+
+    <div id="lienzo" class="lienzo-3d">
+        <div class="potencia"><div id="potencia"></div></div>
+        <div id="ayuda" class="ayuda-tiro">Arrastrá hacia atrás para apuntar y soltá para tirar</div>
+        <div id="aviso" class="mensaje-centro" hidden></div>
+        <div id="centro" class="mensaje-centro">
+            <div id="titulo-centro">Bola 8<div class="chico">Embocá tu grupo y después la negra</div></div>
+            <div class="dificultad">
+                <button data-nivel="0">Fácil</button>
+                <button data-nivel="1">Normal</button>
+                <button data-nivel="2">Difícil</button>
+            </div>
+            <button id="jugar" class="boton-grande" type="button">Jugar</button>
+            <div id="record" class="chico"></div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { exigirSesion } from "../../js/sesion.js";
+        exigirSesion();
+    </script>
+    <script type="module" src="juego.js"></script>
+</body>
+</html>
