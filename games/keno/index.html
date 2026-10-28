@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="es" class="verificando">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>Keno · Proyecto TP</title>
+    <meta name="theme-color" content="#1a0b45">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="../../icons/icon-180.png">
+    <link rel="manifest" href="../../manifest.webmanifest">
+
+    <link rel="stylesheet" href="../../css/estilos.css">
+    <link rel="stylesheet" href="../../css/juegos3d.css">
+    <style>
+        .tema-keno {
+            --fondo: #0d0628;
+            --fondo-2: #2b1166;
+            --texto-suave: #d6ccff;
+            --acento: #ffbe0b;
+            --acento-2: #fb5607;
+            --panel: #08031acc;
+        }
+        .zona-keno {
+            flex: 1;
+            min-height: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 6px 10px;
+        }
+        .bolillas {
+            display: flex;
+            gap: 5px;
+            min-height: 36px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .bolilla {
+            width: 32px;
+            height: 32px;
+            display: grid;
+            place-items: center;
+            border-radius: 50%;
+            font-weight: 900;
+            font-size: 0.85rem;
+            color: #1a0b45;
+            background: radial-gradient(circle at 35% 30%, #fff, #c9bfff 60%, #7a6bd1);
+            box-shadow: 0 3px 6px #0008;
+            animation: caer-bolilla 0.4s cubic-bezier(0.3, 1.5, 0.5, 1);
+        }
+        .bolilla.acierto { background: radial-gradient(circle at 35% 30%, #fff, #ffd166 55%, #e09f00); box-shadow: 0 0 12px #ffbe0b; }
+        @keyframes caer-bolilla { from { transform: translateY(-50px) scale(0.4); opacity: 0; } }
+        .tablero-k {
+            width: min(94vw, 50vh, 440px);
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            gap: 5px;
+        }
+        .num {
+            aspect-ratio: 1;
+            border: none;
+            border-radius: 10px;
+            font: inherit;
+            font-weight: 900;
+            font-size: 0.95rem;
+            color: #fff;
+            background: linear-gradient(160deg, #ffffff22, #ffffff08);
+            box-shadow: inset 0 0 0 1px #ffffff22, 0 3px 0 #0006;
+            transition: transform 0.1s, background 0.2s;
+        }
+        .num:active { transform: scale(0.92); }
+        .num.elegido { background: linear-gradient(160deg, #8338ec, #5a189a); box-shadow: inset 0 0 0 2px #c77dff, 0 3px 0 #0006; }
+        .num.salio { background: linear-gradient(160deg, #3a3a5a, #23233a); color: #9a9ab8; }
+        .num.acierto { background: linear-gradient(160deg, #ffd166, #fb8500); color: #2a1400; box-shadow: 0 0 14px #ffbe0b; animation: acierto-k 0.5s cubic-bezier(0.2, 1.6, 0.4, 1); }
+        @keyframes acierto-k { from { transform: scale(1.4); } }
+        .tabla-k {
+            display: flex;
+            gap: 4px;
+            flex-wrap: wrap;
+            justify-content: center;
+            font-size: 0.7rem;
+            font-weight: 800;
+        }
+        .tabla-k span {
+            padding: 3px 7px;
+            border-radius: 8px;
+            background: #0006;
+            color: var(--texto-suave);
+        }
+        .tabla-k span b { color: var(--acento); }
+        .tabla-k span.marcado { background: #ffbe0b33; outline: 2px solid var(--acento); }
+        .mensaje-k { min-height: 1.4em; font-size: 1.1rem; font-weight: 900; text-align: center; }
+        .mensaje-k.gano { color: var(--acento); animation: aparecer 0.3s ease-out; }
+        .botones-k { display: flex; gap: 8px; }
+        .botones-k .accion { flex: 1; }
+        .botones-k #jugar { flex: 2; color: #2a1400; }
+    </style>
+</head>
+<body class="pantalla-3d tema-casino tema-keno">
+    <header class="barra-juego">
+        <a class="boton-volver" href="../../">‹ Juegos</a>
+        <h1>Keno</h1>
+        <div id="fichas" class="fichas-total"></div>
+    </header>
+
+    <main class="zona-keno">
+        <div id="bolillas" class="bolillas"></div>
+        <div id="tablero" class="tablero-k"></div>
+        <div id="tabla" class="tabla-k"></div>
+        <div id="mensaje" class="mensaje-k">Elegí de 1 a 10 números</div>
+    </main>
+
+    <div class="controles-casino">
+        <div class="apuesta-fila">
+            <button id="menos" class="redondo" type="button">−</button>
+            <div class="apuesta">Apuesta<strong id="apuesta">10</strong></div>
+            <button id="mas" class="redondo" type="button">+</button>
+        </div>
+        <div class="botones-k">
+            <button id="azar" class="accion secundaria" type="button">🎲 Al azar</button>
+            <button id="limpiar" class="accion secundaria" type="button">Borrar</button>
+            <button id="jugar" class="accion" type="button">Jugar</button>
+        </div>
+        <button id="recargar" class="accion secundaria" type="button" hidden>Recargar fichas</button>
+    </div>
+
+    <script type="module">
+        import { exigirSesion } from "../../js/sesion.js";
+        exigirSesion();
+    </script>
+    <script type="module" src="juego.js"></script>
+</body>
+</html>
