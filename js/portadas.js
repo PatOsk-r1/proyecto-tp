@@ -862,6 +862,19 @@
             ctx.textAlign = "center";
             ctx.fillText("CHICO · GRANDE", W / 2, H * 0.85);
         },
+        bingo() {
+            fondo("#10002b", "#3a0ca3");
+            const s = Math.min(W * 0.11, H * 0.15);
+            const ox = W * 0.12;
+            const oy = H * 0.18;
+            caja(ox - 4, oy - 4, s * 5 + 8, s * 5 + 8, 8, "#fff");
+            for (let f = 0; f < 5; f++) for (let c = 0; c < 5; c++) {
+                caja(ox + c * s + 1, oy + f * s + 1, s - 2, s - 2, 3, f === 2 && c === 2 ? "#ffd166" : "#f1f0ff");
+                if (f === c || (f + c) % 4 === 1) circulo(ox + c * s + s / 2, oy + f * s + s / 2, s * 0.32, "#ff006eaa");
+            }
+            bola(W * 0.8, H * 0.35, H * 0.16, "#2a9d8f");
+            bola(W * 0.82, H * 0.72, H * 0.12, "#e63946");
+        },
         plinko() {
             fondo("#240046", "#5a189a");
             for (let f = 0; f < 5; f++) for (let c = 0; c <= f + 3; c++) circulo(W / 2 + (c - (f + 3) / 2) * 16, H * 0.14 + f * H * 0.14, 2.6, "#e0aaff");
