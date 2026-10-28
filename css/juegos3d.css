@@ -51,6 +51,15 @@
     --panel: #4b2a5c88;
 }
 
+.tema-espacio {
+    --fondo: #02010a;
+    --fondo-2: #120a33;
+    --texto-suave: #c8c2ff;
+    --acento: #7df9ff;
+    --acento-2: #3a86ff;
+    --panel: #05031acc;
+}
+
 .tema-casino {
     --fondo: #072a18;
     --fondo-2: #0b3d24;
