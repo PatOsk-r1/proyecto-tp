@@ -2,7 +2,7 @@
 // categoria: "solo" (de a uno), "multi" (con amigos online, también contra la compu) o "casino" (usan las fichas).
 // Para agregar uno nuevo: copiá la carpeta games/_plantilla, renombrala y sumá una entrada acá.
 const JUEGOS = [
-    { categoria: "solo", nombre: "Mina Profunda", descripcion: "Picá, juntá recursos y construí máquinas", emoji: "⛏️", carpeta: "games/mina/" },
+    { categoria: "solo", nombre: "Granja", descripcion: "Plantá, criá animales y cumplí pedidos", emoji: "🌾", carpeta: "games/granja/" },
     { categoria: "solo", nombre: "Apilar", descripcion: "Soltá cada bloque justo encima del anterior", emoji: "🧱", carpeta: "games/apilar/" },
     { categoria: "solo", nombre: "Espiral", descripcion: "Girá la torre y hacé caer la pelota", emoji: "🌀", carpeta: "games/espiral/" },
     { categoria: "solo", nombre: "Panadería", descripcion: "Horneá, contratá encargados y abrí sucursales", emoji: "🥐", carpeta: "games/panaderia/" },
