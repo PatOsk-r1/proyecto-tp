@@ -97,7 +97,7 @@
     width: 100%;
     max-width: 560px;
     display: grid;
-    grid-template-columns: 1.1fr repeat(12, 1fr);
+    grid-template-columns: 1.1fr repeat(12, 1fr) 1.1fr;
     grid-auto-rows: clamp(26px, 5.2vh, 40px);
     gap: 2px;
     padding: 5px;
@@ -139,21 +139,44 @@
 
 .casilla .apostado {
     position: absolute;
-    top: -6px;
-    right: -5px;
-    min-width: 20px;
-    height: 20px;
-    padding: 0 3px;
-    border-radius: 10px;
+    top: 50%;
+    left: 50%;
+    width: 24px;
+    height: 24px;
+    margin: -12px 0 0 -12px;
+    border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 0.6rem;
-    color: #2a1600;
-    background: radial-gradient(circle, #ffd166 60%, #e0a020);
-    border: 2px solid #fff;
-    box-shadow: 0 2px 4px #0008;
+    font-size: 0.5rem;
+    font-weight: 900;
+    color: #fff;
+    text-shadow: 0 1px 2px #000;
+    background:
+        radial-gradient(circle, var(--c, #ffd166) 52%, transparent 53%),
+        repeating-conic-gradient(var(--c, #ffd166) 0 30deg, #fff 30deg 60deg);
+    border: 1px solid #0006;
+    box-shadow: 0 2px 4px #000a;
     z-index: 2;
+    animation: poner-ficha 0.2s ease-out;
+}
+
+@keyframes poner-ficha {
+    from {
+        transform: translateY(-14px) scale(1.4);
+        opacity: 0;
+    }
+}
+
+.resultado.pleno {
+    animation: pleno 0.3s steps(2) 8;
+    box-shadow: 0 0 30px #ffd166;
+}
+
+@keyframes pleno {
+    50% {
+        filter: brightness(1.7);
+    }
 }
 
 .controles {
