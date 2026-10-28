@@ -168,7 +168,7 @@ function fin() {
     const t = partida.tablero;
     $("titulo-centro").innerHTML = `${empate ? "Empate" : gane ? "¡Ganaste!" : `Ganó ${nombres[rival()]}`}<div class="chico">${t[granero(miNumero())]} a ${t[granero(3 - miNumero())]}</div>`;
     document.querySelector(".dificultad").hidden = Boolean(online);
-    $("jugar").textContent = online ? "Revancha" : "Otra vez";
+    $("jugar").textContent = online ? online.textoRevancha(partida, yo) : "Otra vez";
     setTimeout(() => ($("centro").hidden = false), 700);
 }
 
