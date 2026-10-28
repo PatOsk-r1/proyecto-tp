@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="es" class="verificando">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>Reversi · Proyecto TP</title>
+    <meta name="theme-color" content="#0b3d24">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="../../icons/icon-180.png">
+    <link rel="manifest" href="../../manifest.webmanifest">
+
+    <link rel="stylesheet" href="../../css/estilos.css">
+    <link rel="stylesheet" href="../../css/juegos3d.css">
+    <link rel="stylesheet" href="../../css/tablero.css">
+    <style>
+        .tema-reversi {
+            --fondo: #062414;
+            --fondo-2: #0f5a32;
+            --texto-suave: #c9f2d8;
+            --acento: #ffd23f;
+            --acento-2: #ff9f1c;
+            --panel: #031a0dcc;
+        }
+        .tablero-r {
+            width: min(94vw, 58vh, 480px);
+            aspect-ratio: 1;
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            gap: 2px;
+            padding: 8px;
+            border-radius: 14px;
+            background: #0a3d22;
+            border: 8px solid #3b2414;
+            box-shadow: 0 16px 34px #000a;
+        }
+        .casilla-r {
+            position: relative;
+            border: none;
+            padding: 0;
+            border-radius: 3px;
+            background: radial-gradient(circle at 40% 30%, #2fae62, #1c7a42);
+            perspective: 300px;
+        }
+        .casilla-r.posible::after {
+            content: "";
+            position: absolute;
+            inset: 38%;
+            border-radius: 50%;
+            background: #ffffff55;
+        }
+        .ficha-r {
+            position: absolute;
+            inset: 9%;
+            border-radius: 50%;
+            transform-style: preserve-3d;
+            transition: transform 0.45s ease-in-out;
+            pointer-events: none;
+        }
+        .ficha-r .cara {
+            position: absolute;
+            inset: 0;
+            border-radius: 50%;
+            backface-visibility: hidden;
+            -webkit-backface-visibility: hidden;
+        }
+        .ficha-r .negra { background: radial-gradient(circle at 35% 30%, #5a5a66, #111 60%); box-shadow: 0 3px 4px #0009; }
+        .ficha-r .blanca { background: radial-gradient(circle at 35% 30%, #fff, #cfcfcf 60%); box-shadow: 0 3px 4px #0009; transform: rotateY(180deg); }
+        .ficha-r.es-blanca { transform: rotateY(180deg); }
+        .ficha-r.nueva { animation: poner 0.3s ease-out; }
+        @keyframes poner { from { transform: scale(1.6); opacity: 0; } }
+        .casilla-r.ultima { box-shadow: inset 0 0 0 2px #ffd23f; }
+        .ficha-mini { display: inline-block; width: 14px; height: 14px; border-radius: 50%; margin-right: 6px; vertical-align: -2px; }
+        .ficha-mini.n { background: #111; border: 1px solid #666; }
+        .ficha-mini.b { background: #eee; }
+    </style>
+</head>
+<body class="pantalla-3d tema-reversi">
+    <header class="barra-juego">
+        <a class="boton-volver" href="../../">‹ Juegos</a>
+        <h1>Reversi</h1>
+    </header>
+
+    <div class="marcador-turnos">
+        <div id="j-yo" class="jugador-t"><span>Vos</span><span class="puntos-t">2</span></div>
+        <span id="estado" class="estado-t">Tu turno</span>
+        <div id="j-rival" class="jugador-t"><span>Rival</span><span class="puntos-t">2</span></div>
+    </div>
+
+    <main class="zona-tablero">
+        <div id="tablero" class="tablero-r"></div>
+        <div id="aviso" class="aviso-t">Poné una ficha que encierre fichas del rival</div>
+
+        <div id="centro" class="mensaje-centro">
+            <div id="titulo-centro">Reversi<div class="chico">Encerrá fichas rivales para darlas vuelta. Gana el que tenga más.</div></div>
+            <div class="dificultad">
+                <button data-nivel="0">Fácil</button>
+                <button data-nivel="1">Normal</button>
+                <button data-nivel="2">Difícil</button>
+            </div>
+            <button id="jugar" class="boton-grande" type="button">Jugar contra la compu</button>
+            <a class="enlace-amigos" href="../../amigos.html">👥 Jugar con un amigo</a>
+        </div>
+    </main>
+
+    <script type="module">
+        import { exigirSesion } from "../../js/sesion.js";
+        exigirSesion();
+    </script>
+    <script type="module" src="juego.js"></script>
+</body>
+</html>
