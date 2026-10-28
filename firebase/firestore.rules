@@ -69,7 +69,9 @@ service cloud.firestore {
     function mensajeValido() {
       let d = request.resource.data;
       let tipo = d.get('tipo', 'texto');
-      return d.keys().hasOnly(['de', 'texto', 'creado', 'tipo', 'sticker', 'partida', 'juego', 'apuesta', 'regalo', 'cantidad'])
+      return d.keys().hasOnly(['de', 'texto', 'creado', 'tipo', 'sticker', 'partida', 'juego', 'apuesta', 'regalo', 'cantidad', 'responde'])
+        && (!('responde' in d) || (d.responde is map && d.responde.keys().hasOnly(['id', 'de', 'texto'])
+            && d.responde.texto is string && d.responde.texto.size() <= 120))
         && d.de == request.auth.uid
         && d.texto is string
         && d.texto.size() > 0
@@ -114,18 +116,38 @@ service cloud.firestore {
         allow read: if conectado() && request.auth.uid in get(/databases/$(database)/documents/partidas/$(id)).data.jugadores;
         allow create: if conectado() && mensajeValido()
           && request.auth.uid in get(/databases/$(database)/documents/partidas/$(id)).data.jugadores;
+        allow update: if conectado() && soloMiReaccion()
+          && request.auth.uid in get(/databases/$(database)/documents/partidas/$(id)).data.jugadores;
         allow delete: if conectado() && resource.data.de == request.auth.uid;
       }
     }
 
-    // Chat entre dos amigos (el id es el mismo que el de la amistad)
+    // Reaccionar a un mensaje: solo se toca la reacción propia
+    function soloMiReaccion() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['reacciones'])
+        && request.resource.data.reacciones is map
+        && request.resource.data.reacciones.diff(resource.data.get('reacciones', {})).affectedKeys().hasOnly([request.auth.uid])
+        && (!(request.auth.uid in request.resource.data.reacciones)
+            || (request.resource.data.reacciones[request.auth.uid] is string && request.resource.data.reacciones[request.auth.uid].size() <= 8));
+    }
+
+    function enElChat(chat) {
+      return request.auth.uid in get(/databases/$(database)/documents/amistades/$(chat)).data.uids
+        && get(/databases/$(database)/documents/amistades/$(chat)).data.estado == 'aceptada';
+    }
+
+    // Chat entre dos amigos (el id es el mismo que el de la amistad).
+    // El documento del chat guarda hasta cuándo leyó cada uno (visto) y quién está escribiendo.
+    match /chats/{chat} {
+      allow read: if conectado() && enElChat(chat);
+      allow create, update: if conectado() && enElChat(chat)
+        && request.resource.data.keys().hasOnly(['leido', 'escribiendo']);
+    }
+
     match /chats/{chat}/mensajes/{m} {
-      allow read: if conectado()
-        && request.auth.uid in get(/databases/$(database)/documents/amistades/$(chat)).data.uids
-        && get(/databases/$(database)/documents/amistades/$(chat)).data.estado == 'aceptada';
-      allow create: if conectado() && mensajeValido()
-        && request.auth.uid in get(/databases/$(database)/documents/amistades/$(chat)).data.uids
-        && get(/databases/$(database)/documents/amistades/$(chat)).data.estado == 'aceptada';
+      allow read: if conectado() && enElChat(chat);
+      allow create: if conectado() && mensajeValido() && enElChat(chat);
+      allow update: if conectado() && soloMiReaccion() && enElChat(chat);
       allow delete: if conectado() && resource.data.de == request.auth.uid;
     }
 
