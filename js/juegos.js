@@ -10,6 +10,9 @@ const JUEGOS = [
     { categoria: "solo", nombre: "Espiral", descripcion: "Girá la torre y hacé caer la pelota", emoji: "🌀", carpeta: "games/espiral/" },
     { categoria: "solo", nombre: "Panadería", descripcion: "Horneá, contratá encargados y abrí sucursales", emoji: "🥐", carpeta: "games/panaderia/" },
     { categoria: "solo", nombre: "Colonia espacial", descripcion: "Construí satélites y estaciones en órbita", emoji: "🪐", carpeta: "games/colonia/" },
+    { categoria: "solo", nombre: "Buscaminas", descripcion: "Destapá todo sin pisar una mina", emoji: "💣", carpeta: "games/buscaminas/" },
+    { categoria: "solo", nombre: "Memotest", descripcion: "Encontrá los pares de cartas", emoji: "🃏", carpeta: "games/memotest/" },
+    { categoria: "solo", nombre: "Sudoku", descripcion: "Del 1 al 9 sin repetir", emoji: "🔢", carpeta: "games/sudoku/" },
 
     { categoria: "multi", nombre: "Pool", descripcion: "Bola 8 contra un amigo o la compu", emoji: "🎱", carpeta: "games/pool/" },
     { categoria: "multi", nombre: "Tiro con arco", descripcion: "Duelo de 5 rondas con viento", emoji: "🏹", carpeta: "games/arco/" },
