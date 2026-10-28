@@ -1,18 +1,25 @@
 // Tragamonedas de 3 rodillos y una línea. Usa las fichas compartidas del casino.
 import { formatear, textoFlotante, vibrar, MONEDA } from "../../js/comun3d.js";
 import { fichas, cambiarFichas, recargar } from "../../js/fichas.js";
+import { icono } from "../../js/iconos.js";
 
 const $ = (id) => document.getElementById(id);
 
 // peso = qué tan seguido sale; paga = multiplicador con tres iguales
 const SIMBOLOS = [
-    { s: "7️⃣", peso: 3, paga: 200 },
-    { s: "💎", peso: 5, paga: 80 },
-    { s: "⭐", peso: 8, paga: 40 },
-    { s: "🔔", peso: 12, paga: 25 },
-    { s: "🍋", peso: 18, paga: 12 },
-    { s: "🍒", peso: 24, paga: 8 },
+    { s: "siete", peso: 3, paga: 200 },
+    { s: "diamante", peso: 5, paga: 80 },
+    { s: "estrella", peso: 8, paga: 40 },
+    { s: "campana", peso: 12, paga: 25 },
+    { s: "limon", peso: 18, paga: 12 },
+    { s: "cereza", peso: 24, paga: 8 },
 ];
+const dibujo = (x) => `<div class="simbolo">${icono(x.s)}</div>`;
+
+// Tabla de premios dibujada con los mismos símbolos
+document.querySelector(".tabla").innerHTML =
+    SIMBOLOS.map((x) => `<div><span class="tres">${icono(x.s)}${icono(x.s)}${icono(x.s)}</span><b>×${x.paga}</b></div>`).join("") +
+    `<div class="ancho"><span>Dos iguales al principio</span><b>×1</b></div>`;
 const PESO_TOTAL = SIMBOLOS.reduce((t, x) => t + x.peso, 0);
 const APUESTAS = [10, 25, 50, 100, 250, 500];
 const ALTO = 70;
@@ -37,7 +44,7 @@ function armarTira(r, final) {
     const lista = [...r.actual];
     for (let i = 0; i < VUELTAS; i++) lista.push(sortear());
     lista.push(sortear(), final, sortear());
-    r.tira.innerHTML = lista.map((x) => `<div class="simbolo">${x.s}</div>`).join("");
+    r.tira.innerHTML = lista.map(dibujo).join("");
     r.tira.style.transition = "none";
     r.tira.style.transform = "translateY(0)";
     r.actual = lista.slice(-3);
@@ -118,5 +125,5 @@ $("recargar").addEventListener("click", () => {
     pintar();
 });
 
-for (const r of rodillos) r.tira.innerHTML = r.actual.map((x) => `<div class="simbolo">${x.s}</div>`).join("");
+for (const r of rodillos) r.tira.innerHTML = r.actual.map(dibujo).join("");
 pintar();
