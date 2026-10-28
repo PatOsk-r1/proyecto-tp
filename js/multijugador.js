@@ -6,7 +6,13 @@ import {
     serverTimestamp, deleteField, runTransaction, increment, orderBy, limit,
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { fichas, billetera, avisoFichas, regalarFichas } from "./fichas.js";
-import { STICKERS, PICANTES, EMOJIS, CSS_STICKERS, stickerDe, htmlSticker, picantesActivos, activarPicantes } from "./stickers.js";
+import { STICKERS, PICANTES, EMOJIS, CSS_STICKERS, stickerDe, htmlSticker, htmlEmojiAnimado, picantesActivos, activarPicantes } from "./stickers.js";
+
+// Si el texto son solo 1 a 3 emojis, los devuelve separados (si no, null)
+const soloEmojis = (texto) => {
+    const partes = [...new Intl.Segmenter("es", { granularity: "grapheme" }).segment(texto.trim())].map((s) => s.segment).filter((s) => s.trim());
+    return partes.length && partes.length <= 3 && partes.every((s) => /\p{Extended_Pictographic}/u.test(s)) ? partes : null;
+};
 
 // 1500 → 1.5K, 2000000 → 2M (sin importar comun3d, que trae Three.js)
 export const formatear = (n) =>
@@ -319,17 +325,19 @@ export function htmlMensajes(mensajes, nombres = {}) {
             } else if (m.tipo === "partida" && JUEGOS_ONLINE[m.juego]) {
                 const j = JUEGOS_ONLINE[m.juego];
                 clase = "tarjeta";
-                cuerpo = `<div class="tarjeta-msj"><span class="grande">${j.emoji}</span>
+                cuerpo = `<div class="tarjeta-msj"><span class="grande">${htmlEmojiAnimado(j.emoji)}</span>
                     <strong>${mio ? "Desafiaste a" : "¡Te desafió a"} ${j.nombre}${mio ? "" : "!"}</strong>
                     ${m.apuesta ? `<span>🪙 Apuesta ${formatear(m.apuesta)} cada uno</span>` : "<span>Sin apuesta</span>"}
                     <a href="${urlJuego(m.juego, m.partida)}">${mio ? "Abrir partida" : "Jugar"}</a></div>`;
             } else if (m.tipo === "regalo") {
                 clase = "tarjeta";
-                cuerpo = `<div class="tarjeta-msj regalo"><span class="grande">🎁</span>
+                cuerpo = `<div class="tarjeta-msj regalo"><span class="grande">${htmlEmojiAnimado("🎁")}</span>
                     <strong>${mio ? "Regalaste" : "¡Te regaló"} 🪙 ${formatear(m.cantidad ?? 0)} fichas${mio ? "" : "!"}</strong></div>`;
             } else {
-                clase = /^\p{Extended_Pictographic}{1,3}$/u.test(m.texto) ? "emoji" : "";
-                cuerpo = `<span>${escaparHtml(m.texto)}</span>`;
+                // Mensajes de 1 a 3 emojis solos: se ven grandes y animados
+                const emojis = soloEmojis(m.texto);
+                clase = emojis ? "emoji" : "";
+                cuerpo = emojis ? `<span style="display:flex;gap:2px">${emojis.map((e) => htmlEmojiAnimado(e)).join("")}</span>` : `<span>${escaparHtml(m.texto)}</span>`;
             }
             return `<div class="msj ${mio ? "mio" : ""} ${clase}">${quien}${cuerpo}<small>${hora}</small></div>`;
         })
