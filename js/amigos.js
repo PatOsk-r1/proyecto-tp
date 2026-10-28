@@ -4,9 +4,9 @@ import {
     miPerfil, htmlAvatar, escucharAmistades, enviarSolicitud, aceptarAmistad, borrarAmistad,
     escucharPartidas, crearPartida, aceptarPartida, quitarPartida, sePuedeBorrar, JUEGOS_ONLINE,
     iniciarPresencia, escucharUsuario, enLinea, textoConexion, escucharBilletera, nivelDe, formatear,
-    rutaChatAmigo, escucharChat, sinLeer, panelChat, idAmistad,
+    rutaChatAmigo, escucharChat, sinLeer, panelChat, idAmistad, hojaDesafio, hojaRegalo,
 } from "./multijugador.js";
-import { fichas, regalarFichas } from "./fichas.js";
+import { fichas } from "./fichas.js";
 import { totales as totalesArco } from "../games/arco/reglas.js";
 
 const $ = (id) => document.getElementById(id);
@@ -18,8 +18,6 @@ const perfiles = {}; // datos de conexión de cada amigo
 const billeteras = {}; // fichas, estadísticas y experiencia de cada uno (yo incluido)
 const chats = {}; // últimos mensajes con cada amigo
 const escuchados = new Set();
-const APUESTAS_DESAFIO = [0, 100, 1000, 10000, 100000, 1000000, 10000000];
-const REGALOS = [100, 500, 1000, 10000, 100000, 1000000];
 
 const escapar = (t) => String(t).replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
 
@@ -176,7 +174,7 @@ function pintarAmistades() {
                 alTocar: () => fichaAmigo(otro),
                 acciones: [
                     { texto: `💬${n ? `<span class="insignia">${n}</span>` : ""}`, clase: "secundario", accion: () => abrirChat(otro) },
-                    { texto: "⚔️", accion: () => elegirJuego(otro) },
+                    { texto: "⚔️", accion: () => hojaDesafio(otro, perfil.nombre) },
                 ],
             });
         })
@@ -190,6 +188,8 @@ function abrirChat(otro) {
         nombres: { [otro.uid]: otro.nombre },
         clave: `amigo-${idAmistad(usuario.uid, otro.uid)}`,
         alCerrar: pintarAmistades,
+        amigo: otro,
+        miNombre: perfil.nombre,
     });
 }
 
@@ -231,8 +231,8 @@ function fichaAmigo(otro) {
         </div>`);
     const acciones = {
         chat: () => abrirChat(otro),
-        desafiar: () => elegirJuego(otro),
-        regalar: () => regalar(otro),
+        desafiar: () => hojaDesafio(otro, perfil.nombre),
+        regalar: () => hojaRegalo(otro, perfil.nombre, (n) => alert(`¡Listo! Le regalaste ${formatear(n)} fichas a ${otro.nombre} 🎁`)),
         borrar: () => confirm(`¿Eliminar a ${otro.nombre} de tus amigos?`) && borrarAmistad(otro.amistad),
     };
     for (const btn of fondo.querySelectorAll("[data-a]")) {
@@ -241,34 +241,6 @@ function fichaAmigo(otro) {
             acciones[btn.dataset.a]();
         });
     }
-}
-
-function regalar(otro) {
-    const { fondo, cerrar } = hoja(`
-        <h2>🎁 Regalar fichas a ${escapar(otro.nombre)}</h2>
-        <p class="suave">Tenés 🪙 ${formatear(fichas())}. Se descuentan de tu saldo.</p>
-        <div class="opciones-monto">${REGALOS.map((m) => `<button class="monto" data-m="${m}" ${m > fichas() ? "disabled" : ""}>${formatear(m)}</button>`).join("")}</div>
-        <form class="fila-form"><input type="number" min="1" max="10000000" inputmode="numeric" placeholder="Otra cantidad"><button class="boton-chico">Regalar</button></form>
-        <p class="aviso-linea" hidden></p>`);
-    const aviso = fondo.querySelector(".aviso-linea");
-    const enviar = async (cantidad) => {
-        aviso.hidden = true;
-        try {
-            if (!confirm(`¿Regalarle ${formatear(cantidad)} fichas a ${otro.nombre}?`)) return;
-            await regalarFichas(otro, cantidad, perfil.nombre);
-            cerrar();
-            alert(`¡Listo! Le regalaste ${formatear(cantidad)} fichas a ${otro.nombre} 🎁`);
-        } catch (error) {
-            aviso.textContent = error.code === "permission-denied" ? "No se pudo mandar el regalo." : error.message;
-            aviso.hidden = false;
-        }
-    };
-    for (const b of fondo.querySelectorAll(".monto")) b.addEventListener("click", () => enviar(Number(b.dataset.m)));
-    fondo.querySelector("form").addEventListener("submit", (e) => {
-        e.preventDefault();
-        const n = Math.floor(Number(fondo.querySelector("input").value));
-        if (n > 0) enviar(n);
-    });
 }
 
 // Ranking de amigos por fichas
@@ -335,40 +307,6 @@ function pintarPartidas(partidas) {
             return item({ nombre: p.nombres[otro] ?? "Amigo", detalle, acciones, destacado: p.estado !== "terminada" && p.turno === yo });
         })
     );
-}
-
-// Menú para elegir a qué juego desafiar y cuánto apostar
-function elegirJuego(amigo) {
-    let apuesta = 0;
-    const { fondo } = hoja(`<h2>Desafiar a ${escapar(amigo.nombre)}</h2>
-        <div class="apuesta-desafio"><span class="suave">Apuesta (cada uno pone):</span>
-            <div class="opciones-monto">${APUESTAS_DESAFIO.map((m) => `<button class="monto${m === 0 ? " elegido" : ""}" data-m="${m}" ${m > fichas() ? "disabled" : ""}>${m ? formatear(m) : "Sin apuesta"}</button>`).join("")}</div>
-            <span class="suave">Tenés 🪙 ${formatear(fichas())} · El que gana se lleva todo</span>
-        </div>
-        <div class="juegos-desafio"></div>`);
-    for (const b of fondo.querySelectorAll(".monto")) {
-        b.addEventListener("click", () => {
-            apuesta = Number(b.dataset.m);
-            for (const o of fondo.querySelectorAll(".monto")) o.classList.toggle("elegido", o === b);
-        });
-    }
-    for (const [clave, juego] of Object.entries(JUEGOS_ONLINE)) {
-        const b = document.createElement("button");
-        b.className = "juego-desafio";
-        b.innerHTML = `<span>${juego.emoji}</span>${juego.nombre}`;
-        b.addEventListener("click", async () => {
-            b.disabled = true;
-            try {
-                const { datosIniciales } = await import(juego.reglas);
-                const id = await crearPartida(clave, perfil.nombre, amigo, datosIniciales(), apuesta);
-                location.href = `${juego.carpeta}?partida=${id}`;
-            } catch (error) {
-                alert(error.message);
-                b.disabled = false;
-            }
-        });
-        fondo.querySelector(".juegos-desafio").appendChild(b);
-    }
 }
 
 pintarPerfil();
