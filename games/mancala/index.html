@@ -22,74 +22,158 @@
             --acento-2: #2fb37a;
             --panel: #1a0c04cc;
         }
+        .zona-tablero {
+            gap: 6px !important;
+        }
         .tablero-m {
-            width: min(100%, 560px);
+            position: relative;
+            width: min(94vw, 360px, calc((100dvh - 250px) * 0.56));
+            aspect-ratio: 0.56;
+            flex-shrink: 0;
             display: grid;
-            grid-template-columns: 1.2fr repeat(6, 1fr) 1.2fr;
-            grid-template-rows: 1fr 1fr;
-            gap: 6px;
-            padding: 10px;
-            border-radius: 40px;
-            background: linear-gradient(160deg, #a8743f, #6b3f1d);
-            box-shadow: 0 14px 30px #000a, inset 0 2px 0 #ffffff44, inset 0 -6px 12px #0005;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: 1.25fr repeat(6, 1fr) 1.25fr;
+            gap: 7px 12px;
+            padding: 12px;
+            border-radius: 44px;
+            background:
+                repeating-linear-gradient(95deg, #ffffff08 0 3px, transparent 3px 11px),
+                linear-gradient(160deg, #b9824a, #7a4722 55%, #5a3418);
+            box-shadow: 0 18px 40px #000b, inset 0 3px 0 #ffffff55, inset 0 -8px 16px #0006, 0 0 0 4px #3a200c;
         }
         .hoyo {
             position: relative;
-            aspect-ratio: 1;
             border-radius: 50%;
             border: none;
-            background: radial-gradient(circle at 50% 35%, #3a200c, #5a3418 70%);
-            box-shadow: inset 0 6px 10px #000a;
+            background: radial-gradient(circle at 50% 30%, #2a1608, #4a2a12 60%, #6b3f1d 100%);
+            box-shadow: inset 0 8px 12px #000c, inset 0 -2px 3px #ffffff22, 0 2px 0 #ffffff22;
             font: inherit;
             padding: 0;
+            transition: box-shadow 0.2s, transform 0.15s;
+            justify-self: center;
+            align-self: center;
+            height: 100%;
+            max-width: 100%;
+            aspect-ratio: 1;
+            min-height: 0;
         }
         .granero {
-            grid-row: 1 / 3;
-            aspect-ratio: auto;
+            grid-column: 1 / 3;
             border-radius: 999px;
+            aspect-ratio: auto;
+            width: 100%;
+            max-width: none;
         }
         .hoyo.jugable {
-            outline: 3px solid var(--acento);
-            outline-offset: -3px;
+            box-shadow: inset 0 8px 12px #000c, 0 0 0 3px var(--acento), 0 0 16px var(--acento);
+            animation: invitar 1.4s ease-in-out infinite;
             cursor: pointer;
         }
+        .hoyo.jugable:active {
+            transform: scale(0.92);
+        }
+        @keyframes invitar {
+            50% {
+                box-shadow: inset 0 8px 12px #000c, 0 0 0 3px var(--acento), 0 0 4px var(--acento);
+            }
+        }
         .hoyo.recibe {
-            box-shadow: inset 0 6px 10px #000a, 0 0 14px #ffd166;
+            animation: recibir 0.25s ease-out;
+            box-shadow: inset 0 8px 12px #000c, 0 0 18px #ffd166;
+        }
+        @keyframes recibir {
+            40% {
+                transform: scale(1.12);
+            }
+        }
+        .hoyo.captura {
+            box-shadow: inset 0 8px 12px #000c, 0 0 0 3px #ff4d6d, 0 0 22px #ff4d6d;
         }
         .hoyo .cuenta {
             position: absolute;
-            left: 50%;
-            bottom: -2px;
-            transform: translate(-50%, 50%);
-            min-width: 22px;
-            padding: 1px 6px;
+            right: -4px;
+            top: -4px;
+            min-width: 24px;
+            padding: 2px 6px;
             border-radius: 999px;
-            background: #000c;
+            background: #000d;
+            border: 1px solid #ffffff33;
             color: #fff;
             font-size: 0.75rem;
             font-weight: 900;
             z-index: 2;
         }
         .granero .cuenta {
-            bottom: 50%;
-            transform: translate(-50%, 50%);
-            font-size: 1.1rem;
+            top: 50%;
+            right: auto;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 1.4rem;
+            padding: 2px 12px;
+            background: #000a;
         }
-        .semilla {
+        .semilla,
+        .mano span {
             position: absolute;
-            width: 22%;
+            width: 20%;
             aspect-ratio: 1;
             border-radius: 50%;
-            box-shadow: inset -2px -2px 3px #0006, 0 1px 2px #0008;
+            background: radial-gradient(circle at 32% 30%, #fff 0 8%, var(--c) 30%, color-mix(in srgb, var(--c) 45%, #000) 100%);
+            box-shadow: 0 2px 2px #0009;
+            transform: translate(-50%, -50%);
+        }
+        .granero .semilla {
+            width: 8%;
+        }
+        .capa {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            z-index: 5;
+        }
+        .mano {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 56px;
+            height: 56px;
+            transition: transform 0.2s cubic-bezier(0.3, 0.7, 0.4, 1.2);
+            filter: drop-shadow(0 8px 6px #0008);
+        }
+        .mano span {
+            width: 15px;
+        }
+        .flotante-m {
+            position: absolute;
+            transform: translate(-50%, -50%);
+            font-weight: 900;
+            font-size: 1.2rem;
+            color: #ffd166;
+            text-shadow: 0 2px 4px #000, 0 0 10px #000;
+            white-space: nowrap;
+            animation: subir-m 1.3s ease-out forwards;
+        }
+        @keyframes subir-m {
+            from {
+                transform: translate(-50%, -50%) scale(0.5);
+                opacity: 0;
+            }
+            20% {
+                transform: translate(-50%, -70%) scale(1.15);
+                opacity: 1;
+            }
+            to {
+                transform: translate(-50%, -160%) scale(1);
+                opacity: 0;
+            }
         }
         .fila-etiqueta {
-            width: min(100%, 560px);
             display: flex;
-            justify-content: space-between;
-            font-size: 0.8rem;
+            justify-content: center;
+            gap: 10px;
+            font-size: 0.75rem;
             font-weight: 800;
             color: var(--texto-suave);
-            padding: 0 14px;
         }
     </style>
 </head>
@@ -106,9 +190,9 @@
     </div>
 
     <main class="zona-tablero">
-        <div class="fila-etiqueta"><span>⬅ Granero rival</span><span>Hoyos del rival</span></div>
-        <div id="tablero" class="tablero-m"></div>
-        <div class="fila-etiqueta"><span>Tus hoyos</span><span>Tu granero ➡</span></div>
+        <div class="fila-etiqueta"><span>⬆ Granero rival · hoyos rivales a la izquierda</span></div>
+        <div id="tablero" class="tablero-m"><div id="capa" class="capa"></div></div>
+        <div class="fila-etiqueta"><span>Tus hoyos a la derecha · tu granero abajo ⬇</span></div>
         <div id="aviso" class="aviso-t">Tocá uno de tus hoyos para sembrar</div>
 
         <div id="centro" class="mensaje-centro">
