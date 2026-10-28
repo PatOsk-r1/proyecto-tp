@@ -121,7 +121,7 @@ function avanzarLluvia(dt) {
     if (lluvia === 0) nubeLluvia = null;
 }
 const mariposas = Array.from({ length: 3 }, (_, i) => ({ x: Math.random(), y: 0.3 + Math.random() * 0.4, fase: i * 2, color: ["#ffd166", "#ff8fab", "#a0c4ff"][i] }));
-const luciernagas = Array.from({ length: 14 }, () => ({ x: Math.random(), y: 0.2 + Math.random() * 0.8, fase: Math.random() * 10 }));
+const luciernagas = Array.from({ length: 28 }, () => ({ x: Math.random(), y: 0.1 + Math.random() * 0.9, fase: Math.random() * 10, v: 0.3 + Math.random() * 0.5 }));
 
 // Medidas: cielo arriba, parcelas en el medio y corral abajo
 function medidas() {
@@ -150,13 +150,53 @@ function azar(semilla) {
     };
 }
 
-// Hora del día real: 0 = de noche, 1 = pleno día (con amanecer y atardecer suaves)
+// Ciclo de día y noche de la granja: un día entero cada 8 minutos.
+// 0 = de noche, 1 = pleno día (con atardecer y amanecer suaves)
+const CICLO = 8 * 60 * 1000;
+const momentoDelDia = () => (Date.now() % CICLO) / CICLO;
 function luzDelDia() {
-    const d = new Date();
-    const h = d.getHours() + d.getMinutes() / 60;
-    if (h >= 8 && h <= 18.5) return 1;
-    if (h <= 5.5 || h >= 21) return 0;
-    return h < 12 ? (h - 5.5) / 2.5 : (21 - h) / 2.5;
+    const f = momentoDelDia();
+    if (f < 0.6) return 1; // día
+    if (f < 0.68) return 1 - (f - 0.6) / 0.08; // atardecer
+    if (f < 0.92) return 0; // noche
+    return (f - 0.92) / 0.08; // amanecer
+}
+let luzAnterior = luzDelDia();
+
+// Faroles del campo: a los costados de las parcelas y sobre la cerca del corral
+function posicionesFaroles(m) {
+    const izq = Math.max(9, m.ox - 16);
+    const der = Math.min(ancho - 9, ancho - m.ox + 16);
+    const filas = MAX_LOTES / COLUMNAS;
+    const abajo = m.oy + filas * (m.lado + m.hueco);
+    const lista = [];
+    for (const y of [m.oy + m.lado * 0.6, (m.oy + abajo) / 2 + m.lado * 0.3, abajo - m.lado * 0.2]) lista.push([izq, y], [der, y]);
+    lista.push([ancho * 0.3, m.corralY + 2], [ancho * 0.7, m.corralY + 2]);
+    return lista;
+}
+function dibujarFarol(ctx, x, y, prendido, tiempo, k) {
+    // Poste de madera
+    ctx.fillStyle = "#4a2e17";
+    ctx.fillRect(x - 1.8, y - 22, 3.6, 26);
+    ctx.fillRect(x - 1.8, y - 24, 8, 2.5);
+    // Farol colgando
+    const fx = x + 6;
+    const fy = y - 17;
+    ctx.strokeStyle = "#2b1a0e";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(fx, y - 22);
+    ctx.lineTo(fx, fy - 4);
+    ctx.stroke();
+    ctx.fillStyle = "#2b1a0e";
+    ctx.fillRect(fx - 4, fy - 5, 8, 2);
+    ctx.fillRect(fx - 4, fy + 5, 8, 2);
+    const titila = 0.85 + Math.sin(tiempo * 9 + k * 1.7) * 0.08 + Math.sin(tiempo * 23 + k) * 0.05;
+    ctx.fillStyle = prendido ? `rgba(255, ${200 + titila * 40}, 110, ${0.6 + prendido * 0.4})` : "#6b7f8a";
+    ctx.beginPath();
+    ctx.roundRect(fx - 3.4, fy - 3, 6.8, 8, 2);
+    ctx.fill();
+    return { x: fx, y: fy + 1, titila };
 }
 
 // ---------- Lógica ----------
@@ -191,7 +231,8 @@ function cosechar(i, automatico = false) {
     const p = estado.parcelas[i];
     if (!p || progreso(p) < 1) return;
     const c = cultivo(p.cultivo);
-    const cantidad = Math.random() < mejora("abono") * 0.1 ? 2 : 1;
+    // El abono de caca da una de más; la mejora "Abono" da chance de doble
+    const cantidad = (Math.random() < mejora("abono") * 0.1 ? 2 : 1) + (p.abonada ? 1 : 0);
     estado.granero[c.id] = (estado.granero[c.id] ?? 0) + cantidad;
     sumarXP(c.xp * cantidad);
     estado.parcelas[i] = null;
@@ -238,6 +279,114 @@ function nuevoPedido() {
 }
 while (estado.pedidos.length < 3) estado.pedidos.push(nuevoPedido());
 const sePuede = (p) => Object.entries(p.items).every(([id, n]) => (estado.granero[id] ?? 0) >= n);
+
+// ---------- Caca y abono ----------
+// Los animales comen cada tanto y después hacen caca. Juntando 5 cacas se arma una bolsa de abono:
+// el abono se le pone a lo que está creciendo, termina la mitad de lo que faltaba y da 1 de más al cosechar.
+const CACAS_POR_BOLSA = 5;
+const MAX_CACAS = 15;
+estado.caca ??= [];
+estado.estiercol ??= 0;
+estado.abono ??= 0;
+const intervaloCaca = (datos) => Math.max(45, datos.tiempo * 0.8) * 1000;
+function hacerCaca(mov) {
+    if (estado.caca.length >= MAX_CACAS) return;
+    estado.caca.push({ x: Math.max(0.03, Math.min(0.97, mov.x - (mov.vx >= 0 ? 0.03 : -0.03))), y: Math.max(0, Math.min(1, mov.y + 0.05)), t: Date.now() });
+    sonidos.plop?.();
+}
+// Lo que hicieron mientras la granja estuvo cerrada (como mucho unas pocas por animal)
+for (const a of estado.animales) {
+    const datos = ANIMALES.find((x) => x.id === a.tipo);
+    if (!datos || !a.caca) continue;
+    const veces = Math.min(3, Math.floor((Date.now() - a.caca) / intervaloCaca(datos)));
+    for (let k = 0; k < veces && estado.caca.length < MAX_CACAS; k++) estado.caca.push({ x: 0.08 + Math.random() * 0.84, y: Math.random(), t: Date.now() });
+    if (veces > 0) a.caca = Date.now();
+}
+function posCaca(c, m = medidas()) {
+    const tam = Math.min(46, m.corral * 0.5);
+    return { x: 20 + c.x * (ancho - 40), y: m.corralY + 30 + c.y * (m.corral - 50) + tam * 0.38 };
+}
+function dibujarCaca(ctx, pos, tiempo, c) {
+    ctx.save();
+    ctx.translate(pos.x, pos.y);
+    const aparece = Math.min(1, (Date.now() - (c.t ?? 0)) / 300);
+    ctx.scale(aparece, aparece);
+    ctx.fillStyle = "#0002";
+    ctx.beginPath();
+    ctx.ellipse(0, 2, 9, 3, 0, 0, TAU);
+    ctx.fill();
+    // Tres rollitos marrones con brillo
+    for (const [dy, rx, ry] of [[0, 8, 4], [-4.5, 6, 3.4], [-8.5, 3.8, 2.8]]) {
+        const g = ctx.createRadialGradient(-2, dy - 2, 0, 0, dy, rx);
+        g.addColorStop(0, "#9c6b3f");
+        g.addColorStop(1, "#5a3a1e");
+        ctx.fillStyle = g;
+        ctx.beginPath();
+        ctx.ellipse(0, dy, rx, ry, 0, 0, TAU);
+        ctx.fill();
+    }
+    ctx.fillStyle = "#5a3a1e";
+    ctx.beginPath();
+    ctx.moveTo(-1.5, -10.5);
+    ctx.quadraticCurveTo(1, -14, 2.5, -12);
+    ctx.lineTo(1, -10);
+    ctx.fill();
+    // Mosquitas dando vueltas
+    ctx.fillStyle = "#222";
+    for (let k = 0; k < 2; k++) {
+        const a = tiempo * (3 + k) + (c.x + k) * 9;
+        ctx.beginPath();
+        ctx.arc(Math.cos(a) * 9, -16 + Math.sin(a * 1.3) * 4, 1.1, 0, TAU);
+        ctx.fill();
+    }
+    ctx.restore();
+}
+// Junta las cacas que haya cerca del dedo
+function juntarCaca(x, y) {
+    const m = medidas();
+    let juntadas = 0;
+    for (let i = estado.caca.length - 1; i >= 0; i--) {
+        const p = posCaca(estado.caca[i], m);
+        if (Math.hypot(p.x - x, p.y - 6 - y) > 22) continue;
+        estado.caca.splice(i, 1);
+        estado.estiercol++;
+        juntadas++;
+        chispas.emitir(p.x, p.y - 4, "#7a4a22", 6, 70);
+        textos.push({ x: p.x, y: p.y - 18, t: `💩 ${estado.estiercol}/${CACAS_POR_BOLSA}`, vida: 0.9 });
+        if (estado.estiercol >= CACAS_POR_BOLSA) {
+            estado.estiercol -= CACAS_POR_BOLSA;
+            estado.abono++;
+            avisar(`🧺 ¡Bolsa de abono! Tenés ${estado.abono}. Elegila en Semillas`, 2600);
+            sonidos.comprar();
+        }
+    }
+    if (juntadas) {
+        sonidos.plop?.();
+        vibrar(10);
+    }
+    return juntadas > 0;
+}
+// Abonar lo que está creciendo
+function abonar(i) {
+    const p = estado.parcelas[i];
+    if (!p || progreso(p) >= 1 || p.abonada) return false;
+    if (estado.abono < 1) {
+        avisar("No tenés abono: juntá la caca de los animales 💩");
+        sonidos.error();
+        return false;
+    }
+    const falta = (1 - progreso(p)) * tiempoCultivo(cultivo(p.cultivo));
+    p.desde -= falta * 0.5;
+    p.abonada = true;
+    estado.abono--;
+    rebotes[i] = performance.now();
+    const r = rectParcela(i);
+    chispas.emitir(r.x + r.w / 2, r.y + r.h / 2, "#8fd14f", 14, 110);
+    textos.push({ x: r.x + r.w / 2, y: r.y + 8, t: "🌿 ¡Abonado!", vida: 1 });
+    sonidos.plantar();
+    vibrar(15);
+    return true;
+}
 
 // ---------- Corral ----------
 const andar = [];
@@ -927,6 +1076,20 @@ function dibujarParcela(ctx, i, r, tiempo) {
     ctx.lineTo(r.x + r.w - radio, r.y + 1.5);
     ctx.stroke();
     if (!p) return;
+    if (p.abonada) {
+        // Tierra abonada: puntitos oscuros y una hojita en la esquina
+        ctx.fillStyle = "#2b1a0e";
+        const r2 = azar(i + 7);
+        for (let k = 0; k < 10; k++) {
+            ctx.beginPath();
+            ctx.arc(r.x + b + 4 + r2() * (r.w - b * 2 - 8), r.y + b + 4 + r2() * (r.h - b * 2 - 8), 1.6, 0, TAU);
+            ctx.fill();
+        }
+        ctx.fillStyle = "#8fd14f";
+        ctx.beginPath();
+        ctx.ellipse(r.x + b + 7, r.y + b + 7, 5, 2.6, -0.7, 0, TAU);
+        ctx.fill();
+    }
     // Saltito al plantar o cosechar
     const desde = (performance.now() - (rebotes[i] ?? -1e9)) / 1000;
     const salto = desde < 0.45 ? 1 + Math.sin(desde * 14) * 0.18 * (1 - desde / 0.45) : 1;
@@ -985,16 +1148,52 @@ function dibujar(dt) {
         ctx.textBaseline = "middle";
         ctx.fillText(estado.nivel >= 2 ? "Comprá animales en la pestaña 🐔" : "Los animales se destraban en el nivel 2", ancho / 2, m.corralY + m.corral / 2 + 8);
     }
+    const tam = Math.min(46, m.corral * 0.5);
+    // Caca en el piso del corral (se junta tocándola)
+    for (const c of estado.caca ?? []) dibujarCaca(ctx, posCaca(c, m), tiempo, c);
+    const duermen = luz < 0.25;
     const orden = estado.animales.map((a, k) => ({ a, k, pos: posAnimal(k) })).sort((p, q) => p.pos.y - q.pos.y);
     for (const { a, k, pos } of orden) {
         const mov = andar[k];
-        mov.x += mov.vx * dt;
-        if (mov.x < 0.05 || mov.x > 0.95) mov.vx *= -1;
-        if (Math.random() < dt * 0.3) mov.vx = (Math.random() - 0.5) * 0.08;
-        mov.fase += dt * (Math.abs(mov.vx) > 0.01 ? 1 : 0.2);
-        const tam = Math.min(46, m.corral * 0.5);
-        dibujarAnimal(ctx, a.tipo, pos.x, pos.y, tam, mov.fase, mov.vx >= 0 ? 1 : -1);
         const datos = animal(a.tipo);
+        // Cada tanto tiene hambre: se para a comer pasto y después hace caca
+        a.caca ??= Date.now();
+        if (!mov.come && !duermen && Date.now() - a.caca > intervaloCaca(datos)) mov.come = 2.6;
+        if (mov.come) {
+            mov.come = Math.max(0, mov.come - dt);
+            if (!mov.come) {
+                a.caca = Date.now();
+                hacerCaca(mov);
+            }
+        } else if (!duermen) {
+            mov.x += mov.vx * dt;
+            if (mov.x < 0.05 || mov.x > 0.95) mov.vx *= -1;
+            if (Math.random() < dt * 0.3) mov.vx = (Math.random() - 0.5) * 0.08;
+            mov.fase += dt * (Math.abs(mov.vx) > 0.01 ? 1 : 0.2);
+        }
+        const mira = mov.vx >= 0 ? 1 : -1;
+        if (mov.come) {
+            // Pastito adelante y la cabeza subiendo y bajando
+            ctx.fillStyle = "#3f9a2a";
+            for (let g = 0; g < 4; g++) ctx.fillRect(pos.x + mira * tam * (0.35 + g * 0.06), pos.y + tam * 0.3 - (g % 2) * 3, 2, 6 + (g % 2) * 3);
+            ctx.save();
+            ctx.translate(0, Math.abs(Math.sin(tiempo * 10)) * 2.5);
+            dibujarAnimal(ctx, a.tipo, pos.x, pos.y, tam, 0, mira);
+            ctx.restore();
+        } else {
+            dibujarAnimal(ctx, a.tipo, pos.x, pos.y, tam, mov.fase, mira);
+        }
+        if (duermen) {
+            // Zzz
+            for (let z = 0; z < 3; z++) {
+                const t = (tiempo * 0.6 + z / 3 + k * 0.2) % 1;
+                ctx.globalAlpha = 1 - t;
+                ctx.fillStyle = "#e0e7ff";
+                ctx.font = `900 ${9 + t * 6}px system-ui, sans-serif`;
+                ctx.fillText("z", pos.x + tam * 0.3 + t * 12, pos.y - tam * 0.5 - t * 20);
+            }
+            ctx.globalAlpha = 1;
+        }
         const listo = Date.now() - a.desde >= tiempoAnimal(datos);
         if (listo) {
             const by = pos.y - tam * 0.7 + Math.sin(tiempo * 4 + k) * 3;
@@ -1062,14 +1261,39 @@ function dibujar(dt) {
             ctx.fillRect(x - 0.7, y - 3, 1.4, 6);
         }
     }
+    // Faroles (se prenden al anochecer) y la oscuridad de la noche
+    const prendido = Math.max(0, Math.min(1, (0.7 - luz) / 0.4));
+    const luces = posicionesFaroles(m).map(([x, y], k) => dibujarFarol(ctx, x, y, prendido, tiempo, k));
     if (luz < 1) {
-        ctx.fillStyle = `rgba(12, 18, 60, ${(1 - luz) * 0.32})`;
+        ctx.fillStyle = `rgba(10, 16, 55, ${(1 - luz) * 0.5})`;
         ctx.fillRect(0, m.cielo, ancho, alto - m.cielo);
+        if (prendido > 0) {
+            // Luz cálida de cada farol que ilumina alrededor
+            ctx.globalCompositeOperation = "lighter";
+            for (const l of luces) {
+                const radio = 62 * l.titila;
+                const g = ctx.createRadialGradient(l.x, l.y, 0, l.x, l.y, radio);
+                g.addColorStop(0, `rgba(255, 190, 90, ${0.42 * prendido})`);
+                g.addColorStop(0.35, `rgba(255, 150, 60, ${0.16 * prendido})`);
+                g.addColorStop(1, "rgba(255, 140, 50, 0)");
+                ctx.fillStyle = g;
+                ctx.fillRect(l.x - radio, l.y - radio, radio * 2, radio * 2);
+            }
+            ctx.globalCompositeOperation = "source-over";
+            // El vidrio del farol brilla
+            for (const l of luces) {
+                ctx.fillStyle = `rgba(255, 245, 200, ${prendido})`;
+                ctx.beginPath();
+                ctx.arc(l.x, l.y, 1.8, 0, TAU);
+                ctx.fill();
+            }
+        }
         ctx.globalAlpha = 1 - luz;
         for (const f of luciernagas) {
             f.fase += dt;
-            const x = (f.x + Math.sin(f.fase * 0.4) * 0.05) * ancho;
-            const y = m.cielo + (alto - m.cielo) * (f.y + Math.cos(f.fase * 0.5) * 0.03);
+            // Vuelan despacio dando vueltas
+            const x = (f.x + Math.sin(f.fase * 0.35 * f.v) * 0.08 + Math.sin(f.fase * 1.7) * 0.01) * ancho;
+            const y = m.cielo + (alto - m.cielo) * (f.y + Math.cos(f.fase * 0.45 * f.v) * 0.05);
             const brillo = (Math.sin(f.fase * 3) + 1) / 2;
             const g = ctx.createRadialGradient(x, y, 0, x, y, 8);
             g.addColorStop(0, `rgba(230,255,140,${brillo})`);
@@ -1101,6 +1325,11 @@ let acumulado = 0;
 bucle((dt) => {
     avanzarLluvia(dt);
     if (pantallaGrande.matches) animarVisita(dt);
+    // Aviso cuando anochece o amanece
+    const luzAhora = luzDelDia();
+    if (luzAnterior >= 0.5 && luzAhora < 0.5) avisar("🌙 Anochece: se prenden los faroles", 2600);
+    if (luzAnterior < 0.5 && luzAhora >= 0.5) avisar("☀️ ¡Buen día, granjero!", 2400);
+    luzAnterior = luzAhora;
     // El granjero cosecha solo lo que está listo
     if (mejora("granjero")) estado.parcelas.forEach((p, i) => p && progreso(p) >= 1 && cosechar(i, true));
     dibujar(dt);
@@ -1128,7 +1357,7 @@ function puntoDe(e) {
     return { x: e.clientX - caja.left, y: e.clientY - caja.top };
 }
 function recogerEn(x, y) {
-    let alguno = false;
+    let alguno = juntarCaca(x, y);
     for (let k = 0; k < estado.animales.length; k++) {
         const pos = posAnimal(k);
         if (Math.hypot(pos.x - x, pos.y - 10 - y) < 34 && recoger(k)) alguno = true;
@@ -1150,6 +1379,8 @@ $("lienzo").addEventListener("pointermove", (e) => {
     if (arrastre.modo === "cosechar" && p && progreso(p) >= 1) {
         cosechar(i);
         refrescar();
+    } else if (arrastre.modo === "abonar") {
+        if (abonar(i)) refrescar();
     } else if (arrastre.modo === "plantar" && !p) {
         const c = cultivo(estado.elegida);
         if (c && plantar(i, c.id)) {
@@ -1178,7 +1409,13 @@ $("lienzo").addEventListener("pointerdown", (e) => {
         const r = rectParcela(i, m);
         if (x < r.x || x > r.x + r.w || y < r.y || y > r.y + r.h) continue;
         const p0 = estado.parcelas[i];
-        if (i < estado.lotes) arrastre = { modo: !p0 ? "plantar" : progreso(p0) >= 1 ? "cosechar" : null, vistas: new Set([i]) };
+        const conAbono = estado.elegida === "abono";
+        if (i < estado.lotes) {
+            arrastre = {
+                modo: !p0 ? (conAbono ? null : "plantar") : progreso(p0) >= 1 ? "cosechar" : conAbono ? "abonar" : null,
+                vistas: new Set([i]),
+            };
+        }
         if (arrastre && !arrastre.modo) arrastre = null;
         if (i >= estado.lotes) {
             if (i === estado.lotes && estado.monedas >= costoLote()) {
@@ -1195,9 +1432,14 @@ $("lienzo").addEventListener("pointerdown", (e) => {
             return;
         }
         const p = estado.parcelas[i];
+        if (p && conAbono && progreso(p) < 1) {
+            if (p.abonada) avisar("Esta parcela ya tiene abono");
+            else if (abonar(i)) refrescar();
+            return;
+        }
         if (!p) {
             const c = cultivo(estado.elegida);
-            if (!c) return;
+            if (!c) return conAbono && avisar("El abono va sobre lo que está creciendo 🌱");
             if (plantar(i, c.id)) {
                 chispas.emitir(r.x + r.w / 2, r.y + r.h / 2, "#9c6644", 8, 80);
                 vibrar(10);
@@ -1323,12 +1565,16 @@ function pintarPanel() {
     const scroll = panel.scrollTop;
     let html;
     if (pestana === "semillas") {
-        html = `<div class="semillas">${CULTIVOS.map((c) => {
+        // Primero la bolsa de abono (se arma juntando la caca de los animales)
+        const abono = `<button class="semilla-c abono-c${estado.elegida === "abono" ? " elegida" : ""}" data-semilla="abono" ${estado.abono > 0 || estado.elegida === "abono" ? "" : "disabled"}>
+            <span class="bolsa-abono">🧺</span><span class="nombre-s">Abono ×${estado.abono}</span>
+            <small>💩 ${estado.estiercol}/${CACAS_POR_BOLSA} para otra</small><span class="vende-s">más rápido</span></button>`;
+        html = `<div class="semillas">${abono}${CULTIVOS.map((c) => {
             const bloqueado = c.nivel > estado.nivel;
             return `<button class="semilla-c${estado.elegida === c.id ? " elegida" : ""}" data-semilla="${c.id}" ${bloqueado ? "disabled" : ""}>
                 ${canvasProducto(c.id)}<span class="nombre-s">${c.nombre}</span><small>${bloqueado ? `🔒 Nivel ${c.nivel}` : `${MONEDA_G}${c.semilla} · ⏱ ${c.tiempo >= 60 ? c.tiempo / 60 + " min" : c.tiempo + " s"}`}</small>
                 ${bloqueado ? "" : `<span class="vende-s">vende ${precioVenta(c.id)}</span>`}</button>`;
-        }).join("")}</div><p class="ayuda-g">Elegí una semilla y tocá o deslizá el dedo sobre las parcelas vacías. Deslizá sobre lo maduro para cosechar.</p>`;
+        }).join("")}</div><p class="ayuda-g">Elegí una semilla y tocá o deslizá el dedo sobre las parcelas vacías. Deslizá sobre lo maduro para cosechar. Juntá la caca del corral 💩 para hacer abono y ponéselo a lo que está creciendo.</p>`;
     } else if (pestana === "pedidos") {
         html = `<div class="lista-pedidos">${htmlPedidos()}</div>`;
     } else if (pestana === "almacen") {
@@ -1472,7 +1718,24 @@ for (const tipo of ["musica", "efectos"]) {
     });
     $(`vol-${tipo}`).addEventListener("change", () => tipo === "efectos" && sonidos.cosechar());
 }
+// Número de versión instalada (el nombre del caché del service worker, ej. proyecto-tp-v75)
+async function pintarVersion() {
+    let version = "";
+    try {
+        version = (await caches.keys())
+            .filter((k) => k.startsWith("proyecto-tp-"))
+            .map((k) => k.replace("proyecto-tp-", ""))
+            .sort((a, b) => parseInt(b.slice(1)) - parseInt(a.slice(1)))[0] ?? "";
+    } catch {}
+    if (!version) {
+        try {
+            version = (await (await fetch("../../sw.js", { cache: "no-store" })).text()).match(/VERSION = "([^"]+)"/)?.[1] ?? "";
+        } catch {}
+    }
+    $("version-app").textContent = version ? `Versión ${version}` : "";
+}
 $("ajustes").addEventListener("click", () => {
+    pintarVersion();
     pintarVolumen();
     $("hoja-ajustes").hidden = false;
     sonidos.toque();
