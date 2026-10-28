@@ -5,7 +5,8 @@ import {
     getFirestore, doc, getDoc, collection, query, where, onSnapshot, writeBatch, setDoc, updateDoc, deleteDoc, addDoc,
     serverTimestamp, deleteField, runTransaction, increment, orderBy, limit,
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-import { fichas, billetera, avisoFichas } from "./fichas.js";
+import { fichas, billetera, avisoFichas, regalarFichas } from "./fichas.js";
+import { STICKERS, PICANTES, EMOJIS, CSS_STICKERS, stickerDe, htmlSticker, picantesActivos, activarPicantes } from "./stickers.js";
 
 // 1500 → 1.5K, 2000000 → 2M (sin importar comun3d, que trae Three.js)
 export const formatear = (n) =>
@@ -273,11 +274,18 @@ export function escucharChat(ruta, alCambiar, cuantos = 60) {
     return onSnapshot(q, (snap) => alCambiar(snap.docs.map((d) => ({ id: d.id, ...d.data() })).reverse()), () => {});
 }
 
-export function enviarMensaje(ruta, texto) {
+// tipo: "texto" (por defecto), "sticker", "partida" (un juego mandado por el chat) o "regalo" (fichas regaladas).
+// texto siempre lleva un resumen legible.
+export function enviarMensaje(ruta, texto, extra = {}) {
     texto = String(texto).trim().slice(0, TEXTO_MAX);
     if (!texto) return;
-    return addDoc(collection(db, ...ruta, "mensajes"), { de: yo(), texto, creado: serverTimestamp() });
+    return addDoc(collection(db, ...ruta, "mensajes"), { de: yo(), texto, creado: serverTimestamp(), ...extra });
 }
+
+export const enviarSticker = (ruta, id) => {
+    const s = stickerDe(id);
+    return s && enviarMensaje(ruta, `${s.e} ${s.t}`, { tipo: "sticker", sticker: id });
+};
 
 // Mensajes sin leer: se guarda en el dispositivo hasta cuándo leíste cada chat
 export function marcarLeido(clave) {
@@ -294,6 +302,7 @@ export function sinLeer(clave, mensajes) {
 }
 
 const escaparHtml = (t) => String(t).replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
+export const urlJuego = (clave, id) => new URL(`../${JUEGOS_ONLINE[clave]?.carpeta ?? ""}?partida=${id}`, import.meta.url).href;
 
 // Arma una lista de mensajes con burbujas (se usa en el chat de amigos y en el de partidas)
 export function htmlMensajes(mensajes, nombres = {}) {
@@ -301,9 +310,28 @@ export function htmlMensajes(mensajes, nombres = {}) {
         .map((m) => {
             const mio = m.de === yo();
             const hora = m.creado?.toDate?.().toLocaleTimeString("es", { hour: "2-digit", minute: "2-digit" }) ?? "";
-            const soloEmoji = /^\p{Extended_Pictographic}{1,3}$/u.test(m.texto);
-            return `<div class="msj ${mio ? "mio" : ""} ${soloEmoji ? "emoji" : ""}">
-                ${mio ? "" : `<b>${escaparHtml(nombres[m.de] ?? "")}</b>`}<span>${escaparHtml(m.texto)}</span><small>${hora}</small></div>`;
+            const quien = mio ? "" : `<b>${escaparHtml(nombres[m.de] ?? "")}</b>`;
+            let clase = "";
+            let cuerpo;
+            if (m.tipo === "sticker" && stickerDe(m.sticker)) {
+                clase = "sticker-msj";
+                cuerpo = htmlSticker(m.sticker);
+            } else if (m.tipo === "partida" && JUEGOS_ONLINE[m.juego]) {
+                const j = JUEGOS_ONLINE[m.juego];
+                clase = "tarjeta";
+                cuerpo = `<div class="tarjeta-msj"><span class="grande">${j.emoji}</span>
+                    <strong>${mio ? "Desafiaste a" : "¡Te desafió a"} ${j.nombre}${mio ? "" : "!"}</strong>
+                    ${m.apuesta ? `<span>🪙 Apuesta ${formatear(m.apuesta)} cada uno</span>` : "<span>Sin apuesta</span>"}
+                    <a href="${urlJuego(m.juego, m.partida)}">${mio ? "Abrir partida" : "Jugar"}</a></div>`;
+            } else if (m.tipo === "regalo") {
+                clase = "tarjeta";
+                cuerpo = `<div class="tarjeta-msj regalo"><span class="grande">🎁</span>
+                    <strong>${mio ? "Regalaste" : "¡Te regaló"} 🪙 ${formatear(m.cantidad ?? 0)} fichas${mio ? "" : "!"}</strong></div>`;
+            } else {
+                clase = /^\p{Extended_Pictographic}{1,3}$/u.test(m.texto) ? "emoji" : "";
+                cuerpo = `<span>${escaparHtml(m.texto)}</span>`;
+            }
+            return `<div class="msj ${mio ? "mio" : ""} ${clase}">${quien}${cuerpo}<small>${hora}</small></div>`;
         })
         .join("");
 }
@@ -312,24 +340,43 @@ export const CSS_CHAT = `
 .chat-flotante { position: fixed; right: 8px; top: calc(58px + env(safe-area-inset-top)); z-index: 50; width: 44px; height: 44px; border-radius: 50%; border: none; font-size: 1.3rem; background: #ffd166e6; box-shadow: 0 6px 18px #0009; }
 .chat-flotante .insignia-chat { position: absolute; top: -4px; right: -4px; min-width: 20px; padding: 1px 5px; border-radius: 999px; background: #ff4d6d; color: #fff; font: 900 0.75rem system-ui, sans-serif; }
 .pozo-flotante { position: fixed; left: 50%; bottom: calc(6px + env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: 40; padding: 4px 12px; border-radius: 999px; background: #000a; color: #ffd166; font: 900 0.8rem system-ui, sans-serif; pointer-events: none; border: 1px solid #ffd16655; }
-.panel-chat { position: fixed; inset: auto 0 0 0; z-index: 60; max-width: 560px; margin: 0 auto; height: min(70vh, 520px); display: flex; flex-direction: column; background: #1d1650; border-radius: 20px 20px 0 0; box-shadow: 0 -10px 30px #000a; padding: 12px 12px calc(12px + env(safe-area-inset-bottom)); color: #fff; font-family: system-ui, sans-serif; animation: subir-chat 0.25s ease-out; }
+.panel-chat { position: fixed; inset: auto 0 0 0; z-index: 60; max-width: 560px; margin: 0 auto; height: min(82vh, 640px); display: flex; flex-direction: column; gap: 6px; background: #1d1650; border-radius: 20px 20px 0 0; box-shadow: 0 -10px 30px #000a; padding: 12px 12px calc(12px + env(safe-area-inset-bottom)); color: #fff; font-family: system-ui, sans-serif; animation: subir-chat 0.25s ease-out; }
 @keyframes subir-chat { from { transform: translateY(100%); } }
-.panel-chat header { display: flex; justify-content: space-between; align-items: center; font-weight: 900; margin-bottom: 8px; }
+.panel-chat header { display: flex; justify-content: space-between; align-items: center; font-weight: 900; }
 .panel-chat header button { font: inherit; background: #ffffff18; color: #fff; border: none; border-radius: 10px; padding: 6px 12px; }
-.lista-msj { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; padding: 4px 2px; }
+.lista-msj { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; padding: 4px 2px; }
 .msj { align-self: flex-start; max-width: 80%; padding: 7px 11px; border-radius: 16px 16px 16px 4px; background: #ffffff1c; font-size: 0.95rem; overflow-wrap: anywhere; }
 .msj.mio { align-self: flex-end; border-radius: 16px 16px 4px 16px; background: #6c4cf5; }
 .msj b { display: block; font-size: 0.7rem; color: #ffd166; }
 .msj small { display: block; text-align: right; font-size: 0.62rem; opacity: 0.6; }
 .msj.emoji { background: none; font-size: 2rem; padding: 0 4px; }
-.rapidos { display: flex; gap: 6px; overflow-x: auto; padding: 6px 0; scrollbar-width: none; }
+.rapidos { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; }
 .rapidos button { flex-shrink: 0; font: 700 0.95rem system-ui, sans-serif; color: #fff; background: #ffffff14; border: 1px solid #ffffff22; border-radius: 999px; padding: 6px 10px; }
 .form-chat { display: flex; gap: 6px; }
 .form-chat input { flex: 1; min-width: 0; font: inherit; font-size: 16px; color: #fff; background: #ffffff12; border: 1px solid #ffffff22; border-radius: 12px; padding: 10px; outline: none; }
-.form-chat button { font: 900 1rem system-ui, sans-serif; border: none; border-radius: 12px; padding: 0 16px; background: #ffd166; color: #2a1400; }
+.form-chat button { font: 900 1rem system-ui, sans-serif; border: none; border-radius: 12px; padding: 0 12px; background: #ffd166; color: #2a1400; }
+.form-chat button.icono { background: #ffffff18; color: #fff; font-size: 1.2rem; padding: 0 10px; }
 .burbuja-rival { position: fixed; left: 50%; top: 30%; transform: translateX(-50%); z-index: 55; padding: 10px 16px; border-radius: 18px; background: #fff; color: #1d1650; font: 800 1.05rem system-ui, sans-serif; box-shadow: 0 10px 30px #0009; animation: burbuja 2.6s ease-out forwards; pointer-events: none; max-width: 80vw; text-align: center; }
 .burbuja-rival.emoji { font-size: 3rem; background: none; box-shadow: none; }
+.burbuja-rival.sin-fondo { background: none; box-shadow: none; padding: 0; }
 @keyframes burbuja { 0% { opacity: 0; transform: translate(-50%, 20px) scale(0.6); } 12% { opacity: 1; transform: translate(-50%, 0) scale(1.05); } 80% { opacity: 1; transform: translate(-50%, -10px); } 100% { opacity: 0; transform: translate(-50%, -40px); } }
+.hoja-chat-fondo { position: fixed; inset: 0; z-index: 70; display: flex; align-items: flex-end; justify-content: center; background: #0009; }
+.hoja-chat { width: 100%; max-width: 560px; max-height: 88vh; overflow-y: auto; padding: 18px 16px calc(18px + env(safe-area-inset-bottom)); border-radius: 20px 20px 0 0; background: #241a5c; color: #fff; display: flex; flex-direction: column; gap: 10px; font-family: system-ui, sans-serif; animation: subir-chat 0.25s ease-out; }
+.hoja-chat h2 { font-size: 1.1rem; }
+.hoja-chat .suave { opacity: 0.7; font-size: 0.85rem; }
+.hoja-chat .montos { display: flex; flex-wrap: wrap; gap: 6px; }
+.hoja-chat .monto { font: 800 0.9rem system-ui, sans-serif; color: #fff; background: #ffffff14; border: 2px solid #ffffff22; border-radius: 999px; padding: 7px 12px; }
+.hoja-chat .monto.elegido { border-color: #ffd166; color: #ffd166; }
+.hoja-chat .monto:disabled { opacity: 0.35; }
+.hoja-chat .juegos { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; }
+.hoja-chat .juegos button { display: flex; align-items: center; gap: 8px; font: 800 0.95rem system-ui, sans-serif; color: #fff; background: #ffffff10; border: 1px solid #ffffff22; border-radius: 14px; padding: 12px; text-align: left; }
+.hoja-chat .juegos span { font-size: 1.5rem; }
+.hoja-chat .fila { display: flex; gap: 8px; }
+.hoja-chat input { flex: 1; min-width: 0; font: inherit; font-size: 16px; color: #fff; background: #ffffff12; border: 1px solid #ffffff22; border-radius: 12px; padding: 10px; }
+.hoja-chat .boton { font: 900 0.95rem system-ui, sans-serif; border: none; border-radius: 12px; padding: 10px 14px; background: #ffd166; color: #2a1400; }
+.hoja-chat .boton.gris { background: #ffffff18; color: #fff; }
+.hoja-chat .error { color: #ffb4a8; font-size: 0.9rem; }
+${CSS_STICKERS}
 `;
 
 function ponerCss() {
@@ -340,15 +387,144 @@ function ponerCss() {
     document.head.appendChild(s);
 }
 
-// Panel de chat reutilizable. Devuelve { cerrar }.
-export function panelChat({ titulo, ruta, nombres, clave, alCerrar }) {
+// Hoja inferior para elegir algo (juego, regalo)
+function hojaChat(html) {
+    ponerCss();
+    const fondo = document.createElement("div");
+    fondo.className = "hoja-chat-fondo";
+    fondo.innerHTML = `<div class="hoja-chat">${html}<button class="boton gris cerrar" type="button">Cancelar</button></div>`;
+    const cerrar = () => fondo.remove();
+    fondo.addEventListener("click", (e) => e.target === fondo && cerrar());
+    fondo.querySelector(".cerrar").addEventListener("click", cerrar);
+    document.body.appendChild(fondo);
+    return { fondo, cerrar };
+}
+
+const APUESTAS_DESAFIO = [0, 100, 1000, 10000, 100000, 1000000, 10000000];
+const REGALOS = [100, 500, 1000, 10000, 100000, 1000000];
+
+// Elegir juego y apuesta para desafiar a un amigo. Crea la partida y la manda por el chat.
+// alCrear(id, clave) decide qué hacer después (por defecto, ir a jugar).
+export function hojaDesafio(amigo, miNombre, alCrear = (id, clave) => (location.href = urlJuego(clave, id))) {
+    let apuesta = 0;
+    const { fondo, cerrar } = hojaChat(`<h2>⚔️ Desafiar a ${escaparHtml(amigo.nombre)}</h2>
+        <span class="suave">Apuesta (cada uno pone, el que gana se lleva todo). Tenés 🪙 ${formatear(fichas())}</span>
+        <div class="montos">${APUESTAS_DESAFIO.map((m) => `<button class="monto${m ? "" : " elegido"}" data-m="${m}" ${m > fichas() ? "disabled" : ""}>${m ? formatear(m) : "Sin apuesta"}</button>`).join("")}</div>
+        <div class="juegos"></div><p class="error" hidden></p>`);
+    for (const b of fondo.querySelectorAll(".monto")) {
+        b.addEventListener("click", () => {
+            apuesta = Number(b.dataset.m);
+            for (const o of fondo.querySelectorAll(".monto")) o.classList.toggle("elegido", o === b);
+        });
+    }
+    for (const [clave, juego] of Object.entries(JUEGOS_ONLINE)) {
+        const b = document.createElement("button");
+        b.innerHTML = `<span>${juego.emoji}</span>${juego.nombre}`;
+        b.addEventListener("click", async () => {
+            b.disabled = true;
+            try {
+                const { datosIniciales } = await import(juego.reglas);
+                const id = await crearPartida(clave, miNombre, amigo, datosIniciales(), apuesta);
+                await enviarMensaje(rutaChatAmigo(amigo.uid), `${juego.emoji} Te desafío a ${juego.nombre}${apuesta ? ` por ${formatear(apuesta)} fichas` : ""}`, {
+                    tipo: "partida", partida: id, juego: clave, apuesta,
+                }).catch(() => {});
+                cerrar();
+                alCrear(id, clave);
+            } catch (error) {
+                const p = fondo.querySelector(".error");
+                p.textContent = error.message;
+                p.hidden = false;
+                b.disabled = false;
+            }
+        });
+        fondo.querySelector(".juegos").appendChild(b);
+    }
+}
+
+// Regalar fichas a un amigo (el regalo aparece en el chat)
+export function hojaRegalo(amigo, miNombre, alRegalar) {
+    const { fondo, cerrar } = hojaChat(`<h2>🎁 Regalar fichas a ${escaparHtml(amigo.nombre)}</h2>
+        <span class="suave">Tenés 🪙 ${formatear(fichas())}. Se descuentan de tu saldo.</span>
+        <div class="montos">${REGALOS.map((m) => `<button class="monto" data-m="${m}" ${m > fichas() ? "disabled" : ""}>${formatear(m)}</button>`).join("")}</div>
+        <form class="fila"><input type="number" min="1" max="10000000" inputmode="numeric" placeholder="Otra cantidad"><button class="boton">Regalar</button></form>
+        <p class="error" hidden></p>`);
+    const error = fondo.querySelector(".error");
+    const enviar = async (cantidad) => {
+        error.hidden = true;
+        if (!confirm(`¿Regalarle ${formatear(cantidad)} fichas a ${amigo.nombre}?`)) return;
+        try {
+            await regalarFichas(amigo, cantidad, miNombre);
+            cerrar();
+            alRegalar?.(cantidad);
+        } catch (e) {
+            error.textContent = e.code === "permission-denied" ? "No se pudo mandar el regalo." : e.message;
+            error.hidden = false;
+        }
+    };
+    for (const b of fondo.querySelectorAll(".monto")) b.addEventListener("click", () => enviar(Number(b.dataset.m)));
+    fondo.querySelector("form").addEventListener("submit", (e) => {
+        e.preventDefault();
+        const n = Math.floor(Number(fondo.querySelector("input").value));
+        if (n > 0) enviar(n);
+    });
+}
+
+// Selector de emojis y stickers (con la pestaña +18 aparte)
+function armarSelector(selector, input, ruta) {
+    let pestana = "emojis";
+    const pintar = () => {
+        for (const b of selector.querySelectorAll("nav button")) b.classList.toggle("activo", b.dataset.p === pestana);
+        const cuerpo = selector.querySelector(".cuerpo-selector");
+        if (pestana === "emojis") {
+            cuerpo.className = "cuerpo-selector grilla-emojis";
+            cuerpo.innerHTML = EMOJIS.map((e) => `<button type="button">${e}</button>`).join("");
+            for (const b of cuerpo.querySelectorAll("button")) b.addEventListener("click", () => (input.value += b.textContent));
+        } else if (pestana === "picantes" && !picantesActivos()) {
+            cuerpo.className = "cuerpo-selector";
+            cuerpo.innerHTML = `<div class="aviso-18">🔞 Stickers con groserías y humor de adultos.<br><button type="button">Tengo 18 años o más</button></div>`;
+            cuerpo.querySelector("button").addEventListener("click", () => {
+                activarPicantes();
+                pintar();
+            });
+        } else {
+            const lista = pestana === "picantes" ? PICANTES : STICKERS;
+            cuerpo.className = "cuerpo-selector grilla-stickers";
+            cuerpo.innerHTML = Object.keys(lista).map((id) => `<button type="button" data-id="${id}">${htmlSticker(id)}</button>`).join("");
+            for (const b of cuerpo.querySelectorAll("button")) {
+                b.addEventListener("click", () => {
+                    enviarSticker(ruta, b.dataset.id);
+                    selector.classList.remove("abierto");
+                });
+            }
+        }
+    };
+    selector.innerHTML = `<nav><button type="button" data-p="emojis">😀 Emojis</button><button type="button" data-p="stickers">⭐ Stickers</button><button type="button" data-p="picantes">🌶️ +18</button></nav><div class="cuerpo-selector"></div>`;
+    for (const b of selector.querySelectorAll("nav button")) {
+        b.addEventListener("click", () => {
+            pestana = b.dataset.p;
+            pintar();
+        });
+    }
+    pintar();
+}
+
+// Panel de chat reutilizable. Con amigo (y miNombre) suma botones para mandar un juego o regalar fichas.
+// Devuelve { cerrar }.
+export function panelChat({ titulo, ruta, nombres, clave, alCerrar, amigo, miNombre }) {
     ponerCss();
     const panel = document.createElement("div");
     panel.className = "panel-chat";
+    const extras = amigo ? `<button type="button" class="icono" data-a="juego" title="Mandar un juego">🎮</button><button type="button" class="icono" data-a="regalo" title="Regalar fichas">🎁</button>` : "";
     panel.innerHTML = `<header><span>${escaparHtml(titulo)}</span><button type="button">Cerrar</button></header>
-        <div class="lista-msj"></div><div class="rapidos">${RAPIDOS.map((r) => `<button type="button">${r}</button>`).join("")}</div>
-        <form class="form-chat"><input maxlength="${TEXTO_MAX}" placeholder="Escribí un mensaje…" autocomplete="off"><button>➤</button></form>`;
+        <div class="lista-msj"></div>
+        <div class="rapidos">${RAPIDOS.map((r) => `<button type="button">${r}</button>`).join("")}</div>
+        <div class="selector"></div>
+        <form class="form-chat">${extras}<button type="button" class="icono" data-a="emojis" title="Emojis y stickers">😀</button>
+            <input maxlength="${TEXTO_MAX}" placeholder="Mensaje…" autocomplete="off"><button>➤</button></form>`;
     const lista = panel.querySelector(".lista-msj");
+    const input = panel.querySelector("input");
+    const selector = panel.querySelector(".selector");
+    armarSelector(selector, input, ruta);
     const parar = escucharChat(ruta, (mensajes) => {
         lista.innerHTML = mensajes.length ? htmlMensajes(mensajes, nombres) : `<p style="opacity:.6;text-align:center">Todavía no hay mensajes. ¡Saludá!</p>`;
         lista.scrollTop = lista.scrollHeight;
@@ -362,11 +538,17 @@ export function panelChat({ titulo, ruta, nombres, clave, alCerrar }) {
     };
     panel.querySelector("header button").addEventListener("click", cerrar);
     for (const b of panel.querySelectorAll(".rapidos button")) b.addEventListener("click", () => enviarMensaje(ruta, b.textContent));
+    const acciones = {
+        emojis: () => selector.classList.toggle("abierto"),
+        juego: () => hojaDesafio(amigo, miNombre, () => {}),
+        regalo: () => hojaRegalo(amigo, miNombre),
+    };
+    for (const b of panel.querySelectorAll("[data-a]")) b.addEventListener("click", () => acciones[b.dataset.a]());
     panel.querySelector("form").addEventListener("submit", (e) => {
         e.preventDefault();
-        const input = panel.querySelector("input");
         enviarMensaje(ruta, input.value);
         input.value = "";
+        selector.classList.remove("abierto");
     });
     document.body.appendChild(panel);
     return { cerrar };
@@ -391,8 +573,13 @@ function abrirChatPartida(p) {
         if (!abierto) {
             for (const m of nuevos.slice(-1)) {
                 const b = document.createElement("div");
-                b.className = `burbuja-rival${/^\p{Extended_Pictographic}{1,3}$/u.test(m.texto) ? " emoji" : ""}`;
-                b.textContent = m.texto;
+                if (m.tipo === "sticker" && stickerDe(m.sticker)) {
+                    b.className = "burbuja-rival sin-fondo";
+                    b.innerHTML = htmlSticker(m.sticker);
+                } else {
+                    b.className = `burbuja-rival${/^\p{Extended_Pictographic}{1,3}$/u.test(m.texto) ? " emoji" : ""}`;
+                    b.textContent = m.texto;
+                }
                 document.body.appendChild(b);
                 setTimeout(() => b.remove(), 2700);
                 navigator.vibrate?.(30);
