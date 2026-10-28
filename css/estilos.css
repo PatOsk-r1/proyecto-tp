@@ -612,3 +612,132 @@ body {
     font-size: 1.15rem;
     text-shadow: 0 2px 6px #0008;
 }
+
+/* Pestaña Amigos: lista de chats */
+.lista-chats {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin: 0 20px 20px;
+}
+
+.fila-chat {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    border-radius: 16px;
+    background: var(--tarjeta);
+    cursor: pointer;
+    animation: entrar-chat 0.3s ease-out both;
+}
+
+@keyframes entrar-chat {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+}
+
+.fila-chat.sin-leer {
+    outline: 2px solid var(--acento);
+}
+
+.avatar-chat {
+    position: relative;
+    flex-shrink: 0;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+}
+
+.avatar-chat .foto-avatar,
+.avatar-chat .inicial-avatar {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+}
+
+.avatar-chat .foto-avatar {
+    display: block;
+    object-fit: cover;
+}
+
+.avatar-chat .inicial-avatar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 900;
+    font-size: 1.3rem;
+    color: #1b1440;
+    background: var(--c);
+}
+
+.avatar-chat .punto {
+    position: absolute;
+    right: -1px;
+    bottom: -1px;
+    width: 13px;
+    height: 13px;
+    border-radius: 50%;
+    background: #8a8a9a;
+    border: 2px solid #1b1440;
+}
+
+.avatar-chat .punto.si {
+    background: #2ecc71;
+    box-shadow: 0 0 8px #2ecc71;
+}
+
+.textos-chat {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.textos-chat strong,
+.textos-chat span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.textos-chat span {
+    font-size: 0.85rem;
+    color: var(--texto-suave);
+}
+
+.fila-chat.sin-leer .textos-chat span {
+    color: var(--texto);
+    font-weight: 700;
+}
+
+.lado-chat {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 4px;
+}
+
+.lado-chat small {
+    font-size: 0.7rem;
+    color: var(--texto-suave);
+}
+
+.lado-chat b {
+    min-width: 20px;
+    padding: 1px 6px;
+    border-radius: 999px;
+    background: #ff4d6d;
+    color: #fff;
+    font-size: 0.75rem;
+    text-align: center;
+}
+
+.sin-chats {
+    margin: 0 20px;
+    color: var(--texto-suave);
+    font-size: 0.9rem;
+}
