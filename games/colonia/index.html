@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="es" class="verificando">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>Colonia espacial · Proyecto TP</title>
+    <meta name="theme-color" content="#02010a">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="../../icons/icon-180.png">
+    <link rel="manifest" href="../../manifest.webmanifest">
+
+    <link rel="stylesheet" href="../../css/estilos.css">
+    <link rel="stylesheet" href="../../css/juegos3d.css">
+    <style>
+        .boton-salto {
+            margin-left: auto;
+            font: inherit;
+            font-weight: 900;
+            color: #02010a;
+            background: linear-gradient(180deg, #c77dff, #7b2cbf);
+            border: none;
+            border-radius: 999px;
+            padding: 8px 14px;
+            box-shadow: 0 3px 0 #0008;
+        }
+        .hoja-fondo {
+            position: fixed;
+            inset: 0;
+            z-index: 30;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            background: #000b;
+        }
+        .hoja {
+            max-width: 420px;
+            padding: 20px;
+            border-radius: 20px;
+            background: #120a33;
+            border: 2px solid #c77dff;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .hoja strong.grande { font-size: 2rem; color: #c77dff; }
+        .hoja .botones { display: flex; gap: 8px; }
+    </style>
+</head>
+<body class="pantalla-3d tema-espacio">
+    <header class="barra-juego">
+        <a class="boton-volver" href="../../">‹ Juegos</a>
+        <h1>Colonia espacial</h1>
+        <button id="abrir-salto" class="boton-salto" type="button">🌌 <span id="materia">0</span></button>
+    </header>
+
+    <div id="lienzo" class="lienzo-3d">
+        <div class="marcador">
+            <div id="energia" class="grande">⚡ 0</div>
+            <div id="por-segundo" class="chico">0 por segundo · tocá el planeta</div>
+        </div>
+        <div id="aviso" class="mensaje-centro" hidden></div>
+    </div>
+
+    <div id="mejoras" class="panel-mejoras"></div>
+
+    <div id="salto" class="hoja-fondo" hidden>
+        <div class="hoja">
+            <h2>🌌 Saltar a otra galaxia</h2>
+            <p>Dejás la colonia atrás y empezás de nuevo, pero cada punto de materia oscura hace que <b>todo produzca un 10% más</b>.</p>
+            <p>Conseguirías <strong id="materia-nueva" class="grande">0</strong></p>
+            <div class="botones">
+                <button id="cancelar-salto" class="accion secundaria" type="button">Ahora no</button>
+                <button id="confirmar-salto" class="accion" type="button">Saltar</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { exigirSesion } from "../../js/sesion.js";
+        exigirSesion();
+    </script>
+    <script type="module" src="juego.js"></script>
+</body>
+</html>
