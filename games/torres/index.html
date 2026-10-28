@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <title>Defensa de torres · Proyecto TP</title>
-    <meta name="theme-color" content="#2d4a22">
+    <meta name="theme-color" content="#1a2e14">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <link rel="apple-touch-icon" href="../../icons/icon-180.png">
@@ -13,114 +13,59 @@
     <link rel="stylesheet" href="../../css/estilos.css">
     <link rel="stylesheet" href="../../css/juegos3d.css">
     <link rel="stylesheet" href="../../css/solitario.css">
-    <style>
-        .tema-torres {
-            --fondo: #1a2e14;
-            --fondo-2: #2d4a22;
-            --texto-suave: #dcefcf;
-            --acento: #ffd23f;
-            --acento-2: #ff9f1c;
-            --panel: #0f1c0bcc;
-        }
-        .zona-juego { padding: 4px; }
-        .tienda {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr) auto;
-            gap: 6px;
-            padding: 8px 8px calc(10px + env(safe-area-inset-bottom));
-            background: var(--panel);
-            border-top: 1px solid var(--borde);
-        }
-        .torre-btn {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 2px;
-            padding: 6px 2px;
-            font: inherit;
-            font-size: 0.7rem;
-            font-weight: 800;
-            color: var(--texto);
-            background: #ffffff12;
-            border: 2px solid #ffffff22;
-            border-radius: 12px;
-        }
-        .torre-btn.elegida { border-color: var(--acento); background: #ffd23f22; }
-        .torre-btn:disabled { opacity: 0.4; }
-        .torre-btn i { width: 26px; height: 26px; border-radius: 50%; background: var(--c); box-shadow: inset -3px -3px 4px #0006; }
-        .torre-btn b { color: var(--acento); }
-        .acciones-t { display: flex; flex-direction: column; gap: 4px; }
-        .acciones-t button {
-            font: inherit;
-            font-size: 0.8rem;
-            font-weight: 900;
-            padding: 8px 10px;
-            border: none;
-            border-radius: 10px;
-            color: #1a2e14;
-            background: linear-gradient(180deg, var(--acento), var(--acento-2));
-        }
-        .acciones-t button.secundario { color: #fff; background: #ffffff22; }
-        .panel-torre {
-            position: absolute;
-            left: 50%;
-            bottom: 12px;
-            transform: translateX(-50%);
-            display: flex;
-            gap: 6px;
-            padding: 8px;
-            border-radius: 14px;
-            background: #000c;
-            z-index: 4;
-        }
-        .panel-torre button {
-            font: inherit;
-            font-size: 0.8rem;
-            font-weight: 800;
-            padding: 8px 10px;
-            border: none;
-            border-radius: 10px;
-            color: #1a2e14;
-            background: var(--acento);
-        }
-        .panel-torre button.vender { background: #ff8a80; }
-        .panel-torre button.cerrar { background: #ffffff33; color: #fff; }
-    </style>
+    <link rel="stylesheet" href="estilo.css">
 </head>
 <body class="pantalla-3d tema-torres">
     <header class="barra-juego">
         <a class="boton-volver" href="../../">‹ Juegos</a>
         <h1>Defensa de torres</h1>
+        <button id="pausa" class="boton-chico-t" type="button" hidden>⏸</button>
     </header>
 
     <div class="info-juego">
         <div class="dato"><span>Oleada</span><strong id="oleada">0</strong></div>
-        <div class="dato"><span>Vidas</span><strong id="vidas">20</strong></div>
-        <div class="dato"><span>Oro</span><strong id="oro">150</strong></div>
-        <div class="dato"><span>Récord</span><strong id="record">0</strong></div>
+        <div class="dato"><span>Castillo</span><strong id="vidas">20</strong></div>
+        <div class="dato"><span>Oro</span><strong id="oro">0</strong></div>
+        <div class="dato"><span>Estrellas</span><strong id="estrellas">0</strong></div>
     </div>
 
     <main class="zona-juego">
         <canvas id="lienzo" class="lienzo-juego"></canvas>
+        <div id="proxima" class="proxima"></div>
+
         <div id="panel-torre" class="panel-torre" hidden>
-            <button id="mejorar" type="button">Mejorar</button>
-            <button id="vender" class="vender" type="button">Vender</button>
-            <button id="cerrar-panel" class="cerrar" type="button">✕</button>
+            <div class="cabeza-panel"><strong id="nombre-torre">Cañón</strong><span id="nivel-torre">Nv 1</span><button id="cerrar-panel" type="button">✕</button></div>
+            <div id="stats-torre" class="stats-torre"></div>
+            <div class="botones-panel">
+                <button id="mejorar" type="button">Mejorar</button>
+                <button id="objetivo" class="secundario" type="button">Primero</button>
+                <button id="vender" class="vender" type="button">Vender</button>
+            </div>
         </div>
-        <div id="centro" class="mensaje-centro">
-            <div id="titulo-centro">Defensa de torres<div class="chico">Poné torres al costado del camino para que los monstruos no lleguen al castillo. Tocá una torre para mejorarla.</div></div>
+
+        <div id="menu" class="mensaje-centro">
+            <div id="titulo-menu">Defensa de torres<div class="chico">Construí torres al costado del camino. Cada oleada te da estrellas para el laboratorio.</div></div>
+            <div id="mapas" class="mapas"></div>
+            <button id="continuar" class="boton-grande" type="button" hidden>Continuar partida</button>
             <button id="jugar" class="boton-grande" type="button">Jugar</button>
+            <button id="abrir-lab" class="enlace-lab" type="button">🔬 Laboratorio</button>
+        </div>
+
+        <div id="lab" class="mensaje-centro lab" hidden>
+            <div class="titulo-lab">🔬 Laboratorio <span>⭐ <b id="estrellas-lab">0</b></span></div>
+            <div id="mejoras-lab" class="mejoras-lab"></div>
+            <button id="cerrar-lab" class="boton-grande" type="button">Listo</button>
         </div>
     </main>
 
     <div class="tienda">
-        <button class="torre-btn" data-tipo="canon"><i style="--c:#8d99ae"></i>Cañón<b>50</b></button>
-        <button class="torre-btn" data-tipo="hielo"><i style="--c:#4cc9f0"></i>Hielo<b>70</b></button>
-        <button class="torre-btn" data-tipo="laser"><i style="--c:#ff4d6d"></i>Láser<b>90</b></button>
-        <button class="torre-btn" data-tipo="mortero"><i style="--c:#ffb703"></i>Mortero<b>120</b></button>
+        <div id="torres-tienda" class="torres-tienda"></div>
         <div class="acciones-t">
             <button id="oleada-btn" type="button">▶ Oleada</button>
-            <button id="velocidad" class="secundario" type="button">×1</button>
+            <div class="fila-acc">
+                <button id="velocidad" class="secundario" type="button">×1</button>
+                <button id="auto" class="secundario" type="button">Auto</button>
+            </div>
         </div>
     </div>
 
