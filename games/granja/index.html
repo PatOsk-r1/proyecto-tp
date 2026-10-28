@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="es" class="verificando">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>Granja · Proyecto TP</title>
+    <meta name="theme-color" content="#2d6a4f">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="../../icons/icon-180.png">
+    <link rel="manifest" href="../../manifest.webmanifest">
+
+    <link rel="stylesheet" href="../../css/estilos.css">
+    <link rel="stylesheet" href="../../css/juegos3d.css">
+    <link rel="stylesheet" href="../../css/solitario.css">
+    <link rel="stylesheet" href="estilo.css">
+</head>
+<body class="pantalla-3d tema-granja">
+    <header class="barra-juego">
+        <a class="boton-volver" href="../../">‹ Juegos</a>
+        <h1>Granja</h1>
+    </header>
+
+    <div class="info-juego">
+        <div class="dato"><span>Monedas</span><strong id="monedas">0</strong></div>
+        <div class="dato nivel-dato"><span>Nivel <b id="nivel">1</b></span><div class="barra-xp"><div id="xp"></div></div></div>
+        <div class="dato"><span>Granero</span><strong id="granero">0</strong></div>
+    </div>
+
+    <section class="campo">
+        <canvas id="lienzo" class="lienzo-juego"></canvas>
+        <div id="aviso" class="aviso-granja" hidden></div>
+    </section>
+
+    <nav class="pestanas-g">
+        <button class="pestana-g activa" data-p="semillas">🌱<small>Semillas</small></button>
+        <button class="pestana-g" data-p="pedidos">📋<small>Pedidos</small><i id="pedidos-listos" hidden></i></button>
+        <button class="pestana-g" data-p="almacen">🏠<small>Granero</small></button>
+        <button class="pestana-g" data-p="animales">🐔<small>Animales</small></button>
+        <button class="pestana-g" data-p="mejoras">⭐<small>Mejoras</small></button>
+    </nav>
+    <main id="panel" class="panel-g"></main>
+
+    <script type="module">
+        import { exigirSesion } from "../../js/sesion.js";
+        exigirSesion();
+    </script>
+    <script type="module" src="juego.js"></script>
+</body>
+</html>
