@@ -6,13 +6,7 @@ import {
     serverTimestamp, deleteField, runTransaction, increment, orderBy, limit,
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { fichas, billetera, avisoFichas, regalarFichas } from "./fichas.js";
-import { STICKERS, PICANTES, EMOJIS, CSS_STICKERS, stickerDe, htmlSticker, htmlEmojiAnimado, picantesActivos, activarPicantes } from "./stickers.js";
-
-// Si el texto son solo 1 a 3 emojis, los devuelve separados (si no, null)
-const soloEmojis = (texto) => {
-    const partes = [...new Intl.Segmenter("es", { granularity: "grapheme" }).segment(texto.trim())].map((s) => s.segment).filter((s) => s.trim());
-    return partes.length && partes.length <= 3 && partes.every((s) => /\p{Extended_Pictographic}/u.test(s)) ? partes : null;
-};
+import { EMOJIS, REACCIONES, htmlEmojiAnimado, soloEmojis } from "./emojis.js";
 
 // 1500 → 1.5K, 2000000 → 2M (sin importar comun3d, que trae Three.js)
 export const formatear = (n) =>
@@ -272,26 +266,30 @@ export function escucharPartida(id, alCambiar, alFallar) {
 }
 
 // ---------- Chat ----------
+// Mensajes en {ruta}/mensajes. ruta = ["chats", idAmistad] (amigos) o ["partidas", id] (dentro de un juego).
+// En los chats de amigos, el documento chats/{id} guarda hasta cuándo leyó cada uno (visto) y quién está escribiendo.
 export const TEXTO_MAX = 300;
-export const RAPIDOS = ["👍", "😂", "😮", "😡", "🔥", "👏", "😎", "🙏", "¡Bien jugado!", "¡Suerte!", "Uff", "GG"];
 
-export function escucharChat(ruta, alCambiar, cuantos = 60) {
+export function escucharChat(ruta, alCambiar, cuantos = 80) {
     const q = query(collection(db, ...ruta, "mensajes"), orderBy("creado", "desc"), limit(cuantos));
     return onSnapshot(q, (snap) => alCambiar(snap.docs.map((d) => ({ id: d.id, ...d.data() })).reverse()), () => {});
 }
 
-// tipo: "texto" (por defecto), "sticker", "partida" (un juego mandado por el chat) o "regalo" (fichas regaladas).
-// texto siempre lleva un resumen legible.
+// tipo: "texto" (por defecto), "partida" (un juego mandado por el chat) o "regalo" (fichas regaladas).
+// texto siempre lleva un resumen legible. responde: { id, de, texto } del mensaje al que se contesta.
 export function enviarMensaje(ruta, texto, extra = {}) {
     texto = String(texto).trim().slice(0, TEXTO_MAX);
     if (!texto) return;
     return addDoc(collection(db, ...ruta, "mensajes"), { de: yo(), texto, creado: serverTimestamp(), ...extra });
 }
 
-export const enviarSticker = (ruta, id) => {
-    const s = stickerDe(id);
-    return s && enviarMensaje(ruta, `${s.e} ${s.t}`, { tipo: "sticker", sticker: id });
-};
+// Reaccionar (o sacar la reacción si es la misma)
+export function reaccionar(ruta, m, emoji) {
+    const actual = m.reacciones?.[yo()];
+    return updateDoc(doc(db, ...ruta, "mensajes", m.id), { [`reacciones.${yo()}`]: actual === emoji ? deleteField() : emoji });
+}
+
+export const borrarMensaje = (ruta, id) => deleteDoc(doc(db, ...ruta, "mensajes", id));
 
 // Mensajes sin leer: se guarda en el dispositivo hasta cuándo leíste cada chat
 export function marcarLeido(clave) {
@@ -309,67 +307,161 @@ export function sinLeer(clave, mensajes) {
 
 const escaparHtml = (t) => String(t).replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
 export const urlJuego = (clave, id) => new URL(`../${JUEGOS_ONLINE[clave]?.carpeta ?? ""}?partida=${id}`, import.meta.url).href;
+const ms = (ts) => ts?.toMillis?.() ?? Date.now();
 
-// Arma una lista de mensajes con burbujas (se usa en el chat de amigos y en el de partidas)
-export function htmlMensajes(mensajes, nombres = {}) {
-    return mensajes
-        .map((m) => {
-            const mio = m.de === yo();
-            const hora = m.creado?.toDate?.().toLocaleTimeString("es", { hour: "2-digit", minute: "2-digit" }) ?? "";
-            const quien = mio ? "" : `<b>${escaparHtml(nombres[m.de] ?? "")}</b>`;
-            let clase = "";
-            let cuerpo;
-            if (m.tipo === "sticker" && stickerDe(m.sticker)) {
-                clase = "sticker-msj";
-                cuerpo = htmlSticker(m.sticker);
-            } else if (m.tipo === "partida" && JUEGOS_ONLINE[m.juego]) {
-                const j = JUEGOS_ONLINE[m.juego];
-                clase = "tarjeta";
-                cuerpo = `<div class="tarjeta-msj"><span class="grande">${htmlEmojiAnimado(j.emoji)}</span>
-                    <strong>${mio ? "Desafiaste a" : "¡Te desafió a"} ${j.nombre}${mio ? "" : "!"}</strong>
-                    ${m.apuesta ? `<span>🪙 Apuesta ${formatear(m.apuesta)} cada uno</span>` : "<span>Sin apuesta</span>"}
-                    <a href="${urlJuego(m.juego, m.partida)}">${mio ? "Abrir partida" : "Jugar"}</a></div>`;
-            } else if (m.tipo === "regalo") {
-                clase = "tarjeta";
-                cuerpo = `<div class="tarjeta-msj regalo"><span class="grande">${htmlEmojiAnimado("🎁")}</span>
-                    <strong>${mio ? "Regalaste" : "¡Te regaló"} 🪙 ${formatear(m.cantidad ?? 0)} fichas${mio ? "" : "!"}</strong></div>`;
-            } else {
-                // Mensajes de 1 a 3 emojis solos: se ven grandes y animados
-                const emojis = soloEmojis(m.texto);
-                clase = emojis ? "emoji" : "";
-                cuerpo = emojis ? `<span style="display:flex;gap:2px">${emojis.map((e) => htmlEmojiAnimado(e)).join("")}</span>` : `<span>${escaparHtml(m.texto)}</span>`;
-            }
-            return `<div class="msj ${mio ? "mio" : ""} ${clase}">${quien}${cuerpo}<small>${hora}</small></div>`;
-        })
-        .join("");
+function textoDia(fecha) {
+    const hoy = new Date();
+    const ayer = new Date(Date.now() - 86400000);
+    if (fecha.toDateString() === hoy.toDateString()) return "Hoy";
+    if (fecha.toDateString() === ayer.toDateString()) return "Ayer";
+    return fecha.toLocaleDateString("es", { weekday: "long", day: "numeric", month: "long" });
+}
+
+// Una burbuja de mensaje. visto: hasta cuándo leyó el otro (para los ✓✓)
+function htmlMensaje(m, { nombres, primero, ultimo, visto }) {
+    const mio = m.de === yo();
+    const hora = m.creado?.toDate?.().toLocaleTimeString("es", { hour: "2-digit", minute: "2-digit" }) ?? "";
+    const quien = !mio && primero && nombres[m.de] ? `<b class="autor">${escaparHtml(nombres[m.de])}</b>` : "";
+    const cita = m.responde
+        ? `<div class="cita"><b>${m.responde.de === yo() ? "Vos" : escaparHtml(nombres[m.responde.de] ?? "")}</b>${escaparHtml(m.responde.texto)}</div>`
+        : "";
+    let clase = "";
+    let cuerpo;
+    if (m.tipo === "partida" && JUEGOS_ONLINE[m.juego]) {
+        const j = JUEGOS_ONLINE[m.juego];
+        clase = "tarjeta";
+        cuerpo = `<div class="tarjeta-msj"><span class="grande">${htmlEmojiAnimado(j.emoji)}</span>
+            <strong>${mio ? "Desafiaste a" : "¡Te desafió a"} ${j.nombre}${mio ? "" : "!"}</strong>
+            <span>${m.apuesta ? `🪙 Apuesta ${formatear(m.apuesta)} cada uno` : "Sin apuesta"}</span>
+            <a href="${urlJuego(m.juego, m.partida)}">${mio ? "Abrir partida" : "Jugar"}</a></div>`;
+    } else if (m.tipo === "regalo") {
+        clase = "tarjeta";
+        cuerpo = `<div class="tarjeta-msj regalo"><span class="grande">${htmlEmojiAnimado("🎁")}</span>
+            <strong>${mio ? "Regalaste" : "¡Te regaló"} 🪙 ${formatear(m.cantidad ?? 0)} fichas${mio ? "" : "!"}</strong></div>`;
+    } else {
+        const emojis = soloEmojis(m.texto);
+        clase = emojis && !m.responde ? "emoji" : "";
+        cuerpo = emojis && !m.responde
+            ? `<span class="emojis">${emojis.map((e) => htmlEmojiAnimado(e)).join("")}</span>`
+            : `<span class="texto">${escaparHtml(m.texto)}</span>`;
+    }
+    const reacciones = Object.values(m.reacciones ?? {});
+    const htmlReacciones = reacciones.length
+        ? `<span class="reacciones">${[...new Set(reacciones)].join("")}${reacciones.length > 1 ? `<small>${reacciones.length}</small>` : ""}</span>`
+        : "";
+    const tilde = mio ? `<i class="tilde${visto >= ms(m.creado) ? " visto" : ""}">${m.creado ? "✓✓" : "🕓"}</i>` : "";
+    return `<div class="msj ${mio ? "mio" : ""} ${clase} ${primero ? "primero" : ""} ${ultimo ? "ultimo" : ""}${reacciones.length ? " con-reaccion" : ""}" data-id="${m.id}">
+        ${quien}${cita}${cuerpo}<small class="hora">${hora}${tilde}</small>${htmlReacciones}</div>`;
+}
+
+// Lista completa con separadores de día y mensajes agrupados (seguidos del mismo, en pocos minutos)
+export function htmlMensajes(mensajes, nombres = {}, visto = 0) {
+    let html = "";
+    let diaAnterior = "";
+    mensajes.forEach((m, i) => {
+        const fecha = m.creado?.toDate?.() ?? new Date();
+        const dia = fecha.toDateString();
+        if (dia !== diaAnterior) {
+            html += `<div class="separador-dia"><span>${textoDia(fecha)}</span></div>`;
+            diaAnterior = dia;
+        }
+        const antes = mensajes[i - 1];
+        const despues = mensajes[i + 1];
+        const pegado = (a, b) => a && b && a.de === b.de && Math.abs(ms(a.creado) - ms(b.creado)) < 180000 &&
+            (a.creado?.toDate?.() ?? new Date()).toDateString() === (b.creado?.toDate?.() ?? new Date()).toDateString();
+        html += htmlMensaje(m, { nombres, primero: !pegado(antes, m), ultimo: !pegado(m, despues), visto });
+    });
+    return html;
 }
 
 export const CSS_CHAT = `
 .chat-flotante { position: fixed; right: 8px; top: calc(58px + env(safe-area-inset-top)); z-index: 50; width: 44px; height: 44px; border-radius: 50%; border: none; font-size: 1.3rem; background: #ffd166e6; box-shadow: 0 6px 18px #0009; }
 .chat-flotante .insignia-chat { position: absolute; top: -4px; right: -4px; min-width: 20px; padding: 1px 5px; border-radius: 999px; background: #ff4d6d; color: #fff; font: 900 0.75rem system-ui, sans-serif; }
 .pozo-flotante { position: fixed; left: 50%; bottom: calc(6px + env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: 40; padding: 4px 12px; border-radius: 999px; background: #000a; color: #ffd166; font: 900 0.8rem system-ui, sans-serif; pointer-events: none; border: 1px solid #ffd16655; }
-.panel-chat { position: fixed; inset: auto 0 0 0; z-index: 60; max-width: 560px; margin: 0 auto; height: min(82vh, 640px); display: flex; flex-direction: column; gap: 6px; background: #1d1650; border-radius: 20px 20px 0 0; box-shadow: 0 -10px 30px #000a; padding: 12px 12px calc(12px + env(safe-area-inset-bottom)); color: #fff; font-family: system-ui, sans-serif; animation: subir-chat 0.25s ease-out; }
-@keyframes subir-chat { from { transform: translateY(100%); } }
-.panel-chat header { display: flex; justify-content: space-between; align-items: center; font-weight: 900; }
-.panel-chat header button { font: inherit; background: #ffffff18; color: #fff; border: none; border-radius: 10px; padding: 6px 12px; }
-.lista-msj { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; padding: 4px 2px; }
-.msj { align-self: flex-start; max-width: 80%; padding: 7px 11px; border-radius: 16px 16px 16px 4px; background: #ffffff1c; font-size: 0.95rem; overflow-wrap: anywhere; }
-.msj.mio { align-self: flex-end; border-radius: 16px 16px 4px 16px; background: #6c4cf5; }
-.msj b { display: block; font-size: 0.7rem; color: #ffd166; }
-.msj small { display: block; text-align: right; font-size: 0.62rem; opacity: 0.6; }
-.msj.emoji { background: none; font-size: 2rem; padding: 0 4px; }
-.rapidos { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; }
-.rapidos button { flex-shrink: 0; font: 700 0.95rem system-ui, sans-serif; color: #fff; background: #ffffff14; border: 1px solid #ffffff22; border-radius: 999px; padding: 6px 10px; }
-.form-chat { display: flex; gap: 6px; }
-.form-chat input { flex: 1; min-width: 0; font: inherit; font-size: 16px; color: #fff; background: #ffffff12; border: 1px solid #ffffff22; border-radius: 12px; padding: 10px; outline: none; }
-.form-chat button { font: 900 1rem system-ui, sans-serif; border: none; border-radius: 12px; padding: 0 12px; background: #ffd166; color: #2a1400; }
-.form-chat button.icono { background: #ffffff18; color: #fff; font-size: 1.2rem; padding: 0 10px; }
+.panel-chat { position: fixed; inset: 0; z-index: 60; display: flex; flex-direction: column; height: 100dvh; color: #fff; font-family: system-ui, -apple-system, sans-serif;
+  background: radial-gradient(circle at 20% 10%, #2d2470 0, transparent 50%), radial-gradient(circle at 90% 80%, #3a1458 0, transparent 50%), #15103a; animation: entrar-chat 0.22s ease-out; }
+@keyframes entrar-chat { from { transform: translateX(30%); opacity: 0; } }
+.cabeza-chat { display: flex; align-items: center; gap: 10px; padding: calc(8px + env(safe-area-inset-top)) 10px 8px; background: #0d0a26e6; backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border-bottom: 1px solid #ffffff14; }
+.cabeza-chat .volver { font: 900 1.6rem system-ui, sans-serif; color: #ffd166; background: none; border: none; padding: 0 6px; line-height: 1; }
+.cabeza-chat .avatar-c { position: relative; width: 40px; height: 40px; flex-shrink: 0; }
+.cabeza-chat .avatar-c img, .cabeza-chat .avatar-c span { width: 100%; height: 100%; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 900; color: #1b1440; background: var(--c, #ffd166); object-fit: cover; }
+.cabeza-chat .quien { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.cabeza-chat .quien strong { font-size: 1.02rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cabeza-chat .quien span { font-size: 0.78rem; color: #b9b3e6; }
+.cabeza-chat .quien span.escribiendo { color: #7dffb0; font-weight: 700; }
+.cabeza-chat .accion-c { font-size: 1.25rem; width: 40px; height: 40px; border-radius: 50%; border: none; background: #ffffff14; }
+.lista-msj { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 2px; padding: 10px 10px 6px; overscroll-behavior: contain; }
+.vacio-chat { margin: auto; text-align: center; opacity: 0.7; font-size: 0.95rem; }
+.vacio-chat span { display: block; font-size: 3rem; margin-bottom: 6px; }
+.separador-dia { display: flex; justify-content: center; margin: 10px 0 6px; }
+.separador-dia span { font-size: 0.72rem; font-weight: 800; padding: 4px 10px; border-radius: 999px; background: #ffffff14; color: #d6d1ff; text-transform: capitalize; }
+.msj { position: relative; align-self: flex-start; max-width: 78%; padding: 6px 10px 5px; border-radius: 6px 18px 18px 6px; background: #ffffff1f; font-size: 0.97rem; line-height: 1.3; overflow-wrap: anywhere; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; transition: transform 0.15s; }
+.msj.primero { border-top-left-radius: 18px; margin-top: 6px; }
+.msj.ultimo { border-bottom-left-radius: 18px; }
+.msj.mio { align-self: flex-end; border-radius: 18px 6px 6px 18px; background: linear-gradient(135deg, #7b5cff, #5a3de0); }
+.msj.mio.primero { border-top-right-radius: 18px; }
+.msj.mio.ultimo { border-bottom-right-radius: 18px; }
+.msj.con-reaccion { margin-bottom: 14px; }
+.msj.apretado { transform: scale(0.96); }
+.msj .autor { display: block; font-size: 0.72rem; color: #ffd166; margin-bottom: 1px; }
+.msj .hora { float: right; margin: 6px 0 -2px 8px; font-size: 0.64rem; opacity: 0.65; white-space: nowrap; }
+.msj .tilde { font-style: normal; margin-left: 3px; letter-spacing: -3px; }
+.msj .tilde.visto { color: #7dd3ff; opacity: 1; }
+.msj.emoji { background: none; padding: 0 2px; }
+.msj.emoji .emojis { display: flex; gap: 2px; }
+.msj.emoji img { width: 64px; height: 64px; display: block; }
+.msj.emoji .hora { float: none; display: block; text-align: right; }
+.msj .cita { margin: 2px -4px 4px; padding: 5px 8px; border-left: 3px solid #ffd166; border-radius: 8px; background: #0003; font-size: 0.82rem; opacity: 0.9; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.msj .cita b { display: block; font-size: 0.72rem; color: #ffd166; }
+.msj .reacciones { position: absolute; bottom: -14px; right: 8px; display: flex; align-items: center; gap: 1px; padding: 1px 6px; border-radius: 999px; background: #2a2160; border: 2px solid #15103a; font-size: 0.85rem; animation: pop-reaccion 0.3s cubic-bezier(0.2, 1.6, 0.4, 1); }
+.msj:not(.mio) .reacciones { right: auto; left: 8px; }
+.msj .reacciones small { font-size: 0.68rem; margin-left: 2px; opacity: 0.8; }
+@keyframes pop-reaccion { from { transform: scale(0); } }
+.msj.tarjeta { background: none; padding: 0; }
+.msj.tarjeta .hora { float: none; display: block; text-align: right; margin: 2px 4px 0; }
+.tarjeta-msj { min-width: 210px; display: flex; flex-direction: column; gap: 6px; padding: 10px 12px; border-radius: 16px; background: linear-gradient(145deg, #3a0ca3, #7209b7); box-shadow: 0 6px 16px #0006; }
+.tarjeta-msj.regalo { background: linear-gradient(145deg, #ffb703, #fb8500); color: #2a1400; }
+.tarjeta-msj .grande img { width: 52px; height: 52px; }
+.tarjeta-msj a { font: 900 0.9rem system-ui, sans-serif; text-align: center; text-decoration: none; border-radius: 10px; padding: 8px; background: #ffd166; color: #2a1400; }
+.escribiendo-burbuja { align-self: flex-start; display: flex; gap: 4px; padding: 10px 12px; margin-top: 6px; border-radius: 18px; background: #ffffff1f; }
+.escribiendo-burbuja i { width: 7px; height: 7px; border-radius: 50%; background: #fff; opacity: 0.5; animation: puntito 1.2s infinite; }
+.escribiendo-burbuja i:nth-child(2) { animation-delay: 0.15s; } .escribiendo-burbuja i:nth-child(3) { animation-delay: 0.3s; }
+@keyframes puntito { 30% { transform: translateY(-4px); opacity: 1; } }
+.pie-chat { padding: 6px 8px calc(8px + env(safe-area-inset-bottom)); background: #0d0a26e6; border-top: 1px solid #ffffff14; display: flex; flex-direction: column; gap: 6px; }
+.respondiendo { display: none; align-items: center; gap: 8px; padding: 6px 10px; border-left: 3px solid #ffd166; border-radius: 8px; background: #ffffff10; font-size: 0.85rem; }
+.respondiendo.activo { display: flex; }
+.respondiendo div { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.respondiendo b { color: #ffd166; margin-right: 4px; }
+.respondiendo button { background: none; border: none; color: #fff; font-size: 1.1rem; }
+.form-chat { display: flex; align-items: flex-end; gap: 6px; }
+.form-chat textarea { flex: 1; min-width: 0; max-height: 120px; resize: none; font: inherit; font-size: 16px; line-height: 1.3; color: #fff; background: #ffffff12; border: 1px solid #ffffff22; border-radius: 20px; padding: 9px 14px; outline: none; }
+.form-chat textarea:focus { border-color: #ffd16688; }
+.form-chat .icono { flex-shrink: 0; width: 40px; height: 40px; border-radius: 50%; border: none; background: #ffffff14; font-size: 1.25rem; }
+.form-chat .enviar { flex-shrink: 0; width: 42px; height: 42px; border-radius: 50%; border: none; background: #ffd166; color: #2a1400; font: 900 1.1rem system-ui, sans-serif; transition: transform 0.15s; }
+.form-chat .enviar:disabled { opacity: 0.4; }
+.form-chat .enviar:active { transform: scale(0.9); }
+.grilla-emojis { display: none; grid-template-columns: repeat(8, 1fr); gap: 2px; max-height: 34vh; overflow-y: auto; }
+.grilla-emojis.abierto { display: grid; }
+.grilla-emojis button { font-size: 1.6rem; background: none; border: none; padding: 4px 0; border-radius: 8px; }
+.grilla-emojis button:active { background: #ffffff22; }
+.menu-msj-fondo { position: fixed; inset: 0; z-index: 80; background: #0008; backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px); animation: aparecer-menu 0.15s; }
+@keyframes aparecer-menu { from { opacity: 0; } }
+.menu-msj { position: fixed; left: 50%; transform: translateX(-50%); width: min(320px, 92vw); display: flex; flex-direction: column; gap: 8px; }
+.menu-msj .fila-reacciones { display: flex; justify-content: space-around; padding: 6px; border-radius: 999px; background: #2a2160; box-shadow: 0 10px 30px #000a; }
+.menu-msj .fila-reacciones button { font-size: 1.7rem; background: none; border: none; border-radius: 50%; width: 46px; height: 46px; transition: transform 0.15s; animation: pop-reaccion 0.25s backwards; }
+.menu-msj .fila-reacciones button.elegida { background: #ffffff22; }
+.menu-msj .fila-reacciones button:active { transform: scale(1.3); }
+.menu-msj .opciones { border-radius: 16px; overflow: hidden; background: #2a2160; box-shadow: 0 10px 30px #000a; }
+.menu-msj .opciones button { display: block; width: 100%; text-align: left; font: 700 1rem system-ui, sans-serif; color: #fff; background: none; border: none; border-bottom: 1px solid #ffffff12; padding: 13px 16px; }
+.menu-msj .opciones button:last-child { border-bottom: none; }
+.menu-msj .opciones button.peligro { color: #ff8a8a; }
 .burbuja-rival { position: fixed; left: 50%; top: 30%; transform: translateX(-50%); z-index: 55; padding: 10px 16px; border-radius: 18px; background: #fff; color: #1d1650; font: 800 1.05rem system-ui, sans-serif; box-shadow: 0 10px 30px #0009; animation: burbuja 2.6s ease-out forwards; pointer-events: none; max-width: 80vw; text-align: center; }
-.burbuja-rival.emoji { font-size: 3rem; background: none; box-shadow: none; }
-.burbuja-rival.sin-fondo { background: none; box-shadow: none; padding: 0; }
+.burbuja-rival.emoji { background: none; box-shadow: none; display: flex; gap: 4px; }
+.burbuja-rival.emoji img { width: 90px; height: 90px; }
 @keyframes burbuja { 0% { opacity: 0; transform: translate(-50%, 20px) scale(0.6); } 12% { opacity: 1; transform: translate(-50%, 0) scale(1.05); } 80% { opacity: 1; transform: translate(-50%, -10px); } 100% { opacity: 0; transform: translate(-50%, -40px); } }
 .hoja-chat-fondo { position: fixed; inset: 0; z-index: 70; display: flex; align-items: flex-end; justify-content: center; background: #0009; }
-.hoja-chat { width: 100%; max-width: 560px; max-height: 88vh; overflow-y: auto; padding: 18px 16px calc(18px + env(safe-area-inset-bottom)); border-radius: 20px 20px 0 0; background: #241a5c; color: #fff; display: flex; flex-direction: column; gap: 10px; font-family: system-ui, sans-serif; animation: subir-chat 0.25s ease-out; }
+.hoja-chat { width: 100%; max-width: 560px; max-height: 88vh; overflow-y: auto; padding: 18px 16px calc(18px + env(safe-area-inset-bottom)); border-radius: 20px 20px 0 0; background: #241a5c; color: #fff; display: flex; flex-direction: column; gap: 10px; font-family: system-ui, sans-serif; animation: subir-hoja-chat 0.25s ease-out; }
+@keyframes subir-hoja-chat { from { transform: translateY(100%); } }
 .hoja-chat h2 { font-size: 1.1rem; }
 .hoja-chat .suave { opacity: 0.7; font-size: 0.85rem; }
 .hoja-chat .montos { display: flex; flex-wrap: wrap; gap: 6px; }
@@ -384,7 +476,7 @@ export const CSS_CHAT = `
 .hoja-chat .boton { font: 900 0.95rem system-ui, sans-serif; border: none; border-radius: 12px; padding: 10px 14px; background: #ffd166; color: #2a1400; }
 .hoja-chat .boton.gris { background: #ffffff18; color: #fff; }
 .hoja-chat .error { color: #ffb4a8; font-size: 0.9rem; }
-${CSS_STICKERS}
+.aviso-copiado { position: fixed; left: 50%; bottom: 120px; transform: translateX(-50%); z-index: 90; padding: 8px 14px; border-radius: 999px; background: #000c; color: #fff; font: 700 0.85rem system-ui, sans-serif; animation: aparecer-menu 0.2s; }
 `;
 
 function ponerCss() {
@@ -477,87 +569,244 @@ export function hojaRegalo(amigo, miNombre, alRegalar) {
     });
 }
 
-// Selector de emojis y stickers (con la pestaña +18 aparte)
-function armarSelector(selector, input, ruta) {
-    let pestana = "emojis";
-    const pintar = () => {
-        for (const b of selector.querySelectorAll("nav button")) b.classList.toggle("activo", b.dataset.p === pestana);
-        const cuerpo = selector.querySelector(".cuerpo-selector");
-        if (pestana === "emojis") {
-            cuerpo.className = "cuerpo-selector grilla-emojis";
-            cuerpo.innerHTML = EMOJIS.map((e) => `<button type="button">${e}</button>`).join("");
-            for (const b of cuerpo.querySelectorAll("button")) b.addEventListener("click", () => (input.value += b.textContent));
-        } else if (pestana === "picantes" && !picantesActivos()) {
-            cuerpo.className = "cuerpo-selector";
-            cuerpo.innerHTML = `<div class="aviso-18">🔞 Stickers con groserías y humor de adultos.<br><button type="button">Tengo 18 años o más</button></div>`;
-            cuerpo.querySelector("button").addEventListener("click", () => {
-                activarPicantes();
-                pintar();
-            });
-        } else {
-            const lista = pestana === "picantes" ? PICANTES : STICKERS;
-            cuerpo.className = "cuerpo-selector grilla-stickers";
-            cuerpo.innerHTML = Object.keys(lista).map((id) => `<button type="button" data-id="${id}">${htmlSticker(id)}</button>`).join("");
-            for (const b of cuerpo.querySelectorAll("button")) {
-                b.addEventListener("click", () => {
-                    enviarSticker(ruta, b.dataset.id);
-                    selector.classList.remove("abierto");
-                });
-            }
-        }
-    };
-    selector.innerHTML = `<nav><button type="button" data-p="emojis">😀 Emojis</button><button type="button" data-p="stickers">⭐ Stickers</button><button type="button" data-p="picantes">🌶️ +18</button></nav><div class="cuerpo-selector"></div>`;
-    for (const b of selector.querySelectorAll("nav button")) {
-        b.addEventListener("click", () => {
-            pestana = b.dataset.p;
-            pintar();
-        });
-    }
-    pintar();
+function avisoCorto(texto) {
+    const el = document.createElement("div");
+    el.className = "aviso-copiado";
+    el.textContent = texto;
+    document.body.appendChild(el);
+    setTimeout(() => el.remove(), 1400);
 }
 
-// Panel de chat reutilizable. Con amigo (y miNombre) suma botones para mandar un juego o regalar fichas.
-// Devuelve { cerrar }.
-export function panelChat({ titulo, ruta, nombres, clave, alCerrar, amigo, miNombre }) {
+// Menú al mantener apretado un mensaje: reacciones, responder, copiar y borrar
+function menuMensaje(m, el, { ruta, alResponder }) {
+    navigator.vibrate?.(15);
+    const r = el.getBoundingClientRect();
+    const fondo = document.createElement("div");
+    fondo.className = "menu-msj-fondo";
+    const mia = m.reacciones?.[yo()];
+    const opciones = [`<button data-o="responder">↩️ Responder</button>`];
+    if (!m.tipo || m.tipo === "texto") opciones.push(`<button data-o="copiar">📋 Copiar</button>`);
+    if (m.de === yo()) opciones.push(`<button data-o="borrar" class="peligro">🗑️ Borrar para todos</button>`);
+    fondo.innerHTML = `<div class="menu-msj">
+        <div class="fila-reacciones">${REACCIONES.map((e, i) => `<button data-e="${e}" class="${e === mia ? "elegida" : ""}" style="animation-delay:${i * 30}ms">${e}</button>`).join("")}</div>
+        <div class="opciones">${opciones.join("")}</div></div>`;
+    const menu = fondo.querySelector(".menu-msj");
+    // Arriba o abajo del mensaje, según dónde haya lugar
+    const alto = 60 + opciones.length * 48;
+    menu.style.top = `${Math.max(12, Math.min(innerHeight - alto - 12, r.bottom + alto + 12 < innerHeight ? r.bottom + 8 : r.top - alto - 8))}px`;
+    const cerrar = () => fondo.remove();
+    fondo.addEventListener("click", (e) => e.target === fondo && cerrar());
+    for (const b of fondo.querySelectorAll("[data-e]")) {
+        b.addEventListener("click", () => {
+            reaccionar(ruta, m, b.dataset.e).catch(() => {});
+            cerrar();
+        });
+    }
+    const acciones = {
+        responder: () => alResponder(m),
+        copiar: () => navigator.clipboard?.writeText(m.texto).then(() => avisoCorto("Copiado")),
+        borrar: () => confirm("¿Borrar este mensaje para los dos?") && borrarMensaje(ruta, m.id).catch(() => {}),
+    };
+    for (const b of fondo.querySelectorAll("[data-o]")) {
+        b.addEventListener("click", () => {
+            cerrar();
+            acciones[b.dataset.o]();
+        });
+    }
+    document.body.appendChild(fondo);
+}
+
+// Chat a pantalla completa. otroUid: con quién se habla (encabezado con foto y conexión).
+// Con amigo (y miNombre) suma botones para mandar un juego o regalar fichas. Devuelve { cerrar }.
+export function panelChat({ titulo, ruta, nombres, clave, alCerrar, amigo, miNombre, otroUid }) {
     ponerCss();
+    otroUid ??= amigo?.uid;
+    const esAmigo = ruta[0] === "chats";
     const panel = document.createElement("div");
     panel.className = "panel-chat";
-    const extras = amigo ? `<button type="button" class="icono" data-a="juego" title="Mandar un juego">🎮</button><button type="button" class="icono" data-a="regalo" title="Regalar fichas">🎁</button>` : "";
-    panel.innerHTML = `<header><span>${escaparHtml(titulo)}</span><button type="button">Cerrar</button></header>
+    panel.innerHTML = `
+        <header class="cabeza-chat">
+            <button type="button" class="volver" aria-label="Volver">‹</button>
+            <div class="avatar-c">${htmlAvatar(null, escaparHtml(titulo.replace(/^💬\s*/, "")))}</div>
+            <div class="quien"><strong>${escaparHtml(titulo.replace(/^💬\s*/, ""))}</strong><span class="estado"></span></div>
+            ${amigo ? `<button type="button" class="accion-c" data-a="juego" aria-label="Mandar un juego">🎮</button><button type="button" class="accion-c" data-a="regalo" aria-label="Regalar fichas">🎁</button>` : ""}
+        </header>
         <div class="lista-msj"></div>
-        <div class="rapidos">${RAPIDOS.map((r) => `<button type="button">${r}</button>`).join("")}</div>
-        <div class="selector"></div>
-        <form class="form-chat">${extras}<button type="button" class="icono" data-a="emojis" title="Emojis y stickers">😀</button>
-            <input maxlength="${TEXTO_MAX}" placeholder="Mensaje…" autocomplete="off"><button>➤</button></form>`;
+        <div class="pie-chat">
+            <div class="respondiendo"><div></div><button type="button" aria-label="Cancelar respuesta">✕</button></div>
+            <div class="grilla-emojis">${EMOJIS.map((e) => `<button type="button">${e}</button>`).join("")}</div>
+            <form class="form-chat">
+                <button type="button" class="icono" data-a="emojis" aria-label="Emojis">😀</button>
+                <textarea rows="1" maxlength="${TEXTO_MAX}" placeholder="Mensaje" enterkeyhint="send"></textarea>
+                <button class="enviar" aria-label="Enviar" disabled>➤</button>
+            </form>
+        </div>`;
     const lista = panel.querySelector(".lista-msj");
-    const input = panel.querySelector("input");
-    const selector = panel.querySelector(".selector");
-    armarSelector(selector, input, ruta);
-    const parar = escucharChat(ruta, (mensajes) => {
-        lista.innerHTML = mensajes.length ? htmlMensajes(mensajes, nombres) : `<p style="opacity:.6;text-align:center">Todavía no hay mensajes. ¡Saludá!</p>`;
-        lista.scrollTop = lista.scrollHeight;
+    const texto = panel.querySelector("textarea");
+    const enviar = panel.querySelector(".enviar");
+    const grilla = panel.querySelector(".grilla-emojis");
+    const barraRespuesta = panel.querySelector(".respondiendo");
+    const estado = panel.querySelector(".estado");
+    const paradas = [];
+    let mensajes = [];
+    let respondiendo = null;
+    let perfilOtro = null;
+    let meta = {};
+
+    // Encabezado: foto, en línea o escribiendo
+    const pintarEstado = () => {
+        const escribe = esAmigo && meta.escribiendo?.[otroUid] && Date.now() - ms(meta.escribiendo[otroUid]) < 6000;
+        estado.textContent = escribe ? "escribiendo…" : perfilOtro ? textoConexion(perfilOtro) : "";
+        estado.classList.toggle("escribiendo", Boolean(escribe));
+        lista.querySelector(".escribiendo-burbuja")?.remove();
+        if (escribe) {
+            lista.insertAdjacentHTML("beforeend", `<div class="escribiendo-burbuja"><i></i><i></i><i></i></div>`);
+            if (lista.scrollHeight - lista.scrollTop - lista.clientHeight < 120) lista.scrollTop = lista.scrollHeight;
+        }
+    };
+    if (otroUid) {
+        paradas.push(escucharUsuario(otroUid, (d) => {
+            perfilOtro = d;
+            panel.querySelector(".avatar-c").innerHTML = htmlAvatar(d, escaparHtml(titulo.replace(/^💬\s*/, "")));
+            pintarEstado();
+        }));
+    }
+    const refMeta = esAmigo ? doc(db, ...ruta) : null;
+    if (refMeta) paradas.push(onSnapshot(refMeta, (d) => {
+        meta = d.data() ?? {};
+        pintar();
+    }, () => {}));
+    const reloj = setInterval(pintarEstado, 3000);
+
+    // Visto: se avisa hasta cuándo leíste (como mucho cada 2 segundos)
+    let ultimoVisto = 0;
+    const avisarVisto = () => {
         marcarLeido(clave);
+        if (!refMeta || Date.now() - ultimoVisto < 2000) return;
+        ultimoVisto = Date.now();
+        setDoc(refMeta, { leido: { [yo()]: serverTimestamp() } }, { merge: true }).catch(() => {});
+    };
+    // Escribiendo: se avisa como mucho cada 3 segundos mientras tipeás
+    let ultimoEscribiendo = 0;
+    const avisarEscribiendo = () => {
+        if (!refMeta || Date.now() - ultimoEscribiendo < 3000) return;
+        ultimoEscribiendo = Date.now();
+        setDoc(refMeta, { escribiendo: { [yo()]: serverTimestamp() } }, { merge: true }).catch(() => {});
+    };
+
+    function pintar() {
+        const abajo = lista.scrollHeight - lista.scrollTop - lista.clientHeight < 120;
+        const visto = meta.leido?.[otroUid] ? ms(meta.leido[otroUid]) : 0;
+        lista.innerHTML = mensajes.length
+            ? htmlMensajes(mensajes, nombres, visto)
+            : `<div class="vacio-chat"><span>👋</span>Todavía no hay mensajes.<br>¡Saludá!</div>`;
+        pintarEstado();
+        if (abajo || !pintar.yaBajo) {
+            lista.scrollTop = lista.scrollHeight;
+            pintar.yaBajo = true;
+        }
+    }
+    paradas.push(escucharChat(ruta, (lista) => {
+        const nuevoDelOtro = lista.length && lista.at(-1).de !== yo() && lista.at(-1).id !== mensajes.at(-1)?.id && mensajes.length;
+        mensajes = lista;
+        pintar();
+        avisarVisto();
+        if (nuevoDelOtro) navigator.vibrate?.(20);
+    }));
+
+    // Mantener apretado (o doble toque = ❤️)
+    let temporizador = 0;
+    let ultimoToque = { id: null, t: 0 };
+    const mensajeDe = (e) => {
+        const el = e.target.closest(".msj");
+        return el && !e.target.closest("a") ? { el, m: mensajes.find((x) => x.id === el.dataset.id) } : null;
+    };
+    lista.addEventListener("pointerdown", (e) => {
+        const r = mensajeDe(e);
+        if (!r?.m) return;
+        r.el.classList.add("apretado");
+        temporizador = setTimeout(() => {
+            r.el.classList.remove("apretado");
+            menuMensaje(r.m, r.el, { ruta, alResponder: responder });
+        }, 450);
     });
+    const soltar = () => {
+        clearTimeout(temporizador);
+        lista.querySelector(".apretado")?.classList.remove("apretado");
+    };
+    for (const ev of ["pointerup", "pointercancel", "pointerleave"]) lista.addEventListener(ev, soltar);
+    lista.addEventListener("scroll", soltar, { passive: true });
+    lista.addEventListener("contextmenu", (e) => e.preventDefault());
+    lista.addEventListener("click", (e) => {
+        const r = mensajeDe(e);
+        if (!r?.m) return;
+        const ahora = Date.now();
+        if (ultimoToque.id === r.m.id && ahora - ultimoToque.t < 320) {
+            reaccionar(ruta, r.m, "❤️").catch(() => {});
+            ultimoToque = { id: null, t: 0 };
+        } else ultimoToque = { id: r.m.id, t: ahora };
+    });
+
+    function responder(m) {
+        respondiendo = m;
+        barraRespuesta.querySelector("div").innerHTML = `<b>${m.de === yo() ? "Vos" : escaparHtml(nombres[m.de] ?? "")}</b>${escaparHtml(m.texto)}`;
+        barraRespuesta.classList.add("activo");
+        texto.focus();
+    }
+    barraRespuesta.querySelector("button").addEventListener("click", () => {
+        respondiendo = null;
+        barraRespuesta.classList.remove("activo");
+    });
+
+    const ajustarAlto = () => {
+        texto.style.height = "auto";
+        texto.style.height = `${Math.min(120, texto.scrollHeight)}px`;
+        enviar.disabled = !texto.value.trim();
+    };
+    texto.addEventListener("input", () => {
+        ajustarAlto();
+        avisarEscribiendo();
+    });
+    // Enter manda (Shift+Enter hace una línea nueva)
+    texto.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" && !e.shiftKey) {
+            e.preventDefault();
+            panel.querySelector("form").requestSubmit();
+        }
+    });
+    panel.querySelector("form").addEventListener("submit", (e) => {
+        e.preventDefault();
+        if (!texto.value.trim()) return;
+        const extra = respondiendo ? { responde: { id: respondiendo.id, de: respondiendo.de, texto: respondiendo.texto.slice(0, 120) } } : {};
+        enviarMensaje(ruta, texto.value, extra)?.catch(() => avisoCorto("No se pudo mandar"));
+        texto.value = "";
+        ajustarAlto();
+        respondiendo = null;
+        barraRespuesta.classList.remove("activo");
+        grilla.classList.remove("abierto");
+        lista.scrollTop = lista.scrollHeight;
+    });
+    for (const b of grilla.querySelectorAll("button")) {
+        b.addEventListener("click", () => {
+            texto.value += b.textContent;
+            ajustarAlto();
+        });
+    }
+
     const cerrar = () => {
-        parar();
+        paradas.forEach((p) => p());
+        clearInterval(reloj);
         panel.remove();
         marcarLeido(clave);
         alCerrar?.();
     };
-    panel.querySelector("header button").addEventListener("click", cerrar);
-    for (const b of panel.querySelectorAll(".rapidos button")) b.addEventListener("click", () => enviarMensaje(ruta, b.textContent));
     const acciones = {
-        emojis: () => selector.classList.toggle("abierto"),
+        emojis: () => grilla.classList.toggle("abierto"),
         juego: () => hojaDesafio(amigo, miNombre, () => {}),
         regalo: () => hojaRegalo(amigo, miNombre),
     };
     for (const b of panel.querySelectorAll("[data-a]")) b.addEventListener("click", () => acciones[b.dataset.a]());
-    panel.querySelector("form").addEventListener("submit", (e) => {
-        e.preventDefault();
-        enviarMensaje(ruta, input.value);
-        input.value = "";
-        selector.classList.remove("abierto");
-    });
+    panel.querySelector(".volver").addEventListener("click", cerrar);
     document.body.appendChild(panel);
     return { cerrar };
 }
@@ -581,11 +830,12 @@ function abrirChatPartida(p) {
         if (!abierto) {
             for (const m of nuevos.slice(-1)) {
                 const b = document.createElement("div");
-                if (m.tipo === "sticker" && stickerDe(m.sticker)) {
-                    b.className = "burbuja-rival sin-fondo";
-                    b.innerHTML = htmlSticker(m.sticker);
+                const emojis = soloEmojis(m.texto);
+                if (emojis) {
+                    b.className = "burbuja-rival emoji";
+                    b.innerHTML = emojis.map((e) => htmlEmojiAnimado(e)).join("");
                 } else {
-                    b.className = `burbuja-rival${/^\p{Extended_Pictographic}{1,3}$/u.test(m.texto) ? " emoji" : ""}`;
+                    b.className = "burbuja-rival";
                     b.textContent = m.texto;
                 }
                 document.body.appendChild(b);
@@ -602,7 +852,7 @@ function abrirChatPartida(p) {
         if (abierto) return abierto.cerrar();
         boton.querySelector(".insignia-chat").hidden = true;
         const rival = p.jugadores.find((j) => j !== yo());
-        abierto = panelChat({ titulo: `💬 ${p.nombres?.[rival] ?? "Chat"}`, ruta, nombres: p.nombres, clave, alCerrar: () => (abierto = null) });
+        abierto = panelChat({ titulo: p.nombres?.[rival] ?? "Chat", ruta, nombres: p.nombres, clave, otroUid: rival, alCerrar: () => (abierto = null) });
     });
     document.body.appendChild(boton);
 }
