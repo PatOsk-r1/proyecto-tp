@@ -112,7 +112,7 @@
                 pintar();
             });
             m.escucharPartidas((lista) => {
-                turnos = lista.filter((p) => p.estado !== "terminada" && p.turno === usuario.uid).length;
+                turnos = lista.filter((p) => m.enCurso(p) && (p.estado === "jugando" ? p.turno === usuario.uid : p.creador !== usuario.uid)).length;
                 pintar();
             });
 
