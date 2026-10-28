@@ -60,7 +60,29 @@ service cloud.firestore {
       allow delete: if conectado() && request.auth.uid in resource.data.uids;
     }
 
+    function sonAmigos(a, b) {
+      return get(/databases/$(database)/documents/amistades/$(idAmistad(a, b))).data.estado == 'aceptada';
+    }
+
+    function mensajeValido() {
+      return request.resource.data.keys().hasOnly(['de', 'texto', 'creado'])
+        && request.resource.data.de == request.auth.uid
+        && request.resource.data.texto is string
+        && request.resource.data.texto.size() > 0
+        && request.resource.data.texto.size() <= 300
+        && request.resource.data.creado == request.time;
+    }
+
+    function fichasDe(uid) {
+      return get(/databases/$(database)/documents/billeteras/$(uid)).data.fichas;
+    }
+
+    function fichasDespues(uid) {
+      return getAfter(/databases/$(database)/documents/billeteras/$(uid)).data.fichas;
+    }
+
     // Partidas entre dos amigos. Solo ellos dos pueden verlas y jugarlas.
+    // apuesta: fichas que pone cada uno (hasta 10 millones); no se puede cambiar después de crearla.
     match /partidas/{id} {
       allow read: if conectado() && request.auth.uid in resource.data.jugadores;
       allow create: if conectado()
@@ -68,12 +90,66 @@ service cloud.firestore {
         && request.resource.data.jugadores.size() == 2
         && request.auth.uid in request.resource.data.jugadores
         && request.resource.data.estado == 'invitada'
-        && get(/databases/$(database)/documents/amistades/$(idAmistad(request.resource.data.jugadores[0], request.resource.data.jugadores[1]))).data.estado == 'aceptada';
+        && (!('apuesta' in request.resource.data) || (request.resource.data.apuesta is int
+            && request.resource.data.apuesta >= 0 && request.resource.data.apuesta <= 10000000))
+        && sonAmigos(request.resource.data.jugadores[0], request.resource.data.jugadores[1]);
       allow update: if conectado()
         && request.auth.uid in resource.data.jugadores
         && request.resource.data.jugadores == resource.data.jugadores
-        && request.resource.data.creador == resource.data.creador;
+        && request.resource.data.creador == resource.data.creador
+        && request.resource.data.get('apuesta', 0) == resource.data.get('apuesta', 0);
       allow delete: if conectado() && request.auth.uid in resource.data.jugadores;
+
+      // Chat de la partida
+      match /mensajes/{m} {
+        allow read: if conectado() && request.auth.uid in get(/databases/$(database)/documents/partidas/$(id)).data.jugadores;
+        allow create: if conectado() && mensajeValido()
+          && request.auth.uid in get(/databases/$(database)/documents/partidas/$(id)).data.jugadores;
+        allow delete: if conectado() && resource.data.de == request.auth.uid;
+      }
+    }
+
+    // Chat entre dos amigos (el id es el mismo que el de la amistad)
+    match /chats/{chat}/mensajes/{m} {
+      allow read: if conectado()
+        && request.auth.uid in get(/databases/$(database)/documents/amistades/$(chat)).data.uids
+        && get(/databases/$(database)/documents/amistades/$(chat)).data.estado == 'aceptada';
+      allow create: if conectado() && mensajeValido()
+        && request.auth.uid in get(/databases/$(database)/documents/amistades/$(chat)).data.uids
+        && get(/databases/$(database)/documents/amistades/$(chat)).data.estado == 'aceptada';
+      allow delete: if conectado() && resource.data.de == request.auth.uid;
+    }
+
+    // Billetera de fichas del casino, estadísticas y experiencia. Todos la ven (ranking), cada uno edita la suya.
+    match /billeteras/{uid} {
+      allow read: if conectado();
+      allow create, update: if conectado() && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['fichas', 'recarga', 'actualizada', 'stats', 'xp'])
+        && request.resource.data.fichas is number
+        && request.resource.data.fichas >= 0;
+      allow delete: if false;
+    }
+
+    // Regalos de fichas entre amigos. Quien regala paga en el mismo lote; quien recibe cobra una sola vez.
+    match /regalos/{id} {
+      allow read: if conectado() && (resource.data.de == request.auth.uid || resource.data.para == request.auth.uid);
+      allow create: if conectado()
+        && request.resource.data.keys().hasOnly(['de', 'para', 'nombreDe', 'cantidad', 'cobrado', 'creado'])
+        && request.resource.data.de == request.auth.uid
+        && request.resource.data.para != request.auth.uid
+        && request.resource.data.cantidad is int
+        && request.resource.data.cantidad > 0
+        && request.resource.data.cantidad <= 10000000
+        && request.resource.data.cobrado == false
+        && sonAmigos(request.auth.uid, request.resource.data.para)
+        && fichasDespues(request.auth.uid) == fichasDe(request.auth.uid) - request.resource.data.cantidad;
+      allow update: if conectado()
+        && resource.data.para == request.auth.uid
+        && resource.data.cobrado == false
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['cobrado'])
+        && request.resource.data.cobrado == true
+        && fichasDespues(request.auth.uid) == fichasDe(request.auth.uid) + resource.data.cantidad;
+      allow delete: if false;
     }
   }
 }
