@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="es" class="verificando">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>Raspadita · Proyecto TP</title>
+    <meta name="theme-color" content="#3a0ca3">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="../../icons/icon-180.png">
+    <link rel="manifest" href="../../manifest.webmanifest">
+
+    <link rel="stylesheet" href="../../css/estilos.css">
+    <link rel="stylesheet" href="../../css/juegos3d.css">
+    <style>
+        .tema-raspadita {
+            --fondo: #10002b;
+            --fondo-2: #3c096c;
+            --texto-suave: #e0c3fc;
+            --acento: #ffd166;
+            --acento-2: #f77f00;
+            --panel: #0a001acc;
+        }
+        .zona-r {
+            flex: 1;
+            min-height: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            padding: 8px;
+        }
+        .boleto {
+            width: min(92vw, 50vh, 380px);
+            padding: 14px;
+            border-radius: 22px;
+            background: linear-gradient(160deg, #ffd166, #f77f00 55%, #d00000);
+            box-shadow: 0 14px 34px #000a, inset 0 2px 0 #fff8;
+            text-align: center;
+        }
+        .boleto h2 {
+            font-size: 1.15rem;
+            font-weight: 900;
+            color: #fff;
+            text-shadow: 0 2px 0 #9c3d00;
+            margin-bottom: 8px;
+            letter-spacing: 0.04em;
+        }
+        .area {
+            position: relative;
+            aspect-ratio: 1;
+            border-radius: 14px;
+            background: #fff8e8;
+            box-shadow: inset 0 0 0 3px #9c3d00;
+            overflow: hidden;
+        }
+        .casillas {
+            position: absolute;
+            inset: 0;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0;
+        }
+        .casillas span {
+            display: grid;
+            place-items: center;
+            font-size: min(13vw, 4rem);
+            border: 1px dashed #e9c46a;
+        }
+        .casillas span.gana { animation: ganadora 0.6s ease-in-out 3; background: #ffd16655; }
+        @keyframes ganadora { 50% { transform: scale(1.18); } }
+        #capa { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; cursor: grab; }
+        .mensaje-r { min-height: 1.4em; font-size: 1.2rem; font-weight: 900; text-align: center; }
+        .mensaje-r.gano { color: var(--acento); animation: aparecer 0.3s ease-out; }
+        .tabla-r { display: flex; flex-wrap: wrap; gap: 5px; justify-content: center; font-size: 0.78rem; font-weight: 800; }
+        .tabla-r span { padding: 3px 8px; border-radius: 999px; background: #0006; }
+        .tabla-r b { color: var(--acento); }
+        .botones-r { display: flex; gap: 8px; }
+        .botones-r .accion { flex: 1; }
+        .botones-r #comprar { flex: 2; color: #2a1400; }
+    </style>
+</head>
+<body class="pantalla-3d tema-casino tema-raspadita">
+    <header class="barra-juego">
+        <a class="boton-volver" href="../../">‹ Juegos</a>
+        <h1>Raspadita</h1>
+        <div id="fichas" class="fichas-total"></div>
+    </header>
+
+    <main class="zona-r">
+        <div class="boleto">
+            <h2>★ RASPÁ Y GANÁ ★</h2>
+            <div class="area">
+                <div id="casillas" class="casillas"></div>
+                <canvas id="capa"></canvas>
+            </div>
+        </div>
+        <div id="mensaje" class="mensaje-r">Comprá un boleto y raspá con el dedo</div>
+        <div id="tabla" class="tabla-r"></div>
+    </main>
+
+    <div class="controles-casino">
+        <div class="apuesta-fila">
+            <button id="menos" class="redondo" type="button">−</button>
+            <div class="apuesta">Boleto<strong id="apuesta">10</strong></div>
+            <button id="mas" class="redondo" type="button">+</button>
+        </div>
+        <div class="botones-r">
+            <button id="revelar" class="accion secundaria" type="button" disabled>Revelar todo</button>
+            <button id="comprar" class="accion" type="button">🎟️ Comprar boleto</button>
+        </div>
+        <button id="recargar" class="accion secundaria" type="button" hidden>Recargar fichas</button>
+    </div>
+
+    <script type="module">
+        import { exigirSesion } from "../../js/sesion.js";
+        exigirSesion();
+    </script>
+    <script type="module" src="juego.js"></script>
+</body>
+</html>
