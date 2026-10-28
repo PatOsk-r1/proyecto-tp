@@ -76,6 +76,15 @@
 
     <div id="aviso-logro" class="aviso-logro" hidden></div>
 
+    <script>
+        // Si algo falla, se muestra en la máquina para poder avisar qué pasó
+        function mostrarError(texto) {
+            const el = document.getElementById("mensaje");
+            if (el) el.textContent = "Error: " + texto;
+        }
+        addEventListener("error", (e) => mostrarError(e.message || "al cargar " + (e.target && e.target.src)), true);
+        addEventListener("unhandledrejection", (e) => mostrarError(String(e.reason && e.reason.message || e.reason)));
+    </script>
     <script type="module">
         import { exigirSesion } from "../../js/sesion.js";
         exigirSesion();
