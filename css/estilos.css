@@ -504,6 +504,19 @@ body {
     animation: latido 1.6s ease-in-out infinite;
 }
 
+.tarjeta-juego .nivel-juego {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 0.68rem;
+    font-weight: 900;
+    color: #fff;
+    background: linear-gradient(135deg, #7b5cff, #b388ff);
+    box-shadow: 0 2px 8px #0006;
+}
+
 @keyframes latido {
     50% {
         transform: scale(1.1);
