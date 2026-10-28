@@ -53,8 +53,8 @@
 }
 
 .pildora-g {
-    flex: 1;
-    min-width: 0;
+    flex: 1 1 auto;
+    min-width: max-content;
     display: flex;
     align-items: center;
     gap: 6px;
@@ -96,7 +96,19 @@
 }
 
 .nivel-g {
-    flex: 1.4;
+    flex: 1.4 1 auto;
+    min-width: 110px;
+}
+
+@media (min-width: 560px) {
+    .pildora-g {
+        flex: 0 0 auto;
+        min-width: 96px;
+    }
+
+    .nivel-g {
+        min-width: 150px;
+    }
 }
 
 .estrella-g {
@@ -135,6 +147,117 @@
     transition: width 0.4s;
 }
 
+/* ---------- Ajustes (ruedita) ---------- */
+.boton-ajustes {
+    order: 1;
+    margin-left: auto;
+    width: 38px;
+    height: 38px;
+    flex-shrink: 0;
+    font-size: 1.2rem;
+    border-radius: 50%;
+    background: var(--crema);
+    border: 2px solid #4a2e17;
+    box-shadow: inset 0 -3px 0 var(--crema-2), 0 2px 0 #0004;
+    transition: transform 0.3s;
+}
+
+.boton-ajustes:active {
+    transform: rotate(90deg) scale(0.92);
+}
+
+.hud-g {
+    order: 2;
+}
+
+@media (min-width: 560px) {
+    .hud-g {
+        order: 1;
+    }
+
+    .boton-ajustes {
+        order: 2;
+        margin-left: 0;
+    }
+}
+
+.fondo-ajustes {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    background: #0009;
+    animation: aparecer 0.2s ease-out;
+}
+
+.fondo-ajustes[hidden] {
+    display: none;
+}
+
+.ajustes-g {
+    width: min(360px, 100%);
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 18px;
+    border-radius: 20px;
+    background: var(--crema);
+    color: var(--marron);
+    border: 4px solid var(--madera-2);
+    box-shadow: 0 0 0 4px var(--madera-1), 0 20px 50px #000a;
+}
+
+.ajustes-g h2 {
+    margin: 0;
+    font-size: 1.2rem;
+    text-align: center;
+}
+
+.control-vol {
+    display: grid;
+    grid-template-columns: 92px 1fr 44px;
+    align-items: center;
+    gap: 10px;
+    font-weight: 900;
+    font-size: 0.92rem;
+}
+
+.control-vol b {
+    text-align: right;
+    font-size: 0.85rem;
+}
+
+.control-vol input {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 12px;
+    border-radius: 999px;
+    background: linear-gradient(90deg, var(--verde-2) var(--lleno, 50%), #e3cfa6 var(--lleno, 50%));
+    box-shadow: inset 0 1px 2px #0004;
+}
+
+.control-vol input::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #fff6c2, #ffd166 40%, #e09f3e);
+    border: 2px solid #8d5a2b;
+    box-shadow: 0 2px 4px #0006;
+}
+
+.control-vol input::-moz-range-thumb {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: #ffd166;
+    border: 2px solid #8d5a2b;
+}
+
 /* ---------- Cuerpo: campo + panel (abajo en el celular, al costado en la compu) ---------- */
 .cuerpo-g {
     flex: 1;
@@ -165,8 +288,10 @@
 .aviso-granja {
     position: absolute;
     top: 10px;
-    left: 50%;
-    transform: translateX(-50%);
+    left: 0;
+    right: 0;
+    width: fit-content;
+    margin: 0 auto;
     max-width: 92%;
     padding: 7px 16px;
     border-radius: 999px;
