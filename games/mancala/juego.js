@@ -37,38 +37,82 @@ const hoyos = Array.from({ length: 14 }, (_, i) => {
     return b;
 });
 
-// Ubica cada hoyo en la grilla según de qué lado juego yo
+// Tablero vertical: mis hoyos en la columna derecha (de arriba hacia abajo) y mi granero abajo;
+// los del rival en la izquierda, cada uno enfrente del hoyo opuesto, y su granero arriba.
 function ubicar() {
     const j = miNumero();
     const mios = hoyosDe(j);
     const suyos = hoyosDe(3 - j);
-    mios.forEach((i, k) => Object.assign(hoyos[i].style, { gridColumn: `${k + 2}`, gridRow: "2" }));
-    suyos.forEach((i, k) => Object.assign(hoyos[i].style, { gridColumn: `${7 - k}`, gridRow: "1" }));
-    Object.assign(hoyos[granero(j)].style, { gridColumn: "8", gridRow: "1 / 3" });
-    Object.assign(hoyos[granero(3 - j)].style, { gridColumn: "1", gridRow: "1 / 3" });
+    mios.forEach((i, k) => Object.assign(hoyos[i].style, { gridColumn: "2", gridRow: `${k + 2}` }));
+    suyos.forEach((i, k) => Object.assign(hoyos[i].style, { gridColumn: "1", gridRow: `${7 - k}` }));
+    Object.assign(hoyos[granero(j)].style, { gridColumn: "1 / 3", gridRow: "8" });
+    Object.assign(hoyos[granero(3 - j)].style, { gridColumn: "1 / 3", gridRow: "1" });
 }
 
-// Posición "al azar" pero fija de cada semilla dentro del hoyo
+// Posición "al azar" pero fija de cada semilla dentro del hoyo (en porcentaje)
 function posicion(i, k, esGranero) {
     const a = (i * 7.3 + k * 2.39) % (Math.PI * 2);
-    const r = esGranero ? 10 + ((k * 13) % 26) : 6 + ((k * 11) % 24);
-    return { left: `${39 + Math.cos(a) * r}%`, top: `${(esGranero ? 46 : 39) + Math.sin(a) * r * (esGranero ? 1.6 : 1)}%` };
+    if (esGranero) return { left: 50 + Math.cos(a) * (8 + ((k * 13) % 34)), top: 50 + Math.sin(a) * (10 + ((k * 7) % 26)) };
+    const r = k === 0 ? 0 : 8 + ((k * 11) % 20);
+    return { left: 50 + Math.cos(a) * r, top: 52 + Math.sin(a) * r };
 }
+const colorSemilla = (i, k) => COLORES_SEMILLA[(i * 3 + k) % COLORES_SEMILLA.length];
 
 function dibujar(tablero, recibe = -1) {
     tablero.forEach((n, i) => {
         const h = hoyos[i];
         const esGranero = i === 6 || i === 13;
-        const visibles = Math.min(n, esGranero ? 30 : 14);
+        const visibles = Math.min(n, esGranero ? 40 : 16);
         let html = "";
         for (let k = 0; k < visibles; k++) {
             const p = posicion(i, k, esGranero);
-            html += `<span class="semilla" style="left:${p.left};top:${p.top};background:${COLORES_SEMILLA[(i + k) % COLORES_SEMILLA.length]}"></span>`;
+            html += `<span class="semilla" style="left:${p.left}%;top:${p.top}%;--c:${colorSemilla(i, k)}"></span>`;
         }
         h.innerHTML = `${html}<span class="cuenta">${n}</span>`;
-        h.classList.toggle("recibe", i === recibe);
+        if (i === recibe) {
+            h.classList.remove("recibe");
+            void h.offsetWidth;
+            h.classList.add("recibe");
+        } else h.classList.remove("recibe");
         h.classList.toggle("jugable", esMiTurno() && hoyosDe(miNumero()).includes(i) && n > 0);
     });
+}
+
+// ---------- Animaciones: un puñado de semillas que viaja de hoyo en hoyo ----------
+const pausa = (ms) => new Promise((ok) => setTimeout(ok, ms));
+function centro(i) {
+    const h = hoyos[i];
+    return { x: h.offsetLeft + h.offsetWidth / 2, y: h.offsetTop + h.offsetHeight / 2 };
+}
+function crearMano(i, cantidad) {
+    const mano = document.createElement("div");
+    mano.className = "mano";
+    for (let k = 0; k < Math.min(cantidad, 14); k++) {
+        const a = k * 2.4;
+        const r = k === 0 ? 0 : 6 + (k % 3) * 5;
+        mano.insertAdjacentHTML("beforeend", `<span style="left:${28 + Math.cos(a) * r}px;top:${28 + Math.sin(a) * r}px;--c:${colorSemilla(i, k)}"></span>`);
+    }
+    $("capa").appendChild(mano);
+    mover(mano, i, true);
+    return mano;
+}
+function mover(mano, i, instantaneo = false) {
+    const { x, y } = centro(i);
+    if (instantaneo) mano.style.transition = "none";
+    mano.style.transform = `translate(${x - 28}px, ${y - 28 - (instantaneo ? 0 : 10)}px) scale(${instantaneo ? 1 : 1.1})`;
+    if (instantaneo) {
+        void mano.offsetWidth;
+        mano.style.transition = "";
+    }
+}
+function flotante(i, texto, color = "#ffd166") {
+    const { x, y } = centro(i);
+    const el = document.createElement("div");
+    el.className = "flotante-m";
+    el.style.cssText = `left:${x}px;top:${y}px;color:${color}`;
+    el.textContent = texto;
+    $("capa").appendChild(el);
+    setTimeout(() => el.remove(), 1400);
 }
 
 function pintarMarcador() {
@@ -88,18 +132,66 @@ async function animar(antes, hoyo, numero) {
     animando = true;
     const r = sembrar(antes, numero, hoyo);
     const t = [...antes];
+    const mano = crearMano(hoyo, t[hoyo]);
     t[hoyo] = 0;
     dibujar(t, hoyo);
+    await pausa(120);
+    const paso = r.recorrido.length > 10 ? 150 : 210;
     for (const i of r.recorrido) {
-        await new Promise((ok) => setTimeout(ok, 140));
+        mover(mano, i);
+        await pausa(paso);
+        mano.lastElementChild?.remove();
         t[i]++;
         dibujar(t, i);
         vibrar(5);
     }
-    await new Promise((ok) => setTimeout(ok, 250));
-    if (r.captura) $("aviso").textContent = `¡Captura de ${r.captura.cantidad} semillas!`;
-    else if (r.mismoTurno) $("aviso").textContent = "¡Cayó en el granero: juega otra vez!";
-    else $("aviso").textContent = "";
+    mano.remove();
+    const mio = granero(numero);
+    if (r.captura) {
+        // Las semillas del hoyo propio y del de enfrente vuelan al granero
+        await pausa(200);
+        for (const i of r.captura.desde) hoyos[i].classList.add("captura");
+        flotante(r.captura.desde[1], `¡Captura +${r.captura.cantidad}!`, "#ff8fa3");
+        vibrar([30, 30, 60]);
+        await pausa(450);
+        const manos = r.captura.desde.map((i) => {
+            const m = crearMano(i, t[i]);
+            t[i] = 0;
+            return m;
+        });
+        for (const i of r.captura.desde) hoyos[i].classList.remove("captura");
+        dibujar(t);
+        await pausa(30);
+        manos.forEach((m) => mover(m, mio));
+        await pausa(260);
+        manos.forEach((m) => m.remove());
+        t[mio] += r.captura.cantidad;
+        dibujar(t, mio);
+        $("aviso").textContent = `¡Captura de ${r.captura.cantidad} semillas!`;
+    } else if (r.mismoTurno) {
+        flotante(mio, "¡Otra vez!");
+        $("aviso").textContent = "¡Cayó en el granero: juega otra vez!";
+    } else $("aviso").textContent = "";
+    if (r.fin) {
+        // Lo que queda en cada lado se va a su granero
+        await pausa(300);
+        const manos = [];
+        for (const jug of [1, 2]) {
+            for (const i of hoyosDe(jug)) {
+                if (!t[i]) continue;
+                const m = crearMano(i, t[i]);
+                manos.push([m, granero(jug)]);
+                t[granero(jug)] += t[i];
+                t[i] = 0;
+            }
+        }
+        dibujar(t);
+        await pausa(30);
+        manos.forEach(([m, g]) => mover(m, g));
+        await pausa(300);
+        manos.forEach(([m]) => m.remove());
+    }
+    await pausa(200);
     animando = false;
     return r;
 }
