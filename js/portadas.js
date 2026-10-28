@@ -148,6 +148,47 @@
             caja(W * 0.76, H * 0.6, W * 0.1, H * 0.22, 2, "#fff");
             caja(W * 0.775, H * 0.62, W * 0.07, H * 0.2, 1, "#780000");
         },
+        acuario() {
+            fondo("#48cae4", "#023e8a", 0.2);
+            caja(0, H * 0.85, W, H, 0, "#e9c46a");
+            ctx.strokeStyle = "#40916c";
+            ctx.lineWidth = 5;
+            ctx.lineCap = "round";
+            for (const x of [0.12, 0.2, 0.85]) {
+                ctx.beginPath();
+                ctx.moveTo(W * x, H * 0.88);
+                ctx.quadraticCurveTo(W * x + 8, H * 0.6, W * x - 4, H * 0.4);
+                ctx.stroke();
+            }
+            const pez = (x, y, s, c1, c2, mira) => {
+                ctx.save();
+                ctx.translate(x, y);
+                ctx.scale(mira, 1);
+                ctx.fillStyle = c2;
+                ctx.beginPath();
+                ctx.moveTo(-s * 0.8, 0);
+                ctx.lineTo(-s * 1.35, -s * 0.5);
+                ctx.lineTo(-s * 1.35, s * 0.5);
+                ctx.fill();
+                ctx.fillStyle = c1;
+                ctx.beginPath();
+                ctx.ellipse(0, 0, s, s * 0.55, 0, 0, TAU);
+                ctx.fill();
+                circulo(s * 0.55, -s * 0.12, s * 0.16, "#fff");
+                circulo(s * 0.6, -s * 0.12, s * 0.08, "#000");
+                ctx.restore();
+            };
+            pez(W * 0.45, H * 0.45, 16, "#ff7b00", "#fff", 1);
+            pez(W * 0.72, H * 0.28, 11, "#ffd166", "#f4a261", -1);
+            pez(W * 0.65, H * 0.68, 13, "#e0aaff", "#c77dff", -1);
+            ctx.strokeStyle = "#ffffffaa";
+            ctx.lineWidth = 1.5;
+            for (const [x, y, r] of [[0.3, 0.3, 4], [0.33, 0.18, 3], [0.55, 0.12, 2.5]]) {
+                ctx.beginPath();
+                ctx.arc(W * x, H * y, r, 0, TAU);
+                ctx.stroke();
+            }
+        },
         apilar() {
             fondo("#ff8fab", "#8ec5ff", 0.3);
             const colores = ["#ff595e", "#ffca3a", "#8ac926", "#1982c4", "#6a4c93", "#ff924c"];
