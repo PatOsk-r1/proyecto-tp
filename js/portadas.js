@@ -759,6 +759,15 @@
             ctx.lineTo(W * 0.8, H * 0.7);
             ctx.fill();
         },
+        videopoker() {
+            fondo("#1d4f91", "#081a36");
+            const cartas = [["10", "♠", false], ["J", "♠", false], ["Q", "♠", false], ["K", "♠", false], ["A", "♠", false]];
+            cartas.forEach(([v, p, roja], i) => naipe(W * (0.2 + i * 0.15), H * 0.56 - Math.abs(i - 2) * -3, 26, (i - 2) * 0.12, p, v, roja));
+            ctx.fillStyle = "#ffd166";
+            ctx.font = `900 ${Math.round(H * 0.14)}px system-ui, sans-serif`;
+            ctx.textAlign = "center";
+            ctx.fillText("ROYAL", W * 0.5, H * 0.2);
+        },
         keno() {
             fondo("#0d0628", "#2b1166");
             const s = Math.min(W / 8.5, H / 5.5);
