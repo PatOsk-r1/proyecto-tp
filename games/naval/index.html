@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="es" class="verificando">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>Batalla naval · Proyecto TP</title>
+    <meta name="theme-color" content="#03305c">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="../../icons/icon-180.png">
+    <link rel="manifest" href="../../manifest.webmanifest">
+
+    <link rel="stylesheet" href="../../css/estilos.css">
+    <link rel="stylesheet" href="../../css/juegos3d.css">
+    <link rel="stylesheet" href="../../css/tablero.css">
+    <style>
+        .tema-naval {
+            --fondo: #021a33;
+            --fondo-2: #064a85;
+            --texto-suave: #bfe3ff;
+            --acento: #ffd23f;
+            --acento-2: #ff9f1c;
+            --panel: #01101fcc;
+        }
+        .titulo-tablero {
+            font-size: 0.85rem;
+            font-weight: 800;
+            color: var(--texto-suave);
+        }
+        .mar {
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            gap: 2px;
+            padding: 4px;
+            border-radius: 12px;
+            background: #0b3d6b;
+            box-shadow: 0 10px 24px #0008, inset 0 0 0 2px #ffffff22;
+        }
+        .mar.grande { width: min(92vw, 43vh, 420px); }
+        .mar.chico { width: min(48vw, 21vh, 220px); }
+        .zona-tablero { gap: 6px; justify-content: space-evenly; }
+        .celda-m {
+            position: relative;
+            aspect-ratio: 1;
+            border: none;
+            border-radius: 4px;
+            padding: 0;
+            font: inherit;
+            font-size: clamp(0.7rem, 3.5vw, 1.2rem);
+            background: linear-gradient(160deg, #1f7fd6, #145fa8);
+            color: #fff;
+        }
+        .mar.chico .celda-m { font-size: clamp(0.5rem, 2vw, 0.75rem); border-radius: 2px; }
+        .mar.apuntable .celda-m:not(.disparada) { cursor: crosshair; }
+        .mar.apuntable .celda-m:not(.disparada):active { background: #ffd23f88; }
+        .celda-m.barco { background: linear-gradient(160deg, #a7b4c2, #6c7a89); }
+        .celda-m.agua::after { content: ""; position: absolute; inset: 38%; border-radius: 50%; background: #ffffffcc; }
+        .celda-m.tocado { background: linear-gradient(160deg, #ff6b35, #c62828); animation: aparecer 0.3s ease-out; }
+        .celda-m.hundido { background: linear-gradient(160deg, #5c0a0a, #2a0505); }
+        .celda-m.ultimo { outline: 2px solid var(--acento); z-index: 1; }
+        .botones-colocar { display: flex; gap: 8px; width: min(92vw, 420px); }
+        .botones-colocar .accion { flex: 1; }
+    </style>
+</head>
+<body class="pantalla-3d tema-naval tema-casino">
+    <header class="barra-juego">
+        <a class="boton-volver" href="../../">‹ Juegos</a>
+        <h1>Batalla naval</h1>
+    </header>
+
+    <div class="marcador-turnos">
+        <div id="j-yo" class="jugador-t"><span>Vos</span><span class="puntos-t">0</span></div>
+        <span id="estado" class="estado-t">Ubicá tu flota</span>
+        <div id="j-rival" class="jugador-t"><span>Rival</span><span class="puntos-t">0</span></div>
+    </div>
+
+    <main class="zona-tablero">
+        <div id="titulo-arriba" class="titulo-tablero">Tu flota</div>
+        <div id="arriba" class="mar grande"></div>
+        <div id="aviso" class="aviso-t"></div>
+        <div id="botones-colocar" class="botones-colocar">
+            <button id="mezclar" class="accion secundaria" type="button">🔀 Mezclar</button>
+            <button id="listo" class="accion" type="button">✅ Listo</button>
+        </div>
+        <div id="titulo-abajo" class="titulo-tablero" hidden>Tu flota</div>
+        <div id="abajo" class="mar chico" hidden></div>
+
+        <div id="centro" class="mensaje-centro">
+            <div id="titulo-centro">Batalla naval<div class="chico">Hundí los 5 barcos del rival. Si acertás, tirás de nuevo.</div></div>
+            <div class="dificultad">
+                <button data-nivel="0">Fácil</button>
+                <button data-nivel="1">Normal</button>
+                <button data-nivel="2">Difícil</button>
+            </div>
+            <button id="jugar" class="boton-grande" type="button">Jugar contra la compu</button>
+            <a class="enlace-amigos" href="../../amigos.html">👥 Jugar con un amigo</a>
+        </div>
+    </main>
+
+    <script type="module">
+        import { exigirSesion } from "../../js/sesion.js";
+        exigirSesion();
+    </script>
+    <script type="module" src="juego.js"></script>
+</body>
+</html>
