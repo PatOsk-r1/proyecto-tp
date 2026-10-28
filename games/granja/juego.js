@@ -50,25 +50,54 @@ const enGranero = () => Object.values(estado.granero).reduce((t, n) => t + n, 0)
 const chispas = crearChispas();
 let ancho = 300;
 let alto = 300;
+let fondoCache = null; // pasto, colinas, granero y corral (lo que no se mueve), redibujado al cambiar de tamaño
 const lienzo = crearLienzo($("lienzo"), (d) => {
     ancho = d.ancho;
     alto = d.alto;
+    fondoCache = null;
 });
 const vuelos = [];
 const textos = [];
-const nubes = Array.from({ length: 3 }, (_, i) => ({ x: Math.random(), y: 0.03 + i * 0.03, v: 0.006 + Math.random() * 0.008, s: 0.7 + Math.random() * 0.6 }));
+const rebotes = {}; // parcela → momento en que se plantó o cosechó (para el saltito)
+const nubes = Array.from({ length: 4 }, (_, i) => ({ x: Math.random(), y: 0.15 + i * 0.12, v: 0.004 + Math.random() * 0.006, s: 0.6 + Math.random() * 0.5 }));
+const mariposas = Array.from({ length: 3 }, (_, i) => ({ x: Math.random(), y: 0.3 + Math.random() * 0.4, fase: i * 2, color: ["#ffd166", "#ff8fab", "#a0c4ff"][i] }));
+const luciernagas = Array.from({ length: 14 }, () => ({ x: Math.random(), y: 0.2 + Math.random() * 0.8, fase: Math.random() * 10 }));
 
-// Medidas: parcelas arriba y corral abajo
+// Medidas: cielo arriba, parcelas en el medio y corral abajo
 function medidas() {
-    const corral = alto * 0.26;
+    const cielo = Math.min(alto * 0.15, 86);
+    const corral = alto * 0.24;
     const filas = MAX_LOTES / COLUMNAS;
-    const zonaH = alto - corral - 16;
-    const lado = Math.min((ancho - 20) / COLUMNAS, zonaH / filas) - 6;
-    const ox = (ancho - COLUMNAS * (lado + 6)) / 2 + 3;
-    const oy = 8 + (zonaH - filas * (lado + 6)) / 2;
-    return { lado, ox, oy, corralY: alto - corral, corral };
+    const hueco = 8;
+    const zonaH = alto - cielo - corral - 8;
+    const lado = Math.min((ancho - 24) / COLUMNAS, zonaH / filas) - hueco;
+    const ox = (ancho - COLUMNAS * (lado + hueco)) / 2 + hueco / 2;
+    const oy = cielo + 4 + (zonaH - filas * (lado + hueco)) / 2;
+    return { lado, ox, oy, hueco, cielo, corralY: alto - corral, corral };
 }
-const rectParcela = (i, m = medidas()) => ({ x: m.ox + (i % COLUMNAS) * (m.lado + 6), y: m.oy + Math.floor(i / COLUMNAS) * (m.lado + 6), w: m.lado, h: m.lado });
+const rectParcela = (i, m = medidas()) => ({
+    x: m.ox + (i % COLUMNAS) * (m.lado + m.hueco),
+    y: m.oy + Math.floor(i / COLUMNAS) * (m.lado + m.hueco),
+    w: m.lado,
+    h: m.lado,
+});
+
+// Azar repetible (para que el pasto y las flores no cambien de lugar en cada cuadro)
+function azar(semilla) {
+    return () => {
+        semilla = (semilla * 16807) % 2147483647;
+        return semilla / 2147483647;
+    };
+}
+
+// Hora del día real: 0 = de noche, 1 = pleno día (con amanecer y atardecer suaves)
+function luzDelDia() {
+    const d = new Date();
+    const h = d.getHours() + d.getMinutes() / 60;
+    if (h >= 8 && h <= 18.5) return 1;
+    if (h <= 5.5 || h >= 21) return 0;
+    return h < 12 ? (h - 5.5) / 2.5 : (21 - h) / 2.5;
+}
 
 // ---------- Lógica ----------
 function progreso(p) {
@@ -93,6 +122,7 @@ function plantar(i, id) {
     if (!c || estado.monedas < c.semilla) return false;
     estado.monedas -= c.semilla;
     estado.parcelas[i] = { cultivo: id, desde: Date.now() };
+    rebotes[i] = performance.now();
     return true;
 }
 
@@ -104,6 +134,7 @@ function cosechar(i, automatico = false) {
     estado.granero[c.id] = (estado.granero[c.id] ?? 0) + cantidad;
     sumarXP(c.xp * cantidad);
     estado.parcelas[i] = null;
+    rebotes[i] = performance.now();
     const r = rectParcela(i);
     if (!automatico) {
         vuelos.push({ x: r.x + r.w / 2, y: r.y + r.h / 2, id: c.id, t: 0 });
@@ -160,11 +191,16 @@ function dibujarPlanta(ctx, id, x, y, tam, prog, tiempo) {
     const vaiven = Math.sin(tiempo * 2 + x) * 0.06;
     ctx.save();
     ctx.translate(x, y);
-    if (prog < 0.25) {
-        ctx.fillStyle = "#5c3a1e";
-        for (const [dx, dy] of [[-0.15, 0], [0.12, 0.08], [0, -0.1]]) {
+    if (prog < 0.2) {
+        // Montoncito de tierra recién sembrado con las semillas asomando
+        ctx.fillStyle = "#4a2e17";
+        ctx.beginPath();
+        ctx.ellipse(0, tam * 0.08, tam * 0.2, tam * 0.07, 0, 0, TAU);
+        ctx.fill();
+        ctx.fillStyle = "#f2d49b";
+        for (const [dx, dy] of [[-0.09, 0.06], [0.07, 0.09], [0, 0.04]]) {
             ctx.beginPath();
-            ctx.arc(dx * tam, dy * tam, tam * 0.04, 0, TAU);
+            ctx.ellipse(dx * tam, dy * tam, tam * 0.025, tam * 0.018, dx * 6, 0, TAU);
             ctx.fill();
         }
         ctx.restore();
@@ -173,22 +209,53 @@ function dibujarPlanta(ctx, id, x, y, tam, prog, tiempo) {
     ctx.rotate(vaiven);
     const verde = "#52b788";
     if (prog < 1) {
-        const s = prog < 0.6 ? 0.5 : 0.8;
+        // Brote que va creciendo: más alto y con más hojas a medida que avanza
+        const s = 0.45 + prog * 0.55;
+        const hoja = (x, y, rx, ry, giro) => {
+            const g = ctx.createLinearGradient(x - rx, y, x + rx, y);
+            g.addColorStop(0, "#2d6a4f");
+            g.addColorStop(1, "#74c69d");
+            ctx.fillStyle = g;
+            ctx.beginPath();
+            ctx.ellipse(x, y, rx, ry, giro, 0, TAU);
+            ctx.fill();
+        };
+        ctx.fillStyle = "#4a2e17";
+        ctx.beginPath();
+        ctx.ellipse(0, tam * 0.2, tam * 0.16, tam * 0.05, 0, 0, TAU);
+        ctx.fill();
         ctx.strokeStyle = "#2d6a4f";
-        ctx.lineWidth = 2;
+        ctx.lineWidth = Math.max(2, tam * 0.03);
+        ctx.lineCap = "round";
         ctx.beginPath();
         ctx.moveTo(0, tam * 0.2);
-        ctx.lineTo(0, -tam * 0.15 * s);
+        ctx.quadraticCurveTo(tam * 0.03, 0, 0, -tam * 0.2 * s);
         ctx.stroke();
-        ctx.fillStyle = verde;
-        for (const lado of [-1, 1]) {
+        hoja(-tam * 0.1 * s, -tam * 0.02, tam * 0.12 * s, tam * 0.05 * s, 0.5);
+        hoja(tam * 0.1 * s, -tam * 0.06, tam * 0.12 * s, tam * 0.05 * s, -0.5);
+        if (prog >= 0.55) {
+            hoja(-tam * 0.12 * s, -tam * 0.16 * s, tam * 0.1 * s, tam * 0.045 * s, 0.8);
+            hoja(tam * 0.12 * s, -tam * 0.2 * s, tam * 0.1 * s, tam * 0.045 * s, -0.8);
+            // Un adelanto del fruto
+            ctx.fillStyle = c.color;
+            ctx.globalAlpha = (prog - 0.55) * 1.6;
             ctx.beginPath();
-            ctx.ellipse(lado * tam * 0.1 * s, -tam * 0.05 * s, tam * 0.12 * s, tam * 0.05 * s, lado * 0.5, 0, TAU);
+            ctx.arc(0, -tam * 0.22 * s, tam * 0.04, 0, TAU);
             ctx.fill();
+            ctx.globalAlpha = 1;
         }
         ctx.restore();
         return;
     }
+    // Halo dorado detrás de lo que está listo
+    const halo = ctx.createRadialGradient(0, 0, 0, 0, 0, tam * 0.42);
+    halo.addColorStop(0, "#fff3b066");
+    halo.addColorStop(1, "#fff3b000");
+    ctx.fillStyle = halo;
+    ctx.beginPath();
+    ctx.arc(0, 0, tam * 0.42, 0, TAU);
+    ctx.fill();
+    ctx.scale(1.12, 1.12);
     // Maduro: cada cultivo con su dibujo
     if (id === "trigo") {
         ctx.strokeStyle = "#b08900";
@@ -231,16 +298,23 @@ function dibujarPlanta(ctx, id, x, y, tam, prog, tiempo) {
         ctx.ellipse(-tam * 0.08, 0, tam * 0.04, tam * 0.16, -0.5, 0, TAU);
         ctx.fill();
     } else if (id === "tomate" || id === "frutilla" || id === "uva") {
-        ctx.fillStyle = "#2d6a4f";
-        ctx.beginPath();
-        ctx.arc(0, -tam * 0.02, tam * 0.22, 0, TAU);
-        ctx.fill();
+        const mata = ctx.createRadialGradient(-tam * 0.05, -tam * 0.08, 0, 0, -tam * 0.02, tam * 0.24);
+        mata.addColorStop(0, "#74c69d");
+        mata.addColorStop(1, "#2d6a4f");
+        ctx.fillStyle = mata;
+        for (const [dx, dy, rr] of [[0, -0.04, 0.17], [-0.1, 0.03, 0.12], [0.1, 0.03, 0.12]]) {
+            ctx.beginPath();
+            ctx.arc(dx * tam, dy * tam, rr * tam, 0, TAU);
+            ctx.fill();
+        }
         const puntos = id === "uva" ? [[-0.08, -0.05], [0, -0.05], [0.08, -0.05], [-0.04, 0.04], [0.04, 0.04], [0, 0.12]] : [[-0.1, -0.08], [0.1, -0.05], [0, 0.08], [-0.12, 0.08], [0.12, 0.1]];
         for (const [dx, dy] of puntos) {
-            const g = ctx.createRadialGradient(dx * tam - 2, dy * tam - 2, 1, dx * tam, dy * tam, tam * 0.07);
-            g.addColorStop(0, "#fff");
+            const rf = tam * (id === "uva" ? 0.055 : 0.065);
+            const g = ctx.createRadialGradient(dx * tam - rf * 0.35, dy * tam - rf * 0.35, 0, dx * tam, dy * tam, rf);
+            g.addColorStop(0, "#ffffffdd");
             g.addColorStop(0.3, c.color);
-            g.addColorStop(1, "#000");
+            g.addColorStop(0.85, c.color);
+            g.addColorStop(1, "#00000088");
             ctx.fillStyle = g;
             ctx.beginPath();
             ctx.arc(dx * tam, dy * tam, tam * (id === "uva" ? 0.055 : 0.065), 0, TAU);
@@ -383,107 +457,385 @@ function iconoProducto(ctx, id, x, y, tam) {
     ctx.restore();
 }
 
+const mezclar = (a, b, t) => {
+    const ca = a.match(/\w\w/g).map((h) => parseInt(h, 16));
+    const cb = b.match(/\w\w/g).map((h) => parseInt(h, 16));
+    return `rgb(${ca.map((v, i) => Math.round(v + (cb[i] - v) * t)).join(",")})`;
+};
+
+// Cielo según la hora: sol o luna, nubes que pasan y estrellas de noche
+function dibujarCielo(ctx, m, luz, tiempo, dt) {
+    const g = ctx.createLinearGradient(0, 0, 0, m.cielo + 20);
+    const atardecer = luz > 0 && luz < 1 ? 1 - Math.abs(luz - 0.5) * 2 : 0;
+    g.addColorStop(0, mezclar("0b1d3a", atardecer ? "ff9e7a" : "5fb3e8", Math.max(luz, atardecer)));
+    g.addColorStop(1, mezclar("1d3557", atardecer ? "ffd6a5" : "c9ecff", Math.max(luz, atardecer)));
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, ancho, m.cielo + 20);
+    if (luz < 0.6) {
+        ctx.fillStyle = "#fff";
+        const r = azar(7);
+        for (let k = 0; k < 26; k++) {
+            ctx.globalAlpha = (0.6 - luz) * (0.5 + 0.5 * Math.sin(tiempo * 2 + k));
+            ctx.fillRect(r() * ancho, r() * m.cielo * 0.8, 1.5, 1.5);
+        }
+        ctx.globalAlpha = 1;
+    }
+    // Sol de día, luna de noche
+    const x = ancho * 0.66;
+    const y = m.cielo * (0.95 - Math.max(luz, 0.4) * 0.55);
+    const astro = ctx.createRadialGradient(x, y, 0, x, y, m.cielo * 0.4);
+    if (luz > 0.4) {
+        astro.addColorStop(0, "#fff7c2");
+        astro.addColorStop(0.3, "#ffd166");
+        astro.addColorStop(1, "#ffd16600");
+    } else {
+        astro.addColorStop(0, "#f8f9fa");
+        astro.addColorStop(0.25, "#dee2e6");
+        astro.addColorStop(1, "#dee2e600");
+    }
+    ctx.fillStyle = astro;
+    ctx.beginPath();
+    ctx.arc(x, y, m.cielo * 0.4, 0, TAU);
+    ctx.fill();
+    for (const n of nubes) {
+        n.x += n.v * dt;
+        if (n.x > 1.25) n.x = -0.25;
+        ctx.fillStyle = luz > 0.4 ? "#ffffffd9" : "#ffffff30";
+        const cx = n.x * ancho;
+        const cy = m.cielo * n.y + 6;
+        for (const [dx, dy, r] of [[0, 0, 13], [14, 3, 10], [-14, 3, 9], [6, -6, 9]]) {
+            ctx.beginPath();
+            ctx.arc(cx + dx * n.s, cy + dy * n.s, r * n.s, 0, TAU);
+            ctx.fill();
+        }
+    }
+}
+
+// Lo que no se mueve, pintado una sola vez: colinas, granero, pasto, flores y el corral
+function pintarFondo(m) {
+    const escala = Math.min(devicePixelRatio, 2);
+    const c = document.createElement("canvas");
+    c.width = Math.max(1, Math.round(ancho * escala));
+    c.height = Math.max(1, Math.round(alto * escala));
+    const ctx = c.getContext("2d");
+    ctx.scale(escala, escala);
+    const r = azar(42);
+    // Colinas lejanas
+    for (const [color, alturaCol, fase] of [["#76b583", 0.55, 0.3], ["#5aa469", 0.3, 1.7]]) {
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.moveTo(0, m.cielo + 10);
+        for (let x = 0; x <= ancho; x += 8) ctx.lineTo(x, m.cielo - m.cielo * alturaCol * (0.6 + 0.4 * Math.sin(x / ancho * 5 + fase)));
+        ctx.lineTo(ancho, m.cielo + 10);
+        ctx.fill();
+    }
+    // Arbolitos en el horizonte
+    for (let k = 0; k < 7; k++) {
+        const x = r() * ancho;
+        const y = m.cielo - 2 - r() * m.cielo * 0.15;
+        const t = 7 + r() * 6;
+        ctx.fillStyle = "#6f4518";
+        ctx.fillRect(x - 1.5, y - t * 0.4, 3, t * 0.6);
+        ctx.fillStyle = r() > 0.5 ? "#2d6a4f" : "#40916c";
+        ctx.beginPath();
+        ctx.arc(x, y - t * 0.8, t * 0.6, 0, TAU);
+        ctx.fill();
+    }
+    // Granero rojo
+    const gx = ancho * 0.08;
+    const gw = Math.min(70, ancho * 0.18);
+    const gh = gw * 0.7;
+    const gy = m.cielo + 4 - gh;
+    ctx.fillStyle = "#0003";
+    ctx.beginPath();
+    ctx.ellipse(gx + gw / 2, m.cielo + 4, gw * 0.65, 5, 0, 0, TAU);
+    ctx.fill();
+    const pared = ctx.createLinearGradient(gx, 0, gx + gw, 0);
+    pared.addColorStop(0, "#c1121f");
+    pared.addColorStop(1, "#8a0e17");
+    ctx.fillStyle = pared;
+    ctx.fillRect(gx, gy + gh * 0.35, gw, gh * 0.65);
+    ctx.fillStyle = "#6a040f";
+    ctx.beginPath();
+    ctx.moveTo(gx - 4, gy + gh * 0.38);
+    ctx.lineTo(gx + gw / 2, gy - gh * 0.05);
+    ctx.lineTo(gx + gw + 4, gy + gh * 0.38);
+    ctx.fill();
+    ctx.strokeStyle = "#fff";
+    ctx.lineWidth = 2;
+    const px = gx + gw * 0.3;
+    const pw = gw * 0.4;
+    const py = gy + gh * 0.55;
+    const ph = gh * 0.45;
+    ctx.strokeRect(px, py, pw, ph);
+    ctx.beginPath();
+    ctx.moveTo(px, py);
+    ctx.lineTo(px + pw, py + ph);
+    ctx.moveTo(px + pw, py);
+    ctx.lineTo(px, py + ph);
+    ctx.stroke();
+    ctx.fillStyle = "#ffd166";
+    ctx.fillRect(gx + gw / 2 - 4, gy + gh * 0.2, 8, 7);
+
+    // Pasto con textura
+    const pasto = ctx.createLinearGradient(0, m.cielo, 0, alto);
+    pasto.addColorStop(0, "#7cc68a");
+    pasto.addColorStop(1, "#4c9a5b");
+    ctx.fillStyle = pasto;
+    ctx.fillRect(0, m.cielo + 4, ancho, alto - m.cielo);
+    for (let k = 0; k < 260; k++) {
+        const x = r() * ancho;
+        const y = m.cielo + 6 + r() * (alto - m.cielo);
+        ctx.strokeStyle = r() > 0.5 ? "#ffffff1c" : "#1b433222";
+        ctx.lineWidth = 1.4;
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+        ctx.lineTo(x + (r() - 0.5) * 3, y - 4 - r() * 3);
+        ctx.stroke();
+    }
+    // Flores en los bordes
+    for (let k = 0; k < 22; k++) {
+        const x = r() < 0.5 ? r() * m.ox * 0.9 : ancho - r() * m.ox * 0.9;
+        const y = m.oy + r() * (m.corralY - m.oy);
+        ctx.fillStyle = ["#ffffff", "#ffd166", "#ff8fab", "#c9a7ff"][k % 4];
+        for (let p = 0; p < 5; p++) {
+            ctx.beginPath();
+            ctx.arc(x + Math.cos((p / 5) * TAU) * 2.4, y + Math.sin((p / 5) * TAU) * 2.4, 1.8, 0, TAU);
+            ctx.fill();
+        }
+        ctx.fillStyle = "#e09f3e";
+        ctx.beginPath();
+        ctx.arc(x, y, 1.4, 0, TAU);
+        ctx.fill();
+    }
+    // Zona arada detrás de las parcelas
+    ctx.fillStyle = "#3d251222";
+    ctx.beginPath();
+    ctx.roundRect(m.ox - 8, m.oy - 8, COLUMNAS * (m.lado + m.hueco) + 8, (MAX_LOTES / COLUMNAS) * (m.lado + m.hueco) + 8, 18);
+    ctx.fill();
+
+    // Corral: pasto más claro, bebedero, fardo de pasto y cerca de madera
+    const cy = m.corralY;
+    const corral = ctx.createLinearGradient(0, cy, 0, alto);
+    corral.addColorStop(0, "#a7dca5");
+    corral.addColorStop(1, "#7cc68a");
+    ctx.fillStyle = corral;
+    ctx.fillRect(0, cy, ancho, m.corral);
+    for (let k = 0; k < 18; k++) {
+        ctx.fillStyle = "#c9a26b55";
+        ctx.beginPath();
+        ctx.ellipse(r() * ancho, cy + 24 + r() * (m.corral - 30), 6 + r() * 6, 2 + r() * 2, 0, 0, TAU);
+        ctx.fill();
+    }
+    const bx = ancho - 58;
+    const by = alto - 22;
+    ctx.fillStyle = "#5c3a1e";
+    ctx.beginPath();
+    ctx.roundRect(bx, by, 44, 12, 4);
+    ctx.fill();
+    ctx.fillStyle = "#48cae4";
+    ctx.fillRect(bx + 3, by + 2, 38, 4);
+    const fx = 14;
+    const fy = alto - 30;
+    const fardo = ctx.createLinearGradient(fx, fy, fx, fy + 20);
+    fardo.addColorStop(0, "#f4d58d");
+    fardo.addColorStop(1, "#d4a24c");
+    ctx.fillStyle = fardo;
+    ctx.beginPath();
+    ctx.roundRect(fx, fy, 34, 20, 4);
+    ctx.fill();
+    ctx.strokeStyle = "#a1782f";
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(fx + 11, fy);
+    ctx.lineTo(fx + 11, fy + 20);
+    ctx.moveTo(fx + 23, fy);
+    ctx.lineTo(fx + 23, fy + 20);
+    ctx.stroke();
+    // Cerca
+    const madera = (x, y, w, h) => {
+        const g = ctx.createLinearGradient(x, y, x, y + h);
+        g.addColorStop(0, "#b07a45");
+        g.addColorStop(1, "#7a4a22");
+        ctx.fillStyle = g;
+        ctx.beginPath();
+        ctx.roundRect(x, y, w, h, 2);
+        ctx.fill();
+    };
+    ctx.fillStyle = "#0002";
+    ctx.fillRect(0, cy + 22, ancho, 4);
+    madera(0, cy + 3, ancho, 5);
+    madera(0, cy + 13, ancho, 5);
+    for (let x = 6; x < ancho; x += 30) {
+        madera(x, cy - 5, 6, 28);
+        ctx.fillStyle = "#c58d55";
+        ctx.fillRect(x, cy - 5, 6, 2);
+    }
+    return c;
+}
+
+// Molino de viento a la derecha, con las aspas girando
+function dibujarMolino(ctx, m, tiempo) {
+    const x = ancho * 0.88;
+    const base = m.cielo + 4;
+    const alturaM = Math.min(m.cielo * 0.95, 78);
+    ctx.fillStyle = "#e9ecef";
+    ctx.beginPath();
+    ctx.moveTo(x - alturaM * 0.16, base);
+    ctx.lineTo(x - alturaM * 0.08, base - alturaM * 0.75);
+    ctx.lineTo(x + alturaM * 0.08, base - alturaM * 0.75);
+    ctx.lineTo(x + alturaM * 0.16, base);
+    ctx.fill();
+    ctx.fillStyle = "#adb5bd";
+    ctx.fillRect(x - alturaM * 0.04, base - alturaM * 0.22, alturaM * 0.08, alturaM * 0.22);
+    ctx.save();
+    ctx.translate(x, base - alturaM * 0.78);
+    ctx.rotate(tiempo * 0.9);
+    for (let k = 0; k < 4; k++) {
+        ctx.rotate(TAU / 4);
+        ctx.fillStyle = "#8d5a2b";
+        ctx.fillRect(-1.2, 0, 2.4, alturaM * 0.5);
+        ctx.fillStyle = "#f8f9fa";
+        ctx.fillRect(1.2, alturaM * 0.12, alturaM * 0.11, alturaM * 0.36);
+    }
+    ctx.restore();
+    ctx.fillStyle = "#6a040f";
+    ctx.beginPath();
+    ctx.arc(x, base - alturaM * 0.78, 3, 0, TAU);
+    ctx.fill();
+}
+
+// Una parcela: cantero de madera con tierra arada (mojada mientras crece) y lo plantado encima
+function dibujarParcela(ctx, i, r, tiempo) {
+    const radio = Math.max(8, r.w * 0.16);
+    if (i >= estado.lotes) {
+        if (i !== estado.lotes) {
+            ctx.fillStyle = "#1b433218";
+            ctx.beginPath();
+            ctx.roundRect(r.x, r.y, r.w, r.h, radio);
+            ctx.fill();
+            return;
+        }
+        // El próximo terreno para comprar: cartelito de madera
+        const alcanza = estado.monedas >= costoLote();
+        ctx.setLineDash([6, 5]);
+        ctx.strokeStyle = alcanza ? "#ffd166" : "#ffffff88";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.roundRect(r.x + 1, r.y + 1, r.w - 2, r.h - 2, radio);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        const cw = r.w * 0.78;
+        const ch = r.h * 0.42;
+        const cx = r.x + (r.w - cw) / 2;
+        const cy = r.y + r.h * 0.22 + (alcanza ? Math.sin(tiempo * 3) * 2 : 0);
+        ctx.fillStyle = "#7a4a22";
+        ctx.fillRect(r.x + r.w / 2 - 2, cy + ch, 4, r.h * 0.3);
+        const tabla = ctx.createLinearGradient(0, cy, 0, cy + ch);
+        tabla.addColorStop(0, "#d4a373");
+        tabla.addColorStop(1, "#a9713f");
+        ctx.fillStyle = tabla;
+        ctx.beginPath();
+        ctx.roundRect(cx, cy, cw, ch, 6);
+        ctx.fill();
+        ctx.fillStyle = "#3a2400";
+        ctx.font = `900 ${Math.max(9, r.w * 0.13)}px system-ui, sans-serif`;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText("+ Terreno", r.x + r.w / 2, cy + ch * 0.32);
+        ctx.fillText(`🪙 ${formatear(costoLote())}`, r.x + r.w / 2, cy + ch * 0.72);
+        return;
+    }
+    const p = estado.parcelas[i];
+    const prog = progreso(p);
+    // Sombra y marco de madera
+    ctx.fillStyle = "#00000033";
+    ctx.beginPath();
+    ctx.roundRect(r.x + 2, r.y + 5, r.w, r.h, radio);
+    ctx.fill();
+    const marco = ctx.createLinearGradient(0, r.y, 0, r.y + r.h);
+    marco.addColorStop(0, "#c08552");
+    marco.addColorStop(1, "#7a4a22");
+    ctx.fillStyle = marco;
+    ctx.beginPath();
+    ctx.roundRect(r.x, r.y, r.w, r.h, radio);
+    ctx.fill();
+    // Tierra: oscura y húmeda si está creciendo
+    const b = Math.max(4, r.w * 0.08);
+    const regada = p && prog < 1;
+    const tierra = ctx.createLinearGradient(0, r.y + b, 0, r.y + r.h - b);
+    tierra.addColorStop(0, regada ? "#5a3a22" : "#8b5e3c");
+    tierra.addColorStop(1, regada ? "#3b2414" : "#6b4423");
+    ctx.fillStyle = tierra;
+    ctx.beginPath();
+    ctx.roundRect(r.x + b, r.y + b, r.w - b * 2, r.h - b * 2, radio * 0.6);
+    ctx.fill();
+    // Surcos
+    for (let k = 1; k <= 3; k++) {
+        const y = r.y + b + ((r.h - b * 2) * k) / 4;
+        ctx.fillStyle = "#00000030";
+        ctx.fillRect(r.x + b + 3, y, r.w - b * 2 - 6, 2);
+        ctx.fillStyle = "#ffffff14";
+        ctx.fillRect(r.x + b + 3, y - 2, r.w - b * 2 - 6, 1.5);
+    }
+    ctx.strokeStyle = "#ffffff30";
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(r.x + radio, r.y + 1.5);
+    ctx.lineTo(r.x + r.w - radio, r.y + 1.5);
+    ctx.stroke();
+    if (!p) return;
+    // Saltito al plantar o cosechar
+    const desde = (performance.now() - (rebotes[i] ?? -1e9)) / 1000;
+    const salto = desde < 0.45 ? 1 + Math.sin(desde * 14) * 0.18 * (1 - desde / 0.45) : 1;
+    ctx.save();
+    ctx.translate(r.x + r.w / 2, r.y + r.h * 0.62);
+    ctx.scale(salto, salto);
+    dibujarPlanta(ctx, p.cultivo, 0, 0, r.w, prog, tiempo + i);
+    ctx.restore();
+    if (prog < 1) {
+        // Barra de crecimiento abajo
+        const bw = r.w * 0.62;
+        const bx = r.x + (r.w - bw) / 2;
+        const by = r.y + r.h - b - 7;
+        ctx.fillStyle = "#0007";
+        ctx.beginPath();
+        ctx.roundRect(bx, by, bw, 5, 3);
+        ctx.fill();
+        ctx.fillStyle = "#95d5b2";
+        ctx.beginPath();
+        ctx.roundRect(bx, by, Math.max(5, bw * prog), 5, 3);
+        ctx.fill();
+    } else {
+        ctx.strokeStyle = `rgba(255,209,102,${0.55 + Math.sin(tiempo * 5) * 0.3})`;
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.roundRect(r.x - 1, r.y - 1, r.w + 2, r.h + 2, radio + 1);
+        ctx.stroke();
+        // Brillitos subiendo
+        for (let k = 0; k < 2; k++) {
+            const t = (tiempo * 0.8 + k * 0.5 + i * 0.13) % 1;
+            ctx.fillStyle = `rgba(255,250,200,${1 - t})`;
+            ctx.beginPath();
+            ctx.arc(r.x + r.w * (0.25 + k * 0.5), r.y + r.h * 0.4 - t * r.h * 0.4, 2.2, 0, TAU);
+            ctx.fill();
+        }
+    }
+}
+
 function dibujar(dt) {
     const { ctx } = lienzo;
     const tiempo = performance.now() / 1000;
     const m = medidas();
-    // Pasto con matas
-    const g = ctx.createLinearGradient(0, 0, 0, alto);
-    g.addColorStop(0, "#74c69d");
-    g.addColorStop(1, "#40916c");
-    ctx.fillStyle = g;
-    ctx.fillRect(0, 0, ancho, alto);
-    ctx.fillStyle = "#ffffff12";
-    for (let k = 0; k < 40; k++) {
-        const x = (k * 97) % ancho;
-        const y = (k * 61) % alto;
-        ctx.fillRect(x, y, 2, 5);
-        ctx.fillRect(x + 3, y + 1, 2, 4);
-    }
-    for (const n of nubes) {
-        n.x += n.v * dt;
-        if (n.x > 1.2) n.x = -0.2;
-        ctx.fillStyle = "#ffffff22";
-        for (const [dx, r] of [[0, 18], [20, 14], [-18, 12]]) {
-            ctx.beginPath();
-            ctx.arc(n.x * ancho + dx * n.s, alto * n.y + 20, r * n.s, 0, TAU);
-            ctx.fill();
-        }
-    }
+    const luz = luzDelDia();
+    dibujarCielo(ctx, m, luz, tiempo, dt);
+    if (!fondoCache) fondoCache = pintarFondo(m);
+    ctx.drawImage(fondoCache, 0, 0, ancho, alto);
+    dibujarMolino(ctx, m, tiempo);
 
     // Parcelas
-    for (let i = 0; i < MAX_LOTES; i++) {
-        const r = rectParcela(i, m);
-        if (i >= estado.lotes) {
-            ctx.fillStyle = "#00000022";
-            ctx.beginPath();
-            ctx.roundRect(r.x, r.y, r.w, r.h, 10);
-            ctx.fill();
-            if (i === estado.lotes) {
-                ctx.setLineDash([5, 5]);
-                ctx.strokeStyle = "#ffffff88";
-                ctx.lineWidth = 2;
-                ctx.stroke();
-                ctx.setLineDash([]);
-                ctx.fillStyle = estado.monedas >= costoLote() ? "#ffd166" : "#ffffffaa";
-                ctx.font = `900 ${Math.max(10, r.w * 0.15)}px sans-serif`;
-                ctx.textAlign = "center";
-                ctx.textBaseline = "middle";
-                ctx.fillText("+ Terreno", r.x + r.w / 2, r.y + r.h * 0.4);
-                ctx.fillText(`🪙 ${formatear(costoLote())}`, r.x + r.w / 2, r.y + r.h * 0.62);
-            }
-            continue;
-        }
-        const tierra = ctx.createLinearGradient(0, r.y, 0, r.y + r.h);
-        tierra.addColorStop(0, "#9c6644");
-        tierra.addColorStop(1, "#6f4518");
-        ctx.fillStyle = tierra;
-        ctx.beginPath();
-        ctx.roundRect(r.x, r.y, r.w, r.h, 10);
-        ctx.fill();
-        ctx.strokeStyle = "#00000025";
-        ctx.lineWidth = 2;
-        for (let k = 1; k < 4; k++) {
-            ctx.beginPath();
-            ctx.moveTo(r.x + 6, r.y + (r.h * k) / 4);
-            ctx.lineTo(r.x + r.w - 6, r.y + (r.h * k) / 4);
-            ctx.stroke();
-        }
-        ctx.strokeStyle = "#5c3a1e";
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.roundRect(r.x, r.y, r.w, r.h, 10);
-        ctx.stroke();
-        const p = estado.parcelas[i];
-        if (!p) continue;
-        const prog = progreso(p);
-        dibujarPlanta(ctx, p.cultivo, r.x + r.w / 2, r.y + r.h * 0.55, r.w, prog, tiempo);
-        if (prog < 1) {
-            ctx.strokeStyle = "#0005";
-            ctx.lineWidth = 4;
-            ctx.beginPath();
-            ctx.arc(r.x + r.w - 12, r.y + 12, 7, 0, TAU);
-            ctx.stroke();
-            ctx.strokeStyle = "#ffd166";
-            ctx.beginPath();
-            ctx.arc(r.x + r.w - 12, r.y + 12, 7, -Math.PI / 2, -Math.PI / 2 + prog * TAU);
-            ctx.stroke();
-        } else {
-            ctx.strokeStyle = `rgba(255,209,102,${0.5 + Math.sin(tiempo * 5) * 0.3})`;
-            ctx.lineWidth = 3;
-            ctx.beginPath();
-            ctx.roundRect(r.x - 1, r.y - 1, r.w + 2, r.h + 2, 11);
-            ctx.stroke();
-        }
-    }
+    for (let i = 0; i < MAX_LOTES; i++) dibujarParcela(ctx, i, rectParcela(i, m), tiempo);
 
-    // Corral con cerca
-    ctx.fillStyle = "#95d5b2";
-    ctx.fillRect(0, m.corralY, ancho, m.corral);
-    ctx.fillStyle = "#8d5a2b";
-    ctx.fillRect(0, m.corralY + 4, ancho, 4);
-    ctx.fillRect(0, m.corralY + 14, ancho, 4);
-    for (let x = 6; x < ancho; x += 28) ctx.fillRect(x, m.corralY - 4, 5, 26);
     if (!estado.animales.length) {
         ctx.fillStyle = "#1b433288";
         ctx.font = "800 13px sans-serif";
@@ -522,6 +874,41 @@ function dibujar(dt) {
     }
     for (let i = vuelos.length - 1; i >= 0; i--) if (vuelos[i].t >= 1) vuelos.splice(i, 1);
 
+    // Mariposas de día, luciérnagas y un poco de oscuridad de noche
+    if (luz > 0.3) {
+        for (const b of mariposas) {
+            b.fase += dt;
+            const x = (b.x + Math.sin(b.fase * 0.3) * 0.35 + 1) % 1 * ancho;
+            const y = m.cielo + (alto - m.cielo) * (b.y + Math.sin(b.fase * 0.7) * 0.12);
+            const aleteo = Math.abs(Math.sin(b.fase * 14));
+            ctx.fillStyle = b.color;
+            for (const lado of [-1, 1]) {
+                ctx.beginPath();
+                ctx.ellipse(x + lado * 4 * aleteo, y, 4 * aleteo + 1, 3.5, lado * 0.4, 0, TAU);
+                ctx.fill();
+            }
+            ctx.fillStyle = "#3d2512";
+            ctx.fillRect(x - 0.7, y - 3, 1.4, 6);
+        }
+    }
+    if (luz < 1) {
+        ctx.fillStyle = `rgba(12, 18, 60, ${(1 - luz) * 0.32})`;
+        ctx.fillRect(0, m.cielo, ancho, alto - m.cielo);
+        ctx.globalAlpha = 1 - luz;
+        for (const f of luciernagas) {
+            f.fase += dt;
+            const x = (f.x + Math.sin(f.fase * 0.4) * 0.05) * ancho;
+            const y = m.cielo + (alto - m.cielo) * (f.y + Math.cos(f.fase * 0.5) * 0.03);
+            const brillo = (Math.sin(f.fase * 3) + 1) / 2;
+            const g = ctx.createRadialGradient(x, y, 0, x, y, 8);
+            g.addColorStop(0, `rgba(230,255,140,${brillo})`);
+            g.addColorStop(1, "rgba(230,255,140,0)");
+            ctx.fillStyle = g;
+            ctx.fillRect(x - 8, y - 8, 16, 16);
+        }
+        ctx.globalAlpha = 1;
+    }
+
     chispas.dibujar(ctx, dt);
     for (const t of textos) {
         t.vida -= dt;
@@ -553,19 +940,69 @@ bucle((dt) => {
 });
 
 // ---------- Toques ----------
-$("lienzo").addEventListener("pointerdown", (e) => {
+// Tocar o deslizar el dedo: al arrastrar sobre varias parcelas se planta o cosecha en todas
+// (lo mismo que hizo la primera), y al pasar sobre los animales se recoge lo que tengan.
+let arrastre = null; // { modo: "plantar" | "cosechar" | "recoger", vistas: Set }
+const parcelaEn = (x, y, m = medidas()) => {
+    for (let i = 0; i < MAX_LOTES; i++) {
+        const r = rectParcela(i, m);
+        if (x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h) return i;
+    }
+    return -1;
+};
+function puntoDe(e) {
     const caja = $("lienzo").getBoundingClientRect();
-    const x = e.clientX - caja.left;
-    const y = e.clientY - caja.top;
-    const m = medidas();
-    // Animales
+    return { x: e.clientX - caja.left, y: e.clientY - caja.top };
+}
+function recogerEn(x, y) {
+    let alguno = false;
     for (let k = 0; k < estado.animales.length; k++) {
         const pos = posAnimal(k);
-        if (Math.hypot(pos.x - x, pos.y - 10 - y) < 34 && recoger(k)) return refrescar();
+        if (Math.hypot(pos.x - x, pos.y - 10 - y) < 34 && recoger(k)) alguno = true;
+    }
+    return alguno;
+}
+$("lienzo").addEventListener("pointermove", (e) => {
+    if (!arrastre) return;
+    const { x, y } = puntoDe(e);
+    if (arrastre.modo === "recoger") {
+        if (recogerEn(x, y)) refrescar();
+        return;
+    }
+    const i = parcelaEn(x, y);
+    if (i < 0 || i >= estado.lotes || arrastre.vistas.has(i)) return;
+    arrastre.vistas.add(i);
+    const p = estado.parcelas[i];
+    const r = rectParcela(i);
+    if (arrastre.modo === "cosechar" && p && progreso(p) >= 1) {
+        cosechar(i);
+        refrescar();
+    } else if (arrastre.modo === "plantar" && !p) {
+        const c = cultivo(estado.elegida);
+        if (c && plantar(i, c.id)) {
+            chispas.emitir(r.x + r.w / 2, r.y + r.h / 2, "#9c6644", 6, 70);
+            vibrar(8);
+            refrescar();
+        }
+    }
+});
+for (const ev of ["pointerup", "pointercancel", "pointerleave"]) $("lienzo").addEventListener(ev, () => (arrastre = null));
+
+$("lienzo").addEventListener("pointerdown", (e) => {
+    const { x, y } = puntoDe(e);
+    const m = medidas();
+    arrastre = null;
+    // Animales
+    if (recogerEn(x, y)) {
+        arrastre = { modo: "recoger", vistas: new Set() };
+        return refrescar();
     }
     for (let i = 0; i < MAX_LOTES; i++) {
         const r = rectParcela(i, m);
         if (x < r.x || x > r.x + r.w || y < r.y || y > r.y + r.h) continue;
+        const p0 = estado.parcelas[i];
+        if (i < estado.lotes) arrastre = { modo: !p0 ? "plantar" : progreso(p0) >= 1 ? "cosechar" : null, vistas: new Set([i]) };
+        if (arrastre && !arrastre.modo) arrastre = null;
         if (i >= estado.lotes) {
             if (i === estado.lotes && estado.monedas >= costoLote()) {
                 estado.monedas -= costoLote();
@@ -732,6 +1169,14 @@ function refrescar() {
 
 setInterval(() => guardar(CLAVE, estado), 5000);
 addEventListener("pagehide", () => guardar(CLAVE, estado));
-// Si estuvo cerrada con granjero, cosecha lo que maduró
 pintarDatos();
 pintarPanel();
+
+// Al volver: qué pasó mientras la granja estuvo cerrada
+{
+    const listos = estado.parcelas.filter((p) => p && progreso(p) >= 1).length;
+    const animalesListos = estado.animales.filter((a) => Date.now() - a.desde >= tiempoAnimal(animal(a.tipo))).length;
+    const partes = [listos && `${listos} cultivo${listos > 1 ? "s" : ""}`, animalesListos && `${animalesListos} animal${animalesListos > 1 ? "es" : ""}`].filter(Boolean);
+    if (mejora("granjero") && estado.parcelas.some(Boolean)) avisar("👩‍🌾 El granjero cuidó el campo mientras no estabas", 2800);
+    else if (partes.length) avisar(`🌾 Listos para juntar: ${partes.join(" y ")} · deslizá el dedo`, 3200);
+}
