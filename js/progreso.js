@@ -6,7 +6,7 @@ const FIRESTORE = "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore
 const ESPERA_MAX = 3500;
 const META = "nube-meta"; // cuándo se cambió cada clave en este dispositivo
 // Claves que no se suben: las fichas van en su billetera y el resto es solo de este dispositivo
-const NO_SUBIR = /^(nube-meta|modo-prueba|casino-fichas|casino-recarga|leido-.*|pestana|ultimo-juego|firebase.*)$/;
+const NO_SUBIR = /^(nube-meta|modo-prueba|casino-fichas|casino-recarga|xp-pendiente|xp-juegos|leido-.*|pestana|ultimo-juego|firebase.*)$/;
 
 const guardarOriginal = Storage.prototype.setItem;
 const borrarOriginal = Storage.prototype.removeItem;
