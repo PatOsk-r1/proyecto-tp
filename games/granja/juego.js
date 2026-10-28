@@ -2,6 +2,7 @@
 import { formatear, cargar, guardar, vibrar } from "../../js/comun3d.js";
 import { crearLienzo, bucle, crearChispas } from "../../js/lienzo2d.js";
 import { sonidos, volumen, cambiarVolumen } from "./sonido.js";
+import { dibujarPersona, frase, GRACIAS } from "./visitas.js";
 
 const $ = (id) => document.getElementById(id);
 const CLAVE = "granja";
@@ -52,6 +53,33 @@ const chispas = crearChispas();
 let ancho = 300;
 let alto = 300;
 let fondoCache = null; // pasto, colinas, granero y corral (lo que no se mueve), redibujado al cambiar de tamaño
+
+// Nombre para el cartel de la granja: el de usuario (se guarda para mostrarlo enseguida la próxima vez)
+let nombreGranja = "";
+try {
+    nombreGranja = localStorage.getItem("granja-nombre") || "";
+} catch {}
+(async () => {
+    try {
+        const { usuarioActual } = await import("../../js/sesion.js");
+        const usuario = await usuarioActual();
+        if (!usuario) return;
+        let nombre = "";
+        try {
+            const { miPerfil } = await import("../../js/multijugador.js");
+            nombre = (await miPerfil())?.nombre ?? "";
+        } catch {}
+        nombre ||= usuario.displayName || (usuario.email ?? "").split("@")[0];
+        nombre = nombre.slice(0, 20);
+        if (nombre && nombre !== nombreGranja) {
+            nombreGranja = nombre;
+            fondoCache = null;
+            try {
+                localStorage.setItem("granja-nombre", nombre);
+            } catch {}
+        }
+    } catch {}
+})();
 const lienzo = crearLienzo($("lienzo"), (d) => {
     ancho = d.ancho;
     alto = d.alto;
@@ -626,6 +654,64 @@ function pintarFondo(m) {
     ctx.fillStyle = "#ffd166";
     ctx.fillRect(gx + gw / 2 - 4, gy + gh * 0.2, 8, 7);
 
+    // Cartel de madera: "La granja de (nombre)"
+    {
+        const texto = nombreGranja ? `La granja de ${nombreGranja}` : "Mi granja";
+        let letra = Math.min(16, m.cielo * 0.2);
+        ctx.font = `900 ${letra}px system-ui, sans-serif`;
+        const maximo = ancho * 0.5;
+        while (letra > 8 && ctx.measureText(texto).width > maximo - 24) {
+            letra -= 0.5;
+            ctx.font = `900 ${letra}px system-ui, sans-serif`;
+        }
+        const tw = ctx.measureText(texto).width + 24;
+        const th = letra * 1.9;
+        const cx = Math.max(gx + gw + 8 + tw / 2, ancho * 0.42);
+        const by = Math.max(4, m.cielo - 6 - th);
+        // Postes
+        for (const lado of [-1, 1]) {
+            const px = cx + lado * (tw / 2 - 12);
+            ctx.fillStyle = "#5c3a1e";
+            ctx.fillRect(px - 2.5, by + th - 4, 5, m.cielo + 6 - (by + th - 4));
+        }
+        ctx.fillStyle = "#0003";
+        ctx.beginPath();
+        ctx.roundRect(cx - tw / 2 + 2, by + 3, tw, th, 6);
+        ctx.fill();
+        const tabla = ctx.createLinearGradient(0, by, 0, by + th);
+        tabla.addColorStop(0, "#d4a373");
+        tabla.addColorStop(1, "#9c6b3f");
+        ctx.fillStyle = tabla;
+        ctx.beginPath();
+        ctx.roundRect(cx - tw / 2, by, tw, th, 6);
+        ctx.fill();
+        ctx.strokeStyle = "#5c3a1e";
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        // Vetas de la madera
+        ctx.strokeStyle = "#00000018";
+        ctx.lineWidth = 1;
+        for (const k of [0.33, 0.66]) {
+            ctx.beginPath();
+            ctx.moveTo(cx - tw / 2 + 6, by + th * k);
+            ctx.lineTo(cx + tw / 2 - 6, by + th * k);
+            ctx.stroke();
+        }
+        // Clavitos
+        ctx.fillStyle = "#4a2e17";
+        for (const lado of [-1, 1]) {
+            ctx.beginPath();
+            ctx.arc(cx + lado * (tw / 2 - 6), by + th / 2, 1.8, 0, TAU);
+            ctx.fill();
+        }
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillStyle = "#fff4dc";
+        ctx.fillText(texto, cx, by + th / 2 + 1.5);
+        ctx.fillStyle = "#3a2400";
+        ctx.fillText(texto, cx, by + th / 2);
+    }
+
     // Pasto con textura
     const pasto = ctx.createLinearGradient(0, m.cielo, 0, alto);
     pasto.addColorStop(0, "#7cc68a");
@@ -1014,6 +1100,7 @@ function dibujar(dt) {
 let acumulado = 0;
 bucle((dt) => {
     avanzarLluvia(dt);
+    if (pantallaGrande.matches) animarVisita(dt);
     // El granjero cosecha solo lo que está listo
     if (mejora("granjero")) estado.parcelas.forEach((p, i) => p && progreso(p) >= 1 && cosechar(i, true));
     dibujar(dt);
@@ -1148,7 +1235,7 @@ const CARAS = { "Doña Rosa": "👵", "El panadero": "🧑‍🍳", "La escuela"
 
 // Pedidos con el dibujito de cada cosa que piden (y cuántas tenés de cada una)
 function htmlPedidos() {
-    return estado.pedidos.map((p, k) => `<div class="pedido-g${sePuede(p) ? " listo" : ""}">
+    return estado.pedidos.map((p, k) => `<div class="pedido-g${sePuede(p) ? " listo" : ""}" data-k="${k}">
         <div class="cliente-p"><span class="cara">${CARAS[p.quien] ?? "🧑‍🌾"}</span>
             <span class="quien-p">${p.quien}<small>${MONEDA_G}${formatear(p.premio)} · ⭐ ${p.xp}</small></span>
             <button class="cambiar-p" data-cambiar="${k}" aria-label="Cambiar pedido" title="Cambiar pedido">↻</button></div>
@@ -1169,6 +1256,50 @@ function pintarLado() {
     ultimoLado = html;
     $("pedidos-lado").innerHTML = html;
     pintarIconos($("pedidos-lado"));
+    marcarVisita();
+}
+
+// ---------- Visitas (pantallas grandes): la persona que pide, dibujada, diciendo lo que quiere ----------
+const visita = { k: -1, quien: "", texto: "", mostrado: 0, tiempo: 0, gracias: false };
+const ESPERA_VISITA = 9; // segundos que se queda después de hablar, antes de pasar al próximo pedido
+function hablar(quien, texto, gracias = false) {
+    Object.assign(visita, { quien, texto, mostrado: 0, tiempo: 0, gracias });
+    $("visita-nombre").textContent = quien;
+    $("visita-texto").textContent = "";
+}
+function elegirVisita(k) {
+    const p = estado.pedidos[k];
+    if (!p) return;
+    visita.k = k;
+    hablar(p.quien, frase(p, formatear));
+    marcarVisita();
+}
+function marcarVisita() {
+    for (const el of $("pedidos-lado").querySelectorAll(".pedido-g")) el.classList.toggle("hablando", Number(el.dataset.k) === visita.k && !visita.gracias);
+}
+let tamPersona = "";
+function animarVisita(dt) {
+    if (visita.k < 0) elegirVisita(0);
+    visita.tiempo += dt;
+    if (visita.mostrado < visita.texto.length) {
+        visita.mostrado = Math.min(visita.texto.length, visita.mostrado + dt * 40);
+        $("visita-texto").textContent = visita.texto.slice(0, Math.floor(visita.mostrado));
+    } else if (visita.tiempo > visita.texto.length / 40 + (visita.gracias ? 2.5 : ESPERA_VISITA)) {
+        elegirVisita(visita.gracias ? visita.k : (visita.k + 1) % estado.pedidos.length);
+    }
+    // Lienzo nítido del tamaño que le da el CSS
+    const c = $("persona");
+    const caja = c.getBoundingClientRect();
+    const escala = Math.min(devicePixelRatio, 2);
+    const tam = `${caja.width}x${caja.height}`;
+    if (tam !== tamPersona) {
+        tamPersona = tam;
+        c.width = Math.round(caja.width * escala);
+        c.height = Math.round(caja.height * escala);
+    }
+    const ctx = c.getContext("2d");
+    ctx.setTransform(escala, 0, 0, escala, 0, 0);
+    dibujarPersona(ctx, visita.quien, caja.width, caja.height, performance.now() / 1000, visita.mostrado < visita.texto.length);
 }
 pantallaGrande.addEventListener("change", () => {
     ultimoLado = "";
@@ -1235,6 +1366,9 @@ function pintarPanel() {
 
 function alTocarPanel(e) {
     const b = e.target.closest("button");
+    // Tocar un pedido del costado hace que esa persona lo diga
+    const tarjeta = e.target.closest("#pedidos-lado .pedido-g");
+    if (!b && tarjeta) return elegirVisita(Number(tarjeta.dataset.k));
     if (!b || b.disabled) return;
     const d = b.dataset;
     if (d.semilla) {
@@ -1248,11 +1382,17 @@ function alTocarPanel(e) {
         estado.monedas += p.premio;
         sumarXP(p.xp);
         estado.pedidos[Number(d.entregar)] = nuevoPedido();
+        // Quien recibió el pedido da las gracias, y después aparece el que viene
+        visita.k = Number(d.entregar);
+        hablar(p.quien, GRACIAS[Math.floor(Math.random() * GRACIAS.length)], true);
         avisar(`📦 ¡Pedido entregado! +🪙${formatear(p.premio)}`);
         chispas.emitir(ancho / 2, alto / 2, "#ffd166", 30, 220);
         vibrar([30, 40, 30]);
         sonidos.monedas();
-    } else if (d.cambiar !== undefined) estado.pedidos[Number(d.cambiar)] = nuevoPedido();
+    } else if (d.cambiar !== undefined) {
+        estado.pedidos[Number(d.cambiar)] = nuevoPedido();
+        if (visita.k === Number(d.cambiar)) elegirVisita(visita.k);
+    }
     else if (d.venderTodo !== undefined) {
         let total = 0;
         for (const [id, n] of Object.entries(estado.granero)) {
