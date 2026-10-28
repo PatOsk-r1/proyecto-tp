@@ -1,7 +1,7 @@
 // Blackjack contra la banca. 6 mazos, la banca se planta en 17, blackjack paga 3 a 2.
 // Se puede doblar, dividir pares en dos manos y tomar seguro cuando la banca muestra un As.
 import { formatear, cargar, guardar, textoFlotante, vibrar, MONEDA } from "../../js/comun3d.js";
-import { fichas, cambiarFichas, recargar } from "../../js/fichas.js";
+import { fichas, cambiarFichas, recargar, puedeRecargar, LIMITE_APUESTA } from "../../js/fichas.js";
 
 const $ = (id) => document.getElementById(id);
 const CLAVE = "blackjack";
@@ -149,7 +149,7 @@ function actualizar() {
     for (const f of document.querySelectorAll(".ficha")) f.disabled = Number(f.dataset.valor) > fichas() - ronda.apuesta;
     $("repartir").disabled = ronda.apuesta === 0;
     $("borrar").disabled = ronda.apuesta === 0;
-    $("recargar").hidden = !(fichas() + ronda.apuesta < 10);
+    $("recargar").hidden = !puedeRecargar();
     const m = manoActual();
     $("doblar").disabled = !m || m.cartas.length !== 2 || fichas() < m.apuesta;
     // Se puede dividir un par (mismo valor) una sola vez
@@ -366,6 +366,7 @@ for (const f of document.querySelectorAll(".ficha")) {
     f.addEventListener("click", () => {
         const valor = Number(f.dataset.valor);
         if (ronda.fase !== "apostando" || valor > fichas() - ronda.apuesta) return;
+        if (ronda.apuesta + valor > LIMITE_APUESTA) return mensaje("Límite: 10M por mano");
         ronda.apuesta += valor;
         vibrar(10);
         mensaje(`Apuesta: ${formatear(ronda.apuesta)}`);
@@ -399,3 +400,4 @@ $("recargar").addEventListener("click", () => {
 
 nuevoZapato();
 actualizar();
+addEventListener("fichas", actualizar);
