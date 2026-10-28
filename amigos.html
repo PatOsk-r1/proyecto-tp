@@ -21,15 +21,17 @@
 
     <main class="amigos">
         <section class="bloque">
-            <a class="mini-perfil" href="perfil.html?volver=amigos">
-                <div id="mi-avatar" class="avatar-mini"></div>
-                <div>
-                    <strong id="mi-nombre">Sin nombre todavía</strong>
-                    <div id="mi-detalle" class="suave">Elegí tu nombre de usuario y tu foto</div>
-                    <div id="mi-fichas" class="fichas-perfil"></div>
-                </div>
-                <span class="flecha">Ajustes ›</span>
-            </a>
+            <div class="mini-perfil">
+                <button id="ver-perfil" class="ver-perfil" type="button">
+                    <div id="mi-avatar" class="avatar-mini"></div>
+                    <div>
+                        <strong id="mi-nombre">Sin nombre todavía</strong>
+                        <div id="mi-detalle" class="suave">Elegí tu nombre de usuario y tu foto</div>
+                        <div id="mi-fichas" class="fichas-perfil"></div>
+                    </div>
+                </button>
+                <a class="flecha" href="perfil.html?volver=amigos">⚙️ Ajustes</a>
+            </div>
         </section>
 
         <div id="resto" hidden>
@@ -48,9 +50,9 @@
             </section>
 
             <section id="seccion-partidas" class="bloque">
-                <h2>Partidas</h2>
+                <h2>Partidas en curso</h2>
                 <ul id="partidas" class="lista"></ul>
-                <p id="sin-partidas" class="suave">Desafiá a un amigo desde la lista de abajo.</p>
+                <p id="sin-partidas" class="suave">No tenés partidas en curso. Desafiá a un amigo desde la lista de abajo o desde su chat.</p>
             </section>
 
             <section id="seccion-solicitudes" class="bloque" hidden>
