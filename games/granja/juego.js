@@ -1,6 +1,7 @@
 // Granja: plantá, cosechá, criá animales y cumplí pedidos. Todo crece aunque la app esté cerrada.
 import { formatear, cargar, guardar, vibrar } from "../../js/comun3d.js";
 import { crearLienzo, bucle, crearChispas } from "../../js/lienzo2d.js";
+import { sonidos, volumen, cambiarVolumen } from "./sonido.js";
 
 const $ = (id) => document.getElementById(id);
 const CLAVE = "granja";
@@ -60,6 +61,37 @@ const vuelos = [];
 const textos = [];
 const rebotes = {}; // parcela → momento en que se plantó o cosechó (para el saltito)
 const nubes = Array.from({ length: 4 }, (_, i) => ({ x: Math.random(), y: 0.15 + i * 0.12, v: 0.004 + Math.random() * 0.006, s: 0.6 + Math.random() * 0.5 }));
+
+// Lluvia: al tocar una nube llueve un rato y los cultivos crecen más rápido. Después hay que esperar para otra.
+const LLUVIA_SEG = 8;
+const LLUVIA_ESPERA = 25;
+const LLUVIA_EXTRA = 0.6; // 60% más rápido mientras llueve
+let lluvia = 0; // segundos que quedan de lluvia
+let esperaLluvia = 0;
+let nubeLluvia = null;
+const gotas = [];
+function nubeEn(x, y) {
+    const m = medidas();
+    return nubes.find((n) => Math.hypot(n.x * ancho - x, m.cielo * n.y + 6 - y) < 26 * n.s + 10) ?? null;
+}
+function hacerLlover(n) {
+    if (lluvia > 0) return;
+    if (esperaLluvia > 0) return avisar(`☁️ Las nubes se están cargando… (${Math.ceil(esperaLluvia)} s)`);
+    lluvia = LLUVIA_SEG;
+    esperaLluvia = LLUVIA_SEG + LLUVIA_ESPERA;
+    nubeLluvia = n;
+    avisar("🌧️ ¡Lluvia! Los cultivos crecen más rápido", 2400);
+    vibrar([20, 30, 20]);
+    sonidos.lluvia(LLUVIA_SEG);
+}
+function avanzarLluvia(dt) {
+    esperaLluvia = Math.max(0, esperaLluvia - dt);
+    if (lluvia <= 0) return;
+    lluvia = Math.max(0, lluvia - dt);
+    // Adelanta lo que está creciendo (se guarda solo, porque cambia cuándo se plantó)
+    for (const p of estado.parcelas) if (p && progreso(p) < 1) p.desde -= dt * 1000 * LLUVIA_EXTRA;
+    if (lluvia === 0) nubeLluvia = null;
+}
 const mariposas = Array.from({ length: 3 }, (_, i) => ({ x: Math.random(), y: 0.3 + Math.random() * 0.4, fase: i * 2, color: ["#ffd166", "#ff8fab", "#a0c4ff"][i] }));
 const luciernagas = Array.from({ length: 14 }, () => ({ x: Math.random(), y: 0.2 + Math.random() * 0.8, fase: Math.random() * 10 }));
 
@@ -114,6 +146,7 @@ function sumarXP(n) {
         avisar(`⭐ ¡Nivel ${estado.nivel}!${nuevos.length ? " Nuevo: " + nuevos.join(", ") : ""}`, 2600);
         chispas.emitir(ancho / 2, alto / 3, "#ffd166", 40, 260);
         vibrar([40, 60, 80]);
+        sonidos.nivel();
     }
 }
 
@@ -141,6 +174,7 @@ function cosechar(i, automatico = false) {
         chispas.emitir(r.x + r.w / 2, r.y + r.h / 2, c.color, 10, 120);
         textos.push({ x: r.x + r.w / 2, y: r.y, t: `+${cantidad} ${c.nombre}${cantidad > 1 ? " ¡doble!" : ""}`, vida: 1 });
         vibrar(15);
+        sonidos.cosechar();
     }
     // El granjero vuelve a plantar lo mismo
     if (mejora("granjero")) plantar(i, c.id);
@@ -157,6 +191,7 @@ function recoger(k) {
     vuelos.push({ x: pos.x, y: pos.y - 20, id: datos.producto, t: 0 });
     textos.push({ x: pos.x, y: pos.y - 30, t: `+1 ${datos.nombreProducto}`, vida: 1 });
     vibrar(15);
+    sonidos[a.tipo]?.();
     return true;
 }
 
@@ -513,8 +548,9 @@ function dibujarCielo(ctx, m, luz, tiempo, dt) {
     for (const n of nubes) {
         n.x += n.v * dt;
         if (n.x > 1.25) n.x = -0.25;
-        ctx.fillStyle = luz > 0.4 ? "#ffffffd9" : "#ffffff30";
-        const cx = n.x * ancho;
+        const llueve = n === nubeLluvia;
+        ctx.fillStyle = llueve ? "#7d8597" : luz > 0.4 ? (esperaLluvia > 0 ? "#ffffffb0" : "#ffffffd9") : "#ffffff30";
+        const cx = n.x * ancho + (llueve ? Math.sin(tiempo * 30) * 0.8 : 0);
         const cy = m.cielo * n.y + 6;
         for (const [dx, dy, r] of [[0, 0, 13], [14, 3, 10], [-14, 3, 9], [6, -6, 9]]) {
             ctx.beginPath();
@@ -752,11 +788,18 @@ function dibujarParcela(ctx, i, r, tiempo) {
         ctx.roundRect(cx, cy, cw, ch, 6);
         ctx.fill();
         ctx.fillStyle = "#3a2400";
-        ctx.font = `900 ${Math.max(9, r.w * 0.13)}px system-ui, sans-serif`;
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
+        // Letra que entre en el cartel aunque el precio sea largo
+        const precio = `🪙 ${formatear(costoLote())}`;
+        let letra = Math.max(8, Math.min(r.w * 0.14, ch * 0.36));
+        ctx.font = `900 ${letra}px system-ui, sans-serif`;
+        while (letra > 7 && Math.max(ctx.measureText(precio).width, ctx.measureText("+ Terreno").width) > cw * 0.88) {
+            letra -= 0.5;
+            ctx.font = `900 ${letra}px system-ui, sans-serif`;
+        }
         ctx.fillText("+ Terreno", r.x + r.w / 2, cy + ch * 0.32);
-        ctx.fillText(`🪙 ${formatear(costoLote())}`, r.x + r.w / 2, cy + ch * 0.72);
+        ctx.fillText(precio, r.x + r.w / 2, cy + ch * 0.72);
         return;
     }
     const p = estado.parcelas[i];
@@ -887,8 +930,37 @@ function dibujar(dt) {
     }
     for (let i = vuelos.length - 1; i >= 0; i--) if (vuelos[i].t >= 1) vuelos.splice(i, 1);
 
+    // Lluvia: el campo se oscurece un poco, caen gotas y salpican al llegar al piso
+    const intensidad = Math.min(1, lluvia / 1.2, (LLUVIA_SEG - lluvia) / 0.6 + 0.001);
+    if (lluvia > 0) {
+        ctx.fillStyle = `rgba(40, 60, 90, ${0.18 * intensidad})`;
+        ctx.fillRect(0, 0, ancho, alto);
+        for (let k = 0; k < Math.round(ancho * 0.12 * intensidad * dt * 30); k++) {
+            gotas.push({ x: Math.random() * (ancho + 60), y: m.cielo * (0.3 + Math.random() * 0.4), fin: m.cielo + Math.random() * (alto - m.cielo), v: 520 + Math.random() * 200 });
+        }
+    }
+    ctx.strokeStyle = "#e3f2ffee";
+    ctx.lineWidth = 1.7;
+    ctx.beginPath();
+    for (const g of gotas) {
+        g.y += g.v * dt;
+        g.x -= g.v * dt * 0.12;
+        ctx.moveTo(g.x, g.y);
+        ctx.lineTo(g.x + 2.4, g.y - 11);
+    }
+    ctx.stroke();
+    ctx.fillStyle = "#cfe8ff99";
+    for (let i = gotas.length - 1; i >= 0; i--) {
+        const g = gotas[i];
+        if (g.y < g.fin) continue;
+        ctx.beginPath();
+        ctx.ellipse(g.x, g.fin, 3, 1.2, 0, 0, TAU);
+        ctx.fill();
+        gotas.splice(i, 1);
+    }
+
     // Mariposas de día, luciérnagas y un poco de oscuridad de noche
-    if (luz > 0.3) {
+    if (luz > 0.3 && lluvia === 0) {
         for (const b of mariposas) {
             b.fase += dt;
             const x = (b.x + Math.sin(b.fase * 0.3) * 0.35 + 1) % 1 * ancho;
@@ -941,6 +1013,7 @@ function dibujar(dt) {
 
 let acumulado = 0;
 bucle((dt) => {
+    avanzarLluvia(dt);
     // El granjero cosecha solo lo que está listo
     if (mejora("granjero")) estado.parcelas.forEach((p, i) => p && progreso(p) >= 1 && cosechar(i, true));
     dibujar(dt);
@@ -995,6 +1068,7 @@ $("lienzo").addEventListener("pointermove", (e) => {
         if (c && plantar(i, c.id)) {
             chispas.emitir(r.x + r.w / 2, r.y + r.h / 2, "#9c6644", 6, 70);
             vibrar(8);
+            sonidos.plantar();
             refrescar();
         }
     }
@@ -1005,6 +1079,9 @@ $("lienzo").addEventListener("pointerdown", (e) => {
     const { x, y } = puntoDe(e);
     const m = medidas();
     arrastre = null;
+    // Nubes: tocar una hace llover
+    const nube = y < m.cielo + 10 ? nubeEn(x, y) : null;
+    if (nube) return hacerLlover(nube);
     // Animales
     if (recogerEn(x, y)) {
         arrastre = { modo: "recoger", vistas: new Set() };
@@ -1022,8 +1099,12 @@ $("lienzo").addEventListener("pointerdown", (e) => {
                 estado.lotes++;
                 chispas.emitir(r.x + r.w / 2, r.y + r.h / 2, "#ffd166", 20, 160);
                 vibrar(40);
+                sonidos.comprar();
                 refrescar();
-            } else if (i === estado.lotes) avisar(`Necesitás 🪙 ${formatear(costoLote())}`);
+            } else if (i === estado.lotes) {
+                avisar(`Necesitás 🪙 ${formatear(costoLote())}`);
+                sonidos.error();
+            }
             return;
         }
         const p = estado.parcelas[i];
@@ -1033,8 +1114,12 @@ $("lienzo").addEventListener("pointerdown", (e) => {
             if (plantar(i, c.id)) {
                 chispas.emitir(r.x + r.w / 2, r.y + r.h / 2, "#9c6644", 8, 80);
                 vibrar(10);
+                sonidos.plantar();
                 refrescar();
-            } else avisar(`Te faltan monedas para ${c.nombre}`);
+            } else {
+                avisar(`Te faltan monedas para ${c.nombre}`);
+                sonidos.error();
+            }
         } else if (progreso(p) >= 1) {
             cosechar(i);
             refrescar();
@@ -1152,7 +1237,10 @@ function alTocarPanel(e) {
     const b = e.target.closest("button");
     if (!b || b.disabled) return;
     const d = b.dataset;
-    if (d.semilla) estado.elegida = d.semilla;
+    if (d.semilla) {
+        estado.elegida = d.semilla;
+        sonidos.toque();
+    }
     else if (d.entregar !== undefined) {
         const p = estado.pedidos[Number(d.entregar)];
         if (!sePuede(p)) return;
@@ -1163,6 +1251,7 @@ function alTocarPanel(e) {
         avisar(`📦 ¡Pedido entregado! +🪙${formatear(p.premio)}`);
         chispas.emitir(ancho / 2, alto / 2, "#ffd166", 30, 220);
         vibrar([30, 40, 30]);
+        sonidos.monedas();
     } else if (d.cambiar !== undefined) estado.pedidos[Number(d.cambiar)] = nuevoPedido();
     else if (d.venderTodo !== undefined) {
         let total = 0;
@@ -1173,10 +1262,12 @@ function alTocarPanel(e) {
         estado.monedas += total;
         avisar(`Vendiste todo: +🪙${formatear(total)}`);
         vibrar(30);
+        sonidos.monedas();
     } else if (d.vender) {
         if ((estado.granero[d.vender] ?? 0) < 1) return;
         estado.granero[d.vender]--;
         estado.monedas += precioVenta(d.vender);
+        sonidos.monedas();
     } else if (d.animal) {
         const a = animal(d.animal);
         if (estado.monedas < a.costo) return;
@@ -1184,6 +1275,8 @@ function alTocarPanel(e) {
         estado.animales.push({ tipo: a.id, desde: Date.now() });
         avisar(`¡Nuevo animal: ${a.nombre}!`);
         vibrar(30);
+        sonidos.comprar();
+        sonidos[a.id]?.();
     } else if (d.mejora) {
         const m = MEJORAS.find((x) => x.id === d.mejora);
         const costo = m.costo(mejora(m.id));
@@ -1192,6 +1285,7 @@ function alTocarPanel(e) {
         estado.mejoras[m.id] = mejora(m.id) + 1;
         avisar(`${m.ico} ${m.nombre} mejorado`);
         vibrar(30);
+        sonidos.comprar();
     }
     refrescar();
 }
@@ -1201,6 +1295,7 @@ $("pedidos-lado").addEventListener("click", alTocarPanel);
 for (const p of document.querySelectorAll(".pestana-g")) {
     p.addEventListener("click", () => {
         pestana = p.dataset.p;
+        sonidos.toque();
         for (const x of document.querySelectorAll(".pestana-g")) x.classList.toggle("activa", x === p);
         $("panel").scrollTop = 0;
         pintarPanel();
@@ -1220,6 +1315,30 @@ function refrescar() {
     pintarDatos();
     pintarPanel();
 }
+
+// ---------- Ajustes: volumen de la música y de los sonidos ----------
+function pintarVolumen() {
+    const v = volumen();
+    for (const tipo of ["musica", "efectos"]) {
+        $(`vol-${tipo}`).value = Math.round(v[tipo] * 100);
+        $(`vol-${tipo}`).style.setProperty("--lleno", `${Math.round(v[tipo] * 100)}%`);
+        $(`txt-${tipo}`).textContent = v[tipo] === 0 ? "🔇" : `${Math.round(v[tipo] * 100)}%`;
+    }
+}
+for (const tipo of ["musica", "efectos"]) {
+    $(`vol-${tipo}`).addEventListener("input", (e) => {
+        cambiarVolumen(tipo, Number(e.target.value) / 100);
+        pintarVolumen();
+    });
+    $(`vol-${tipo}`).addEventListener("change", () => tipo === "efectos" && sonidos.cosechar());
+}
+$("ajustes").addEventListener("click", () => {
+    pintarVolumen();
+    $("hoja-ajustes").hidden = false;
+    sonidos.toque();
+});
+$("cerrar-ajustes").addEventListener("click", () => ($("hoja-ajustes").hidden = true));
+$("hoja-ajustes").addEventListener("click", (e) => e.target === $("hoja-ajustes") && ($("hoja-ajustes").hidden = true));
 
 setInterval(() => guardar(CLAVE, estado), 5000);
 addEventListener("pagehide", () => guardar(CLAVE, estado));
