@@ -146,7 +146,7 @@ function fin() {
     vibrar(gane ? 90 : 140);
     $("titulo-centro").innerHTML = `${gane ? "¡Ganaste!" : `Ganó ${nombres[rival()]}`}<div class="chico">${gane ? "Hundiste toda la flota" : "Te hundieron la flota"}</div>`;
     document.querySelector(".dificultad").hidden = Boolean(online);
-    $("jugar").textContent = online ? "Revancha" : "Otra vez";
+    $("jugar").textContent = online ? online.textoRevancha(partida, yo) : "Otra vez";
     setTimeout(() => ($("centro").hidden = false), 1200);
 }
 
