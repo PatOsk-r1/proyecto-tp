@@ -34,5 +34,6 @@ const JUEGOS = [
     { categoria: "casino", nombre: "Mayor o menor", descripcion: "Adiviná la próxima carta y multiplicá", emoji: "🃏", carpeta: "games/mayormenor/" },
     { categoria: "casino", nombre: "Keno", descripcion: "Elegí números y mirá cuántos salen", emoji: "🔢", carpeta: "games/keno/" },
     { categoria: "casino", nombre: "Rueda de la fortuna", descripcion: "Girá y multiplicá con tres niveles de riesgo", emoji: "🎡", carpeta: "games/rueda/" },
+    { categoria: "casino", nombre: "Raspadita", descripcion: "Raspá con el dedo y buscá tres iguales", emoji: "🎟️", carpeta: "games/raspadita/" },
     { categoria: "casino", nombre: "Dados", descripcion: "¿Bajo, siete o sobre?", emoji: "🎲", carpeta: "games/dados/" },
 ];
