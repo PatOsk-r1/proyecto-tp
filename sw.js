@@ -1,7 +1,7 @@
 ﻿// Service worker: guarda los archivos para que la app funcione sin internet.
 // publicar.ps1 sube solo el número de VERSION en cada publicación para que
 // el iPhone descargue la versión nueva.
-const VERSION = "v70";
+const VERSION = "v71";
 const CACHE = `proyecto-tp-${VERSION}`;
 
 const ARCHIVOS_BASE = [
@@ -20,6 +20,7 @@ const ARCHIVOS_BASE = [
     "js/progreso.js",
     "js/emojis.js",
     "js/chats.js",
+    "js/experiencia.js",
     "login.html",
     "amigos.html",
     "perfil.html",
