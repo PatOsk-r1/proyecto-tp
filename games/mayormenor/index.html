@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="es" class="verificando">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>Mayor o menor · Proyecto TP</title>
+    <meta name="theme-color" content="#0b3d24">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="../../icons/icon-180.png">
+    <link rel="manifest" href="../../manifest.webmanifest">
+
+    <link rel="stylesheet" href="../../css/estilos.css">
+    <link rel="stylesheet" href="../../css/juegos3d.css">
+    <link rel="stylesheet" href="../../css/casino-cartas.css">
+    <style>
+        .info-mm { display: flex; gap: 8px; }
+        .info-mm div {
+            min-width: 96px;
+            padding: 6px 10px;
+            border-radius: 12px;
+            background: #0005;
+            text-align: center;
+            font-size: 0.7rem;
+            font-weight: 800;
+            color: var(--texto-suave);
+        }
+        .info-mm strong { display: block; font-size: 1.25rem; color: var(--acento); }
+        .zona-carta { position: relative; display: flex; align-items: center; justify-content: center; gap: 18px; }
+        .zona-carta .mazo { opacity: 0.85; transform: rotate(-6deg); }
+        .carta-actual .naipe { animation: entrar-carta 0.45s cubic-bezier(0.2, 1.4, 0.4, 1); }
+        @keyframes entrar-carta { from { transform: translateX(-120px) rotate(-25deg) rotateY(90deg); opacity: 0; } }
+        .carta-actual.acierto .naipe { box-shadow: 0 0 0 4px #7ee08f, 0 0 26px #7ee08f; }
+        .carta-actual.error .naipe { box-shadow: 0 0 0 4px #ff4d6d, 0 0 26px #ff4d6d; animation: temblar 0.4s; }
+        @keyframes temblar { 25%,75% { transform: translateX(-8px); } 50% { transform: translateX(8px); } }
+        .recorrido { display: flex; gap: 4px; min-height: 46px; flex-wrap: wrap; justify-content: center; max-width: 100%; }
+        .recorrido .naipe { animation: none; box-shadow: 0 2px 4px #0008; }
+        .eleccion { display: flex; gap: 8px; width: 100%; }
+        .eleccion button {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 12px 6px;
+            font: inherit;
+            font-weight: 900;
+            font-size: 1rem;
+            color: #fff;
+            border: none;
+            border-radius: 14px;
+            box-shadow: 0 4px 0 #0008;
+        }
+        .eleccion button small { font-size: 0.72rem; opacity: 0.9; }
+        .eleccion #mayor { background: linear-gradient(180deg, #52b788, #1b4332); }
+        .eleccion #menor { background: linear-gradient(180deg, #e5383b, #660708); }
+        .eleccion #saltar { flex: 0.6; background: linear-gradient(180deg, #ffffff33, #ffffff10); }
+        .eleccion button:active { transform: translateY(3px); box-shadow: 0 1px 0 #0008; }
+        .eleccion button:disabled { opacity: 0.4; }
+    </style>
+</head>
+<body class="pantalla-3d tema-casino">
+    <header class="barra-juego">
+        <a class="boton-volver" href="../../">‹ Juegos</a>
+        <h1>Mayor o menor</h1>
+        <div id="fichas" class="fichas-total"></div>
+    </header>
+
+    <main class="mesa-casino">
+        <div class="info-mm">
+            <div>Multiplicador<strong id="multi">1.00×</strong></div>
+            <div>Aciertos<strong id="racha">0</strong></div>
+            <div>Cobrarías<strong id="cobro">0</strong></div>
+        </div>
+        <div class="zona-carta">
+            <div class="mazo"></div>
+            <div id="carta" class="carta-actual"></div>
+        </div>
+        <div id="mensaje" class="mensaje-casino">¿La próxima será mayor o menor?</div>
+        <div id="recorrido" class="recorrido"></div>
+    </main>
+
+    <div class="controles-casino">
+        <div id="zona-eleccion" class="eleccion" hidden>
+            <button id="mayor" type="button">▲ Mayor o igual<small id="paga-mayor"></small></button>
+            <button id="saltar" type="button">⤼ Saltar<small id="saltos"></small></button>
+            <button id="menor" type="button">▼ Menor o igual<small id="paga-menor"></small></button>
+        </div>
+        <div id="zona-apuesta" class="apuesta-fila">
+            <button id="menos" class="redondo" type="button">−</button>
+            <div class="apuesta">Apuesta<strong id="apuesta">10</strong></div>
+            <button id="mas" class="redondo" type="button">+</button>
+        </div>
+        <button id="accion" class="accion" type="button">🃏 Empezar</button>
+        <button id="recargar" class="accion secundaria" type="button" hidden>Recargar fichas</button>
+    </div>
+
+    <script type="module">
+        import { exigirSesion } from "../../js/sesion.js";
+        exigirSesion();
+    </script>
+    <script type="module" src="juego.js"></script>
+</body>
+</html>
