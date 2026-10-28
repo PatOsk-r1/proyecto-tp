@@ -18,6 +18,8 @@ const JUEGOS = [
     { categoria: "multi", nombre: "Damas", descripcion: "Comé todas las fichas del rival", emoji: "⚫", carpeta: "games/damas/" },
     { categoria: "multi", nombre: "Mancala", descripcion: "Sembrá semillas y llená tu granero", emoji: "🥥", carpeta: "games/mancala/" },
     { categoria: "multi", nombre: "Batalla naval", descripcion: "Hundí la flota enemiga", emoji: "🚢", carpeta: "games/naval/" },
+    { categoria: "multi", nombre: "Reversi", descripcion: "Encerrá y dá vuelta las fichas del rival", emoji: "⚪", carpeta: "games/reversi/" },
+    { categoria: "multi", nombre: "Puntos y cajas", descripcion: "Cerrá cajas y jugá de nuevo", emoji: "🟦", carpeta: "games/cajas/" },
 
     { categoria: "casino", nombre: "Blackjack", descripcion: "Llegá a 21 sin pasarte", emoji: "🃏", carpeta: "games/blackjack/" },
     { categoria: "casino", nombre: "Ruleta", descripcion: "Apostá a números, colores o docenas", emoji: "🎡", carpeta: "games/ruleta/" },
