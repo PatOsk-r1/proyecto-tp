@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="es" class="verificando">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>Defensa lunar · Proyecto TP</title>
+    <meta name="theme-color" content="#0b0d1f">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="../../icons/icon-180.png">
+    <link rel="manifest" href="../../manifest.webmanifest">
+
+    <link rel="stylesheet" href="../../css/estilos.css">
+    <link rel="stylesheet" href="../../css/juegos3d.css">
+    <link rel="stylesheet" href="../../css/solitario.css">
+    <link rel="stylesheet" href="estilo.css">
+</head>
+<body class="pantalla-3d tema-luna">
+    <header class="barra-juego">
+        <a class="boton-volver" href="../../">‹ Juegos</a>
+        <h1>Defensa lunar</h1>
+        <button id="pausa" class="boton-chico-l" type="button" hidden>⏸</button>
+    </header>
+
+    <div class="info-juego">
+        <div class="dato"><span>Nivel</span><strong id="nivel">1</strong></div>
+        <div class="dato"><span>Energía</span><strong id="energia">0</strong></div>
+        <div class="dato"><span>Base</span><strong id="vidas">3</strong></div>
+        <div class="dato"><span>Chips</span><strong id="chips">0</strong></div>
+    </div>
+
+    <main class="zona-juego">
+        <canvas id="lienzo" class="lienzo-juego"></canvas>
+        <div id="progreso" class="progreso"><div></div></div>
+
+        <div id="menu" class="mensaje-centro">
+            <div id="titulo-menu">Defensa lunar<div class="chico">Los alienígenas bajan por 5 carriles. Poné extractores para juntar energía y defensas para frenarlos.</div></div>
+            <div class="elegir-nivel">
+                <button id="nivel-menos" type="button">‹</button>
+                <div><small>Nivel</small><b id="nivel-elegido">1</b></div>
+                <button id="nivel-mas" type="button">›</button>
+            </div>
+            <button id="jugar" class="boton-grande" type="button">Jugar</button>
+            <button id="abrir-taller" class="enlace-taller" type="button">🔧 Taller</button>
+        </div>
+
+        <div id="taller" class="mensaje-centro taller" hidden>
+            <div class="titulo-taller">🔧 Taller <span>💾 <b id="chips-taller">0</b></span></div>
+            <div id="mejoras" class="mejoras-taller"></div>
+            <button id="cerrar-taller" class="boton-grande" type="button">Listo</button>
+        </div>
+    </main>
+
+    <div class="cartas">
+        <div id="cartas" class="lista-cartas"></div>
+        <button id="quitar" class="quitar" type="button" title="Quitar defensa">🗑️</button>
+    </div>
+
+    <script type="module">
+        import { exigirSesion } from "../../js/sesion.js";
+        exigirSesion();
+    </script>
+    <script type="module" src="juego.js"></script>
+</body>
+</html>
