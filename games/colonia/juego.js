@@ -9,7 +9,7 @@ const $ = (id) => document.getElementById(id);
 const CLAVE = "colonia";
 const CRECIMIENTO = 1.15;
 const HITOS = [10, 25, 50, 100, 200]; // en cada uno ese edificio produce el doble
-const MAX_HORAS_AUSENTE = 4;
+const MAX_HORAS_AUSENTE = 4; // + piloto automático
 const MAX_VISIBLES = 8;
 
 const EDIFICIOS = [
@@ -23,14 +23,25 @@ const EDIFICIOS = [
 
 const estado = cargar(CLAVE, { energia: 0, total: 0, materia: 0, toque: 0, edificios: {}, ultimaVez: Date.now() });
 for (const e of EDIFICIOS) estado.edificios[e.id] ??= 0;
+estado.cristales ??= 0;
+estado.tec ??= {};
 
-const multiplicador = () => 1 + estado.materia * 0.1;
+// Tecnologías: se compran con cristales de meteorito y no se pierden al saltar de galaxia
+const TECNOLOGIAS = [
+    { id: "reactores", ico: "⚛️", nombre: "Reactores", detalle: "Todo produce ×1.25", max: 10, costo: (n) => 2 + n * 2 },
+    { id: "guantes", ico: "🧤", nombre: "Guantes cuánticos", detalle: "Toques ×2", max: 5, costo: (n) => 3 + n * 3 },
+    { id: "piloto", ico: "🤖", nombre: "Piloto automático", detalle: "+2 h de producción sin jugar", max: 4, costo: (n) => 4 + n * 4 },
+    { id: "radar", ico: "📡", nombre: "Radar", detalle: "Meteoritos más seguido y más valiosos", max: 3, costo: (n) => 5 + n * 5 },
+];
+const tec = (id) => estado.tec[id] ?? 0;
+
+const multiplicador = () => (1 + estado.materia * 0.1) * 1.25 ** tec("reactores");
 const cantidad = (e) => estado.edificios[e.id];
 const bonoHitos = (e) => 2 ** HITOS.filter((h) => cantidad(e) >= h).length;
 const produceDe = (e) => e.produce * cantidad(e) * bonoHitos(e) * multiplicador();
 const porSegundo = () => EDIFICIOS.reduce((t, e) => t + produceDe(e), 0);
 const costoDe = (e) => e.costo * CRECIMIENTO ** cantidad(e);
-const porToque = () => (1 + porSegundo() * 0.05) * 2 ** estado.toque * multiplicador();
+const porToque = () => (1 + porSegundo() * 0.05) * 2 ** estado.toque * 2 ** tec("guantes") * multiplicador();
 const costoToque = () => 50 * 6 ** estado.toque;
 const materiaNueva = () => Math.floor(Math.sqrt(estado.total / 1e6));
 
@@ -78,6 +89,88 @@ const atmosfera = new THREE.Mesh(
     new THREE.MeshBasicMaterial({ color: 0x7df9ff, transparent: true, opacity: 0.12, side: THREE.BackSide, blending: THREE.AdditiveBlending, depthWrite: false })
 );
 scene.add(atmosfera);
+
+// Textura hecha a mano en un canvas
+function texturaCanvas(ancho, alto, pintar) {
+    const c = document.createElement("canvas");
+    c.width = ancho;
+    c.height = alto;
+    pintar(c.getContext("2d"), ancho, alto);
+    const tex = new THREE.CanvasTexture(c);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    return tex;
+}
+
+// Nubes que giran un poco más rápido que el planeta
+const nubesPlaneta = new THREE.Mesh(
+    new THREE.SphereGeometry(1.56, 32, 24),
+    new THREE.MeshStandardMaterial({
+        map: texturaCanvas(512, 256, (x, w, h) => {
+            for (let k = 0; k < 90; k++) {
+                const cx = Math.random() * w;
+                const cy = h * 0.15 + Math.random() * h * 0.7;
+                const r = 8 + Math.random() * 26;
+                const g = x.createRadialGradient(cx, cy, 0, cx, cy, r);
+                g.addColorStop(0, "rgba(255,255,255,0.75)");
+                g.addColorStop(1, "rgba(255,255,255,0)");
+                x.fillStyle = g;
+                x.fillRect(cx - r * 2, cy - r, r * 4, r * 2);
+            }
+        }),
+        transparent: true,
+        depthWrite: false,
+        roughness: 1,
+    })
+);
+scene.add(nubesPlaneta);
+
+// Nebulosas de fondo
+for (const [color, x, y, z, s] of [["#c77dff", -30, 10, -45, 60], ["#4cc9f0", 35, -12, -50, 55], ["#ff4d6d", 5, 25, -55, 40]]) {
+    const neb = new THREE.Sprite(
+        new THREE.SpriteMaterial({
+            map: texturaCanvas(128, 128, (x2, w, h) => {
+                const g = x2.createRadialGradient(w / 2, h / 2, 0, w / 2, h / 2, w / 2);
+                g.addColorStop(0, color + "88");
+                g.addColorStop(1, color + "00");
+                x2.fillStyle = g;
+                x2.fillRect(0, 0, w, h);
+            }),
+            transparent: true,
+            depthWrite: false,
+            blending: THREE.AdditiveBlending,
+            opacity: 0.6,
+        })
+    );
+    neb.position.set(x, y, z);
+    neb.scale.setScalar(s);
+    scene.add(neb);
+}
+
+// Estrellas fugaces
+const fugaces = [];
+function crearFugaz() {
+    const linea = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.0, 2.5, 4), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true }));
+    const desde = new THREE.Vector3((Math.random() - 0.5) * 40, 10 + Math.random() * 10, -20 - Math.random() * 10);
+    linea.position.copy(desde);
+    linea.rotation.z = Math.PI / 3;
+    linea.userData = { vida: 1.2, vel: new THREE.Vector3(-14, -8, 0) };
+    scene.add(linea);
+    fugaces.push(linea);
+}
+
+// Meteoritos: cruzan cerca del planeta; si los tocás dan energía y un cristal
+const raycaster = new THREE.Raycaster();
+const puntero = new THREE.Vector2();
+let meteorito = null;
+let proximoMeteorito = 25;
+function crearMeteorito() {
+    const roca = new THREE.Mesh(new THREE.IcosahedronGeometry(0.42, 0), material(0x8d6e63, { flatShading: true, emissive: 0xff5f00, emissiveIntensity: 0.25 }));
+    const lado = Math.random() < 0.5 ? -1 : 1;
+    roca.position.set(lado * 9, (Math.random() - 0.3) * 4, 2 + Math.random() * 1.5);
+    roca.userData = { vel: new THREE.Vector3(-lado * (1.6 + Math.random()), (Math.random() - 0.5) * 0.6, 0), giro: new THREE.Vector3(Math.random(), Math.random(), Math.random()) };
+    scene.add(roca);
+    meteorito = roca;
+}
 
 // Modelos de cada edificio
 const MODELOS = {
@@ -164,6 +257,34 @@ alAnimar((dt) => {
     camera.lookAt(0, 0, 0);
 
     planeta.rotation.y += dt * 0.15;
+    nubesPlaneta.rotation.y += dt * 0.22;
+    nubesPlaneta.scale.setScalar(1 + pulso * 0.06);
+    if (Math.random() < dt * 0.15) crearFugaz();
+    for (let i = fugaces.length - 1; i >= 0; i--) {
+        const f = fugaces[i];
+        f.userData.vida -= dt;
+        f.position.addScaledVector(f.userData.vel, dt);
+        f.material.opacity = Math.max(0, f.userData.vida);
+        if (f.userData.vida <= 0) {
+            scene.remove(f);
+            fugaces.splice(i, 1);
+        }
+    }
+    if (meteorito) {
+        const d = meteorito.userData;
+        meteorito.position.addScaledVector(d.vel, dt);
+        meteorito.rotation.x += d.giro.x * dt * 2;
+        meteorito.rotation.y += d.giro.y * dt * 2;
+        if (Math.random() < 0.7) particulas.emitir(meteorito.position, 0xff7a1a, 1, { velocidad: 0.3, arriba: 0, tamano: 0.12, gravedad: 0, vida: 0.5, brillo: true });
+        if (Math.abs(meteorito.position.x) > 10) {
+            scene.remove(meteorito);
+            meteorito = null;
+            proximoMeteorito = (40 + Math.random() * 40) / (1 + tec("radar") * 0.5);
+        }
+    } else {
+        proximoMeteorito -= dt;
+        if (proximoMeteorito <= 0) crearMeteorito();
+    }
     estrellas.rotation.y += dt * 0.005;
     pulso = Math.max(0, pulso - dt * 4);
     planeta.scale.setScalar(1 + pulso * 0.06);
@@ -182,6 +303,29 @@ alAnimar((dt) => {
 
 // ---------- Tocar el planeta ----------
 renderer.domElement.addEventListener("pointerdown", (e) => {
+    if (meteorito) {
+        const caja = renderer.domElement.getBoundingClientRect();
+        puntero.set(((e.clientX - caja.left) / caja.width) * 2 - 1, -((e.clientY - caja.top) / caja.height) * 2 + 1);
+        raycaster.setFromCamera(puntero, camera);
+        // Zona de toque generosa: una esfera invisible un poco más grande que la roca
+        const cerca = raycaster.ray.distanceToPoint(meteorito.position) < 0.9;
+        if (cerca) {
+            const premio = Math.max(50, porSegundo() * 45) * (1 + tec("radar") * 0.5);
+            const cristales = 1 + (Math.random() < 0.3 + tec("radar") * 0.1 ? 1 : 0);
+            ganar(premio);
+            estado.cristales += cristales;
+            particulas.emitir(meteorito.position, 0xff9f1c, 30, { velocidad: 4, arriba: 2, tamano: 0.12, gravedad: 0, vida: 0.8, brillo: true });
+            particulas.emitir(meteorito.position, 0x7df9ff, 12, { velocidad: 3, arriba: 2, tamano: 0.1, gravedad: 0, vida: 0.8, brillo: true });
+            scene.remove(meteorito);
+            meteorito = null;
+            proximoMeteorito = (40 + Math.random() * 40) / (1 + tec("radar") * 0.5);
+            textoFlotante(e.clientX, e.clientY, `☄️ +${formatear(premio)} · 💠${cristales}`, "#ff9f1c");
+            vibrar([30, 30, 60]);
+            guardarProgreso();
+            actualizar();
+            return;
+        }
+    }
     const n = porToque();
     ganar(n);
     pulso = 1;
@@ -227,6 +371,24 @@ const tarjetas = EDIFICIOS.map((e) => ({
     }),
 }));
 
+const tituloTec = document.createElement("div");
+tituloTec.className = "titulo-estilos";
+tituloTec.textContent = "Tecnologías (💠 cristales de meteorito)";
+$("mejoras").appendChild(tituloTec);
+const tarjetasTec = TECNOLOGIAS.map((tecno) => ({
+    tecno,
+    b: crearTarjeta(() => {
+        const costo = tecno.costo(tec(tecno.id));
+        if (estado.cristales < costo || tec(tecno.id) >= tecno.max) return;
+        estado.cristales -= costo;
+        estado.tec[tecno.id] = tec(tecno.id) + 1;
+        avisar(`${tecno.ico} ${tecno.nombre} mejorada`);
+        vibrar(30);
+        guardarProgreso();
+        actualizar();
+    }),
+}));
+
 function pintarTarjeta(b, titulo, nivel, detalle, costo, visible = true) {
     b.hidden = !visible;
     b.querySelector(".titulo").innerHTML = titulo;
@@ -248,6 +410,17 @@ function actualizar() {
     $("energia").textContent = `⚡ ${formatear(estado.energia)}`;
     $("por-segundo").textContent = `${formatear(porSegundo())} por segundo · tocá el planeta`;
     $("materia").textContent = estado.materia;
+    $("cristales").textContent = estado.cristales;
+    for (const { tecno, b } of tarjetasTec) {
+        const n = tec(tecno.id);
+        const tope = n >= tecno.max;
+        b.querySelector(".titulo").textContent = `${tecno.ico} ${tecno.nombre}`;
+        b.querySelector(".nivel").textContent = `${n}/${tecno.max}`;
+        b.querySelector(".detalle").textContent = tecno.detalle;
+        b.querySelector(".precio").textContent = tope ? "Máximo" : `💠 ${tecno.costo(n)}`;
+        b.disabled = tope || estado.cristales < tecno.costo(n);
+        b.classList.toggle("se-puede", !b.disabled);
+    }
     pintarTarjeta(tarjetaToque, `${icono("toque")}Toque potente`, `Nv ${estado.toque}`, `+${formatear(porToque())} por toque`, costoToque());
     tarjetas.forEach(({ e, b }, k) => {
         const hito = HITOS.find((h) => cantidad(e) < h);
@@ -297,7 +470,7 @@ setInterval(guardarProgreso, 5000);
 document.addEventListener("visibilitychange", guardarProgreso);
 addEventListener("pagehide", guardarProgreso);
 
-const ausente = Math.min((Date.now() - estado.ultimaVez) / 1000, MAX_HORAS_AUSENTE * 3600);
+const ausente = Math.min((Date.now() - estado.ultimaVez) / 1000, (MAX_HORAS_AUSENTE + tec("piloto") * 2) * 3600);
 const ganadoAusente = porSegundo() * ausente;
 if (ganadoAusente >= 1) {
     ganar(ganadoAusente);
