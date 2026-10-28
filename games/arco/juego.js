@@ -417,7 +417,7 @@ function finDePartida() {
     vibrar(mio > suyo ? 90 : 150);
     $("titulo-centro").innerHTML = `${texto}<div class="chico">${mio} a ${suyo}</div>`;
     $("opciones").hidden = Boolean(online);
-    $("jugar").textContent = online ? "Revancha" : "Otra vez";
+    $("jugar").textContent = online ? online.textoRevancha(partida, yo) : "Otra vez";
     $("ir-amigos").textContent = online ? "👥 Volver a amigos" : "👥 Desafiar a un amigo";
     $("centro").hidden = false;
 }
@@ -520,11 +520,9 @@ async function iniciarOnline() {
 
 $("jugar").addEventListener("click", async () => {
     if (!online) return empezarContraBot();
-    // Revancha: nueva partida contra el mismo amigo
+    // Revancha: si el amigo ya la pidió, se entra a esa misma partida
     const { datosIniciales } = await import("./reglas.js");
-    const miNombre = partida.nombres[yo];
-    const id = await online.crearPartida("arco", miNombre, { uid: rival(), nombre: partida.nombres[rival()] }, datosIniciales());
-    location.search = `?partida=${id}`;
+    await online.irARevancha(partida, datosIniciales);
 });
 
 pintarDificultad();
