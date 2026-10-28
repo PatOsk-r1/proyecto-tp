@@ -1,7 +1,7 @@
-// Service worker: guarda los archivos para que la app funcione sin internet.
+﻿// Service worker: guarda los archivos para que la app funcione sin internet.
 // publicar.ps1 sube solo el número de VERSION en cada publicación para que
 // el iPhone descargue la versión nueva.
-const VERSION = "v64";
+const VERSION = "v65";
 const CACHE = `proyecto-tp-${VERSION}`;
 
 const ARCHIVOS_BASE = [
