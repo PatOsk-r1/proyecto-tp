@@ -310,7 +310,7 @@ async function iniciarOnline() {
                 numeroDe = { [p.creador]: 1, [p.jugadores.find((j) => j !== p.creador)]: 2 };
                 nombres = { ...p.nombres, [yo]: "Vos" };
                 dibujarTodo();
-                if (p.estado === "invitada" && p.creador !== yo) online.actualizarPartida(idPartida, { estado: "jugando" });
+                if (p.estado === "invitada" && p.creador !== yo) online.aceptarPartida(p);
             } else if (p.ultimo && anterior && !anterior[p.ultimo.fila * COLUMNAS + p.ultimo.col]) {
                 await mostrarJugada(p.ultimo.col, p.ultimo.fila, p.ultimo.jugador);
             }
