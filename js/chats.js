@@ -1,7 +1,7 @@
 // Pestaña Amigos del inicio: lista de chats con cada amigo (último mensaje, sin leer, en línea).
 import {
     escucharAmistades, escucharUsuario, escucharChat, rutaChatAmigo, sinLeer, idAmistad, panelChat,
-    htmlAvatar, enLinea, textoConexion,
+    htmlAvatar, enLinea, textoConexion, escucharPartidas, enCurso, JUEGOS_ONLINE,
 } from "./multijugador.js";
 
 const escapar = (t) => String(t).replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
@@ -20,7 +20,13 @@ export function montarChats({ lista, vacio, yo, miNombre, alCambiar }) {
     const amigos = new Map(); // uid → { nombre, datos, mensajes }
     const escuchados = new Set();
     let solicitudes = 0;
+    let partidas = []; // en curso, para avisar cuando te toca jugar con alguien
     const clave = (uid) => `amigo-${idAmistad(yo, uid)}`;
+    const meToca = (p) => (p.estado === "jugando" ? p.turno === yo : p.creador !== yo);
+    escucharPartidas((lista) => {
+        partidas = lista.filter(enCurso);
+        pintar();
+    });
 
     function pintar() {
         const filas = [...amigos.entries()].map(([uid, a]) => ({ uid, ...a, ultimo: a.mensajes?.at(-1), n: sinLeer(clave(uid), a.mensajes ?? []) }));
@@ -29,9 +35,12 @@ export function montarChats({ lista, vacio, yo, miNombre, alCambiar }) {
         lista.replaceChildren(
             ...filas.map((f) => {
                 const li = document.createElement("li");
-                li.className = `fila-chat${f.n ? " sin-leer" : ""}`;
+                li.className = `fila-chat${f.n || partidas.some((p) => p.jugadores.includes(f.uid) && meToca(p)) ? " sin-leer" : ""}`;
                 const nombre = f.datos?.nombre ?? f.nombre;
-                const vista = f.ultimo ? `${f.ultimo.de === yo ? "Vos: " : ""}${f.ultimo.texto}` : textoConexion(f.datos);
+                const toca = partidas.find((p) => p.jugadores.includes(f.uid) && meToca(p));
+                const vista = toca
+                    ? `${JUEGOS_ONLINE[toca.juego]?.emoji ?? "🎮"} ${toca.estado === "invitada" ? "¡Te desafió!" : "Te toca jugar"}`
+                    : f.ultimo ? `${f.ultimo.de === yo ? "Vos: " : ""}${f.ultimo.texto}` : textoConexion(f.datos);
                 li.innerHTML = `
                     <span class="avatar-chat">${htmlAvatar(f.datos, escapar(nombre))}<i class="punto${enLinea(f.datos) ? " si" : ""}"></i></span>
                     <span class="textos-chat"><strong>${escapar(nombre)}</strong><span>${escapar(vista.slice(0, 60))}</span></span>
