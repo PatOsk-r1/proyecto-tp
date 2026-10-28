@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <title>Tragamonedas · Proyecto TP</title>
-    <meta name="theme-color" content="#2a0a3d">
+    <meta name="theme-color" content="#1a0530">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <link rel="apple-touch-icon" href="../../icons/icon-180.png">
@@ -21,39 +21,60 @@
         <div id="fichas" class="fichas-total"></div>
     </header>
 
-    <main class="sala">
-        <div id="maquina" class="maquina">
-            <div class="luces"></div>
-            <div class="cartel">★ GRAN PREMIO ★</div>
-            <div class="ventana">
-                <div class="rodillo"><div class="tira"></div></div>
-                <div class="rodillo"><div class="tira"></div></div>
-                <div class="rodillo"><div class="tira"></div></div>
-                <div class="linea"></div>
-            </div>
-            <div id="mensaje" class="mensaje-maquina">¡Suerte!</div>
-        </div>
+    <div class="pozos">
+        <div class="pozo mini"><span>MINI</span><strong id="pozo-mini">0</strong></div>
+        <div class="pozo gran"><span>GRAN POZO</span><strong id="pozo-gran">0</strong></div>
+        <div class="pozo mayor"><span>MAYOR</span><strong id="pozo-mayor">0</strong></div>
+    </div>
 
-        <div class="tabla">
-            <div><span>7️⃣7️⃣7️⃣</span><b>×200</b></div>
-            <div><span>💎💎💎</span><b>×80</b></div>
-            <div><span>⭐⭐⭐</span><b>×40</b></div>
-            <div><span>🔔🔔🔔</span><b>×25</b></div>
-            <div><span>🍋🍋🍋</span><b>×12</b></div>
-            <div><span>🍒🍒🍒</span><b>×8</b></div>
-            <div class="ancho"><span>Dos iguales al principio</span><b>×1</b></div>
+    <main class="sala">
+        <div class="marquesina"><span>★</span> FORTUNA DORADA <span>★</span></div>
+        <div id="maquina" class="maquina">
+            <canvas id="rodillos"></canvas>
+            <div id="giros-gratis" class="giros-gratis" hidden>GIROS GRATIS <b id="giros-restantes">0</b> · ×2</div>
         </div>
+        <div id="mensaje" class="mensaje-maquina">¡Suerte!</div>
     </main>
 
     <div class="controles">
-        <div class="apuesta-fila">
-            <button id="menos" class="redondo" type="button">−</button>
-            <div class="apuesta">Apuesta<strong id="apuesta">10</strong></div>
-            <button id="mas" class="redondo" type="button">+</button>
+        <div class="fila-controles">
+            <button id="info" class="chico" type="button">📜<small>Premios</small></button>
+            <button id="logros" class="chico" type="button">🏆<small id="logros-cuenta">0/0</small></button>
+            <div class="apuesta-fila">
+                <button id="menos" class="redondo" type="button">−</button>
+                <div class="apuesta">Apuesta<strong id="apuesta">10</strong></div>
+                <button id="mas" class="redondo" type="button">+</button>
+            </div>
+            <button id="turbo" class="chico" type="button">⚡<small>Turbo</small></button>
+            <button id="auto" class="chico" type="button">🔁<small>Auto</small></button>
         </div>
-        <button id="girar" class="accion palanca" type="button">GIRAR</button>
+        <button id="girar" class="girar" type="button">GIRAR</button>
         <button id="recargar" class="accion secundaria" type="button" hidden>Recargar fichas</button>
     </div>
+
+    <div id="celebracion" class="celebracion" hidden>
+        <div id="titulo-celebracion" class="titulo-cel">¡GRAN PREMIO!</div>
+        <div id="monto-celebracion" class="monto-cel">0</div>
+        <small>Tocá para seguir</small>
+    </div>
+
+    <div id="rueda-fondo" class="hoja-fondo" hidden>
+        <div class="rueda-caja">
+            <div class="titulo-cel chico">🎡 RUEDA DEL POZO</div>
+            <canvas id="rueda" width="560" height="560"></canvas>
+            <button id="girar-rueda" class="girar" type="button">¡GIRAR LA RUEDA!</button>
+        </div>
+    </div>
+
+    <div id="panel" class="hoja-fondo" hidden>
+        <div class="hoja-panel">
+            <h2 id="panel-titulo">Premios</h2>
+            <div id="panel-contenido"></div>
+            <button id="cerrar-panel" class="accion" type="button">Cerrar</button>
+        </div>
+    </div>
+
+    <div id="aviso-logro" class="aviso-logro" hidden></div>
 
     <script type="module">
         import { exigirSesion } from "../../js/sesion.js";
