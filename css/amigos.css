@@ -189,8 +189,25 @@
 
 .mini-perfil .flecha {
     margin-left: auto;
+    flex-shrink: 0;
     color: var(--acento);
     font-weight: 800;
+    text-decoration: none;
+    font-size: 0.85rem;
+}
+
+.ver-perfil {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 0;
+    border: none;
+    background: none;
+    color: inherit;
+    font: inherit;
+    text-align: left;
 }
 
 .conexion {
