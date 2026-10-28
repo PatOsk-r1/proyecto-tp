@@ -336,6 +336,13 @@ const MAX_CACAS = 15;
 estado.caca ??= [];
 estado.estiercol ??= 0;
 estado.abono ??= 0;
+// Una sola vez: 2 tiros de la garra por cada nivel que ya se había subido antes de que existiera
+if (!estado.garraInicial) {
+    estado.garraInicial = true;
+    const regalo = 2 * Math.max(0, estado.nivel - 1);
+    estado.garra = (estado.garra ?? 0) + regalo;
+    if (regalo) setTimeout(() => avisar(`🕹️ ¡Regalo! ${regalo} tiros en la garra por tus ${estado.nivel - 1} niveles`, 3500), 3600);
+}
 const intervaloCaca = (datos) => Math.max(45, datos.tiempo * 0.8) * 1000;
 function hacerCaca(mov) {
     if (estado.caca.length >= MAX_CACAS) return;
