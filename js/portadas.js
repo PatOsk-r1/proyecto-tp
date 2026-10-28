@@ -643,6 +643,23 @@
                 }
             }
         },
+        mayormenor() {
+            fondo("#0b6b3a", "#063d21");
+            naipe(W * 0.35, H * 0.55, 34, -0.12, "♣", "7", false);
+            naipe(W * 0.62, H * 0.5, 34, 0.1, "♦", "J", true);
+            ctx.fillStyle = "#7ee08f";
+            ctx.beginPath();
+            ctx.moveTo(W * 0.88, H * 0.18);
+            ctx.lineTo(W * 0.96, H * 0.34);
+            ctx.lineTo(W * 0.8, H * 0.34);
+            ctx.fill();
+            ctx.fillStyle = "#ff4d6d";
+            ctx.beginPath();
+            ctx.moveTo(W * 0.88, H * 0.86);
+            ctx.lineTo(W * 0.96, H * 0.7);
+            ctx.lineTo(W * 0.8, H * 0.7);
+            ctx.fill();
+        },
         plinko() {
             fondo("#240046", "#5a189a");
             for (let f = 0; f < 5; f++) for (let c = 0; c <= f + 3; c++) circulo(W / 2 + (c - (f + 3) / 2) * 16, H * 0.14 + f * H * 0.14, 2.6, "#e0aaff");
