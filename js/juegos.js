@@ -35,5 +35,6 @@ const JUEGOS = [
     { categoria: "casino", nombre: "Keno", descripcion: "Elegí números y mirá cuántos salen", emoji: "🔢", carpeta: "games/keno/" },
     { categoria: "casino", nombre: "Rueda de la fortuna", descripcion: "Girá y multiplicá con tres niveles de riesgo", emoji: "🎡", carpeta: "games/rueda/" },
     { categoria: "casino", nombre: "Raspadita", descripcion: "Raspá con el dedo y buscá tres iguales", emoji: "🎟️", carpeta: "games/raspadita/" },
+    { categoria: "casino", nombre: "Baccarat", descripcion: "Jugador, banca o empate: el clásico de los casinos", emoji: "🎴", carpeta: "games/baccarat/" },
     { categoria: "casino", nombre: "Dados", descripcion: "¿Bajo, siete o sobre?", emoji: "🎲", carpeta: "games/dados/" },
 ];
