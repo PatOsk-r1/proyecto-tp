@@ -33,12 +33,55 @@ const celdas = Array.from({ length: 9 }, (_, i) => {
     return b;
 });
 
+const DIBUJO = {
+    X: '<svg viewBox="0 0 100 100"><line x1="18" y1="18" x2="82" y2="82"/><line x1="82" y1="18" x2="18" y2="82"/></svg>',
+    O: '<svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="34"/></svg>',
+};
+
+// Línea dorada sobre los tres en línea
+function dibujarLinea(casillas) {
+    $("tablero").querySelector(".linea-ganadora")?.remove();
+    if (!casillas) return;
+    const centro = (i) => [((i % 3) + 0.5) * 33.33, (Math.floor(i / 3) + 0.5) * 33.33];
+    const [x1, y1] = centro(casillas[0]);
+    const [x2, y2] = centro(casillas[2]);
+    $("tablero").insertAdjacentHTML("beforeend", `<svg class="linea-ganadora" viewBox="0 0 100 100" preserveAspectRatio="none"><line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" vector-effect="non-scaling-stroke"/></svg>`);
+}
+
+function confeti() {
+    const colores = ["#ff4d6d", "#4cc9f0", "#ffd23f", "#80ed99", "#c77dff"];
+    for (let k = 0; k < 60; k++) {
+        const p = document.createElement("div");
+        p.className = "confeti";
+        p.style.left = `${Math.random() * 100}vw`;
+        p.style.background = colores[k % colores.length];
+        document.body.appendChild(p);
+        p.animate(
+            [
+                { transform: "translateY(0) rotate(0deg)" },
+                { transform: `translate(${(Math.random() - 0.5) * 120}px, ${innerHeight + 40}px) rotate(${Math.random() * 720}deg)` },
+            ],
+            { duration: 1600 + Math.random() * 1400, delay: Math.random() * 400, easing: "cubic-bezier(.3,.6,.6,1)" }
+        ).onfinish = () => p.remove();
+    }
+}
+
+let lineaDibujada = null;
 function pintar() {
     if (!partida) return;
     const g = lineaGanadora(partida.tablero);
+    const clave = g ? g.casillas.join() : null;
+    if (clave !== lineaDibujada) {
+        lineaDibujada = clave;
+        dibujarLinea(g?.casillas);
+    }
     partida.tablero.forEach((v, i) => {
         const c = celdas[i];
-        c.textContent = v ? SIMBOLO[v] : "";
+        const contenido = v ? SIMBOLO[v] : "";
+        if (c.dataset.v !== contenido || i === ultimaPintada) {
+            c.innerHTML = v ? DIBUJO[SIMBOLO[v]] : "";
+            c.dataset.v = contenido;
+        }
         c.className = `celda${v ? ` ${SIMBOLO[v].toLowerCase()}` : ""}${i === ultimaPintada ? " nueva" : ""}${g?.casillas.includes(i) ? " ganadora" : ""}`;
         c.disabled = !esMiTurno() || Boolean(v);
     });
@@ -95,6 +138,7 @@ function fin() {
         guardar(CLAVE, estado);
     }
     vibrar(gane ? 90 : 140);
+    if (gane) confeti();
     $("titulo-centro").innerHTML = `${empate ? "Empate" : gane ? "¡Ganaste!" : `Ganó ${nombres[rival()]}`}<div class="chico">${
         online ? "" : `${estado.victorias} ganadas · ${estado.empates} empates · ${estado.derrotas} perdidas`
     }</div>`;
@@ -112,6 +156,7 @@ function empezarContraBot() {
     nombres = { [yo]: "Vos", bot: `Compu · ${NOMBRES_DIFICULTAD[estado.dificultad]}` };
     partida = { ...datosIniciales(), turno: empiezaBot ? "bot" : yo, estado: "jugando", ganador: null };
     ultimaPintada = -1;
+    for (const c of celdas) c.dataset.v = "";
     $("centro").hidden = true;
     despues();
 }
