@@ -10,6 +10,7 @@ const JUEGOS = [
     { categoria: "solo", nombre: "Espiral", descripcion: "Girá la torre y hacé caer la pelota", emoji: "🌀", carpeta: "games/espiral/" },
     { categoria: "solo", nombre: "Panadería", descripcion: "Horneá, contratá encargados y abrí sucursales", emoji: "🥐", carpeta: "games/panaderia/" },
     { categoria: "solo", nombre: "Colonia espacial", descripcion: "Construí satélites y estaciones en órbita", emoji: "🪐", carpeta: "games/colonia/" },
+    { categoria: "solo", nombre: "Héroe idle", descripcion: "Pegale a monstruos, armá tu equipo y vencé jefes", emoji: "🗡️", carpeta: "games/heroe/" },
     { categoria: "solo", nombre: "Rompeladrillos", descripcion: "Rompé todos los ladrillos con la pelota", emoji: "🧱", carpeta: "games/ladrillos/" },
     { categoria: "solo", nombre: "Corredor espacial", descripcion: "Esquivá y destruí oleadas de naves", emoji: "🚀", carpeta: "games/espacial/" },
     { categoria: "solo", nombre: "Defensa de torres", descripcion: "Poné torres y frená las oleadas", emoji: "🏰", carpeta: "games/torres/" },
