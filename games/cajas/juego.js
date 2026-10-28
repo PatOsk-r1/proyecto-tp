@@ -62,14 +62,39 @@ const lineas = Array.from({ length: TOTAL_LINEAS }, (_, i) => {
     const dibujo = crear("line", { class: "linea-c libre", x1, y1, x2, y2, "stroke-width": 9 });
     const toque = crear("line", { class: "zona-toque", x1, y1, x2, y2, "stroke-width": 44 });
     toque.addEventListener("click", () => esMiTurno() && !partida.lineas[i] && jugar(i, yo));
+    // Al apoyar el dedo se marca la raya que vas a dibujar
+    toque.addEventListener("pointerdown", () => esMiTurno() && !partida.lineas[i] && dibujo.classList.add("apuntada"));
+    toque.addEventListener("pointerleave", () => dibujo.classList.remove("apuntada"));
     return dibujo;
 });
 for (let f = 0; f <= N; f++) for (let c = 0; c <= N; c++) crear("circle", { class: "punto-c", cx: MARGEN + c * PASO, cy: MARGEN + f * PASO, r: 8 });
 
+let antes = { lineas: [], cajas: [] };
+
+// Chispas y cartel cuando se cierra una caja
+function festejoCaja(k, n, combo) {
+    const cx = MARGEN + ((k % N) + 0.5) * PASO;
+    const cy = MARGEN + (Math.floor(k / N) + 0.5) * PASO;
+    const color = n === 1 ? "#e63946" : "#3a86ff";
+    for (let p = 0; p < 10; p++) {
+        const a = (p / 10) * Math.PI * 2;
+        const ch = crear("circle", { class: "chispa-c", cx, cy, r: 5, fill: p % 2 ? color : "#ffd23f" });
+        ch.animate([{ transform: "translate(0,0)", opacity: 1 }, { transform: `translate(${Math.cos(a) * 55}px, ${Math.sin(a) * 55}px)`, opacity: 0 }], { duration: 500, easing: "ease-out" }).onfinish = () => ch.remove();
+    }
+    if (combo > 1) {
+        const t = crear("text", { class: "combo-c", x: cx, y: cy - PASO * 0.5, "font-size": 34 });
+        t.textContent = `¡×${combo}!`;
+        t.animate([{ transform: "translateY(0)", opacity: 1 }, { transform: "translateY(-40px)", opacity: 0 }], { duration: 900, easing: "ease-out" }).onfinish = () => t.remove();
+    }
+}
+
 function dibujar() {
-    partida.lineas.forEach((v, i) => lineas[i].setAttribute("class", `linea-c ${v ? `j${v}` : "libre"}${partida.ultimo === i ? " ultima" : ""}`));
+    const nuevasCajas = partida.cajas.map((v, k) => (v && !antes.cajas[k] ? k : -1)).filter((k) => k >= 0);
+    partida.lineas.forEach((v, i) => lineas[i].setAttribute("class", `linea-c ${v ? `j${v}` : "libre"}${partida.ultimo === i ? " ultima" : ""}${v && !antes.lineas[i] ? " nueva" : ""}`));
+    nuevasCajas.forEach((k, idx) => setTimeout(() => festejoCaja(k, partida.cajas[k], idx + 1 + (antes.racha ?? 0)), 150 + idx * 120));
     partida.cajas.forEach((v, k) => {
-        cajas[k].setAttribute("class", `caja-c${v ? ` j${v}` : ""}`);
+        cajas[k].setAttribute("class", `caja-c${v ? ` j${v}` : ""}${nuevasCajas.includes(k) ? " nueva" : ""}`);
+        letras[k].setAttribute("class", `letra-c${nuevasCajas.includes(k) ? " nueva" : ""}`);
         const dueno = v ? uidDe(v) : null;
         letras[k].textContent = dueno ? (nombres[dueno] ?? "?")[0].toUpperCase() : "";
         letras[k].setAttribute("fill", v === 1 ? "#e63946" : "#3a86ff");
@@ -83,6 +108,9 @@ function dibujar() {
     $("j-yo").classList.toggle("turno", !fin && partida.turno === yo);
     $("j-rival").classList.toggle("turno", !fin && partida.turno === rival());
     $("estado").textContent = fin ? "Terminada" : partida.turno === yo ? "Tu turno" : `Turno de ${nombres[rival()]}`;
+    // La racha sigue mientras el mismo jugador sigue cerrando cajas
+    const racha = nuevasCajas.length ? (antes.turno === partida.turno ? (antes.racha ?? 0) : 0) + nuevasCajas.length : 0;
+    antes = { lineas: [...partida.lineas], cajas: [...partida.cajas], turno: partida.turno, racha };
 }
 
 async function jugar(i, quien) {
