@@ -31,6 +31,7 @@ const JUEGOS = [
     { categoria: "casino", grupo: "Tragamonedas y premios", nombre: "Tragamonedas", descripcion: "Pozos acumulados, giros gratis y logros", emoji: "🎰", carpeta: "games/tragamonedas/" },
     { categoria: "casino", grupo: "Tragamonedas y premios", nombre: "Rueda de la fortuna", descripcion: "Girá y multiplicá con tres niveles de riesgo", emoji: "🎡", carpeta: "games/rueda/" },
     { categoria: "casino", grupo: "Tragamonedas y premios", nombre: "Raspadita", descripcion: "Raspá con el dedo y buscá tres iguales", emoji: "🎟️", carpeta: "games/raspadita/" },
+    { categoria: "casino", grupo: "Tragamonedas y premios", nombre: "Bingo", descripcion: "Hasta 4 cartones, 32 bolillas y líneas que pagan", emoji: "🎱", carpeta: "games/bingo/" },
     { categoria: "casino", grupo: "Tragamonedas y premios", nombre: "Keno", descripcion: "Elegí números y mirá cuántos salen", emoji: "🔢", carpeta: "games/keno/" },
     { categoria: "casino", grupo: "Cartas", nombre: "Blackjack", descripcion: "Llegá a 21 sin pasarte", emoji: "🃏", carpeta: "games/blackjack/" },
     { categoria: "casino", grupo: "Cartas", nombre: "Baccarat", descripcion: "Jugador, banca o empate: el clásico de los casinos", emoji: "🎴", carpeta: "games/baccarat/" },
