@@ -421,14 +421,22 @@ function iconoProducto(ctx, id, x, y, tam) {
     if (cultivo(id)) return dibujarPlanta(ctx, id, x, y + tam * 0.1, tam * 1.6, 1, 0);
     ctx.save();
     ctx.translate(x, y);
+    // Contorno suave para que lo blanco se vea también sobre el papel crema
+    ctx.strokeStyle = "#b8925a";
+    ctx.lineWidth = 1.5;
     if (id === "huevo") {
-        ctx.fillStyle = "#fff5e1";
+        const g = ctx.createRadialGradient(-tam * 0.07, -tam * 0.1, 0, 0, 0, tam * 0.32);
+        g.addColorStop(0, "#ffffff");
+        g.addColorStop(1, "#f2dcb3");
+        ctx.fillStyle = g;
         ctx.beginPath();
         ctx.ellipse(0, 0, tam * 0.22, tam * 0.3, 0, 0, TAU);
         ctx.fill();
+        ctx.stroke();
     } else if (id === "leche") {
         ctx.fillStyle = "#fff";
         ctx.fillRect(-tam * 0.18, -tam * 0.2, tam * 0.36, tam * 0.45);
+        ctx.strokeRect(-tam * 0.18, -tam * 0.2, tam * 0.36, tam * 0.45);
         ctx.fillStyle = "#4361ee";
         ctx.fillRect(-tam * 0.18, -tam * 0.02, tam * 0.36, tam * 0.1);
         ctx.fillStyle = "#adb5bd";
@@ -439,6 +447,11 @@ function iconoProducto(ctx, id, x, y, tam) {
         ctx.fill();
     } else if (id === "lana") {
         ctx.fillStyle = "#f1f1f1";
+        for (const [dx, dy] of [[-0.1, 0], [0.1, 0], [0, -0.1], [0, 0.08]]) {
+            ctx.beginPath();
+            ctx.arc(dx * tam, dy * tam, tam * 0.15, 0, TAU);
+            ctx.stroke();
+        }
         for (const [dx, dy] of [[-0.1, 0], [0.1, 0], [0, -0.1], [0, 0.08]]) {
             ctx.beginPath();
             ctx.arc(dx * tam, dy * tam, tam * 0.15, 0, TAU);
@@ -935,7 +948,7 @@ bucle((dt) => {
     if (acumulado > 0.5) {
         acumulado = 0;
         pintarDatos();
-        if (pestana === "pedidos" || pestana === "animales") pintarPanel();
+        pintarPanel();
     }
 });
 
@@ -1045,8 +1058,41 @@ function avisar(texto, ms = 1600) {
 function canvasProducto(id) {
     return `<canvas width="88" height="88" data-icono="${id}"></canvas>`;
 }
-function pintarIconos() {
-    for (const c of $("panel").querySelectorAll("canvas[data-icono]")) {
+const MONEDA_G = '<i class="moneda-g"></i>';
+const CARAS = { "Doña Rosa": "👵", "El panadero": "🧑‍🍳", "La escuela": "🏫", "Don Tito": "👴", "El restaurante": "👨‍🍳", "La feria": "🎪", "Abuela Marta": "👵🏻" };
+
+// Pedidos con el dibujito de cada cosa que piden (y cuántas tenés de cada una)
+function htmlPedidos() {
+    return estado.pedidos.map((p, k) => `<div class="pedido-g${sePuede(p) ? " listo" : ""}">
+        <div class="cliente-p"><span class="cara">${CARAS[p.quien] ?? "🧑‍🌾"}</span>
+            <span class="quien-p">${p.quien}<small>${MONEDA_G}${formatear(p.premio)} · ⭐ ${p.xp}</small></span>
+            <button class="cambiar-p" data-cambiar="${k}" aria-label="Cambiar pedido" title="Cambiar pedido">↻</button></div>
+        <div class="items-p">${Object.entries(p.items).map(([id, n]) => {
+            const tengo = estado.granero[id] ?? 0;
+            return `<span class="item-p${tengo >= n ? " ok" : ""}" title="${PRODUCTOS[id].nombre}">${canvasProducto(id)}<b>${Math.min(tengo, n)}/${n}</b></span>`;
+        }).join("")}</div>
+        <button class="boton-verde" data-entregar="${k}" ${sePuede(p) ? "" : "disabled"}>${sePuede(p) ? "✔ Entregar" : "Te faltan cosas"}</button></div>`).join("");
+}
+
+// Pedidos al costado (pantallas grandes): solo se redibujan si cambió algo
+const pantallaGrande = matchMedia("(min-width: 900px)");
+let ultimoLado = "";
+function pintarLado() {
+    if (!pantallaGrande.matches) return;
+    const html = htmlPedidos();
+    if (html === ultimoLado) return;
+    ultimoLado = html;
+    $("pedidos-lado").innerHTML = html;
+    pintarIconos($("pedidos-lado"));
+}
+pantallaGrande.addEventListener("change", () => {
+    ultimoLado = "";
+    if (pantallaGrande.matches && pestana === "pedidos") document.querySelector('.pestana-g[data-p="semillas"]').click();
+    pintarLado();
+});
+
+function pintarIconos(contenedor = $("panel")) {
+    for (const c of contenedor.querySelectorAll("canvas[data-icono]")) {
         const ctx = c.getContext("2d");
         ctx.scale(2, 2);
         const id = c.dataset.icono;
@@ -1055,48 +1101,54 @@ function pintarIconos() {
     }
 }
 
+let ultimoPanel = "";
 function pintarPanel() {
     const panel = $("panel");
     const scroll = panel.scrollTop;
+    let html;
     if (pestana === "semillas") {
-        panel.innerHTML = `<div class="semillas">${CULTIVOS.map((c) => {
+        html = `<div class="semillas">${CULTIVOS.map((c) => {
             const bloqueado = c.nivel > estado.nivel;
             return `<button class="semilla-c${estado.elegida === c.id ? " elegida" : ""}" data-semilla="${c.id}" ${bloqueado ? "disabled" : ""}>
-                ${canvasProducto(c.id)}${c.nombre}<small>${bloqueado ? `🔒 Nivel ${c.nivel}` : `🪙${c.semilla} · ${c.tiempo >= 60 ? c.tiempo / 60 + "min" : c.tiempo + "s"} · vende ${precioVenta(c.id)}`}</small></button>`;
-        }).join("")}</div><p class="vacio-g" style="padding:6px">Elegí una semilla y tocá una parcela vacía. Tocá lo maduro para cosechar.</p>`;
+                ${canvasProducto(c.id)}<span class="nombre-s">${c.nombre}</span><small>${bloqueado ? `🔒 Nivel ${c.nivel}` : `${MONEDA_G}${c.semilla} · ⏱ ${c.tiempo >= 60 ? c.tiempo / 60 + " min" : c.tiempo + " s"}`}</small>
+                ${bloqueado ? "" : `<span class="vende-s">vende ${precioVenta(c.id)}</span>`}</button>`;
+        }).join("")}</div><p class="ayuda-g">Elegí una semilla y tocá o deslizá el dedo sobre las parcelas vacías. Deslizá sobre lo maduro para cosechar.</p>`;
     } else if (pestana === "pedidos") {
-        panel.innerHTML = estado.pedidos.map((p, k) => `<div class="fila-g${sePuede(p) ? " listo" : ""}">
-            <span class="ico">📋</span>
-            <span class="txt">${p.quien}<small>Paga 🪙 ${formatear(p.premio)} · ⭐ ${p.xp}</small>
-                <span class="pedido-items">${Object.entries(p.items).map(([id, n]) => `<span class="${(estado.granero[id] ?? 0) >= n ? "ok" : ""}">${PRODUCTOS[id].nombre} ${Math.min(estado.granero[id] ?? 0, n)}/${n}</span>`).join("")}</span></span>
-            <span style="display:flex;flex-direction:column;gap:4px"><button data-entregar="${k}" ${sePuede(p) ? "" : "disabled"}>Entregar</button><button class="boton-g secundario" data-cambiar="${k}">Cambiar</button></span></div>`).join("");
+        html = `<div class="lista-pedidos">${htmlPedidos()}</div>`;
     } else if (pestana === "almacen") {
         const items = Object.entries(estado.granero).filter(([, n]) => n > 0);
         const total = items.reduce((t, [id, n]) => t + precioVenta(id) * n, 0);
-        panel.innerHTML = items.length
-            ? `<button class="boton-g" data-vender-todo>Vender todo · 🪙 ${formatear(total)}</button>` +
-              items.map(([id, n]) => `<div class="fila-g">${canvasProducto(id)}<span class="txt">${PRODUCTOS[id].nombre} ×${n}<small>🪙 ${precioVenta(id)} cada uno</small></span><button data-vender="${id}">Vender 1</button></div>`).join("")
+        html = items.length
+            ? `<button class="boton-verde ancho" data-vender-todo>Vender todo · ${MONEDA_G}${formatear(total)}</button><div class="grilla-granero">` +
+              items.map(([id, n]) => `<button class="caja-granero" data-vender="${id}" title="Vender 1">${canvasProducto(id)}<b>×${n}</b><small>${MONEDA_G}${precioVenta(id)}</small></button>`).join("") +
+              `</div><p class="ayuda-g">Tocá una caja para vender una unidad.</p>`
             : `<p class="vacio-g">El granero está vacío. ¡A cosechar!</p>`;
     } else if (pestana === "animales") {
-        panel.innerHTML = ANIMALES.map((a) => {
+        html = ANIMALES.map((a) => {
             const tengo = estado.animales.filter((x) => x.tipo === a.id).length;
             const bloqueado = a.nivel > estado.nivel;
-            return `<div class="fila-g">${canvasProducto(a.id)}<span class="txt">${a.nombre} <small>${bloqueado ? `🔒 Nivel ${a.nivel}` : `Da ${a.nombreProducto} (🪙${precioVenta(a.producto)}) cada ${a.tiempo >= 60 ? a.tiempo / 60 + " min" : a.tiempo + " s"} · tenés ${tengo}/${a.max}`}</small></span>
-                <button data-animal="${a.id}" ${bloqueado || tengo >= a.max || estado.monedas < a.costo ? "disabled" : ""}>${tengo >= a.max ? "Lleno" : `🪙 ${formatear(a.costo)}`}</button></div>`;
-        }).join("") + `<p class="vacio-g" style="padding:6px">Tocá a los animales con burbuja para recoger lo que producen.</p>`;
+            return `<div class="fila-g">${canvasProducto(a.id)}<span class="txt">${a.nombre} <small>${bloqueado ? `🔒 Nivel ${a.nivel}` : `Da ${a.nombreProducto} (${MONEDA_G}${precioVenta(a.producto)}) cada ${a.tiempo >= 60 ? a.tiempo / 60 + " min" : a.tiempo + " s"} · tenés ${tengo}/${a.max}`}</small></span>
+                <button class="boton-verde" data-animal="${a.id}" ${bloqueado || tengo >= a.max || estado.monedas < a.costo ? "disabled" : ""}>${tengo >= a.max ? "Lleno" : `${MONEDA_G}${formatear(a.costo)}`}</button></div>`;
+        }).join("") + `<p class="ayuda-g">Tocá a los animales con burbuja para recoger lo que producen.</p>`;
     } else {
-        panel.innerHTML = MEJORAS.map((m) => {
+        html = MEJORAS.map((m) => {
             const n = mejora(m.id);
             const tope = n >= m.max;
-            return `<div class="fila-g"><span class="ico">${m.ico}</span><span class="txt">${m.nombre}<small>${m.detalle} · ${n}/${m.max}</small></span>
-                <button data-mejora="${m.id}" ${tope || estado.monedas < m.costo(n) ? "disabled" : ""}>${tope ? "Listo" : `🪙 ${formatear(m.costo(n))}`}</button></div>`;
+            return `<div class="fila-g"><span class="ico">${m.ico}</span><span class="txt">${m.nombre}<small>${m.detalle}</small>
+                <span class="niveles-m">${Array.from({ length: m.max }, (_, k) => `<i class="${k < n ? "si" : ""}"></i>`).join("")}</span></span>
+                <button class="boton-verde" data-mejora="${m.id}" ${tope || estado.monedas < m.costo(n) ? "disabled" : ""}>${tope ? "Máximo" : `${MONEDA_G}${formatear(m.costo(n))}`}</button></div>`;
         }).join("");
     }
+    pintarLado();
+    // Si no cambió nada no se redibuja (así no titilan los dibujitos)
+    if (html === ultimoPanel) return;
+    ultimoPanel = html;
+    panel.innerHTML = html;
     pintarIconos();
     panel.scrollTop = scroll;
 }
 
-$("panel").addEventListener("click", (e) => {
+function alTocarPanel(e) {
     const b = e.target.closest("button");
     if (!b || b.disabled) return;
     const d = b.dataset;
@@ -1142,7 +1194,9 @@ $("panel").addEventListener("click", (e) => {
         vibrar(30);
     }
     refrescar();
-});
+}
+$("panel").addEventListener("click", alTocarPanel);
+$("pedidos-lado").addEventListener("click", alTocarPanel);
 
 for (const p of document.querySelectorAll(".pestana-g")) {
     p.addEventListener("click", () => {
