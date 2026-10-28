@@ -3,8 +3,13 @@
 import { app, auth } from "./sesion.js";
 import {
     getFirestore, doc, getDoc, collection, query, where, onSnapshot, writeBatch, setDoc, updateDoc, deleteDoc, addDoc,
-    serverTimestamp, deleteField, runTransaction,
+    serverTimestamp, deleteField, runTransaction, increment, orderBy, limit,
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { fichas, billetera, avisoFichas } from "./fichas.js";
+
+// 1500 → 1.5K, 2000000 → 2M (sin importar comun3d, que trae Three.js)
+export const formatear = (n) =>
+    n >= 1e6 ? `${+(n / 1e6).toFixed(2)}M` : n >= 1e3 ? `${+(n / 1e3).toFixed(1)}K` : String(Math.floor(n));
 
 export const db = app ? getFirestore(app) : null;
 
@@ -129,11 +134,18 @@ export const borrarAmistad = (id) => deleteDoc(doc(db, "amistades", id));
 // ---------- Partidas ----------
 export function escucharPartidas(alCambiar) {
     const q = query(collection(db, "partidas"), where("jugadores", "array-contains", yo()));
-    return onSnapshot(q, (snap) => alCambiar(snap.docs.map((d) => ({ id: d.id, ...d.data() }))));
+    return onSnapshot(q, (snap) => {
+        const lista = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+        lista.forEach(liquidar);
+        alCambiar(lista);
+    });
 }
 
-export async function crearPartida(juego, miNombre, amigo, datos) {
-    const ref = await addDoc(collection(db, "partidas"), {
+// apuesta: fichas que pone cada uno; el ganador se lleva las dos (en empate vuelven)
+export async function crearPartida(juego, miNombre, amigo, datos, apuesta = 0) {
+    const ref = doc(collection(db, "partidas"));
+    const lote = writeBatch(db);
+    lote.set(ref, {
         juego,
         jugadores: [yo(), amigo.uid],
         nombres: { [yo()]: miNombre, [amigo.uid]: amigo.nombre },
@@ -142,17 +154,278 @@ export async function crearPartida(juego, miNombre, amigo, datos) {
         turno: yo(),
         creada: serverTimestamp(),
         actualizada: serverTimestamp(),
+        apuesta,
+        pagado: apuesta ? { [yo()]: true } : {},
         ...datos,
     });
+    if (apuesta) await cobrarEnLote(lote, -apuesta);
+    await lote.commit();
     return ref.id;
 }
 
+// Suma o resta fichas de mi billetera dentro de un lote
+async function cobrarEnLote(lote, cantidad) {
+    const b = await billetera();
+    if (!b) throw new Error("Tenés que iniciar sesión para apostar fichas.");
+    if (cantidad < 0 && fichas() < -cantidad) throw new Error(`No te alcanzan las fichas (hacen falta ${formatear(-cantidad)}).`);
+    lote.update(b.ref, { fichas: increment(cantidad) });
+}
+
+// Aceptar un desafío: si tiene apuesta, se pagan las fichas al aceptar
+const aceptando = new Set();
+export async function aceptarPartida(p) {
+    if (p.estado !== "invitada" || p.creador === yo() || aceptando.has(p.id)) return true;
+    aceptando.add(p.id);
+    try {
+        const lote = writeBatch(db);
+        lote.update(doc(db, "partidas", p.id), { estado: "jugando", [`pagado.${yo()}`]: true, actualizada: serverTimestamp() });
+        if (p.apuesta) await cobrarEnLote(lote, -p.apuesta);
+        await lote.commit();
+        return true;
+    } catch (error) {
+        aceptando.delete(p.id);
+        alert(error.message);
+        const amigos = new URL("../amigos.html", import.meta.url).href;
+        if (location.href !== amigos) location.href = amigos;
+        return false;
+    }
+}
+
+// Rechazar o borrar: si el creador ya había pagado la apuesta, se le devuelve
+export async function quitarPartida(p) {
+    const yaPago = p.apuesta && p.pagado?.[p.creador] && p.estado === "invitada";
+    if (yaPago && p.creador !== yo()) return updateDoc(doc(db, "partidas", p.id), { estado: "rechazada", actualizada: serverTimestamp() });
+    if (yaPago || (p.estado === "rechazada" && p.creador === yo() && !p.cobrado?.[yo()])) {
+        const lote = writeBatch(db);
+        lote.delete(doc(db, "partidas", p.id));
+        await cobrarEnLote(lote, p.apuesta);
+        return lote.commit();
+    }
+    return deleteDoc(doc(db, "partidas", p.id));
+}
+
+// Se puede borrar una partida terminada cuando los dos ya cobraron
+export const sePuedeBorrar = (p) => p.estado !== "terminada" || p.jugadores.every((u) => p.cobrado?.[u]);
+
+// Al terminar, cada uno cobra lo suyo una sola vez y suma la partida a sus estadísticas
+const liquidando = new Set();
+export async function liquidar(p) {
+    if (!p || liquidando.has(p.id) || p.cobrado?.[yo()]) return;
+    if (p.estado === "rechazada" && p.creador === yo()) {
+        liquidando.add(p.id);
+        return quitarPartida(p).catch(() => liquidando.delete(p.id));
+    }
+    if (p.estado !== "terminada" || !p.ganador) return;
+    liquidando.add(p.id);
+    try {
+        const b = await billetera();
+        const lote = writeBatch(db);
+        lote.update(doc(db, "partidas", p.id), { [`cobrado.${yo()}`]: true });
+        if (b) {
+            const resultado = p.ganador === "empate" ? "empates" : p.ganador === yo() ? "ganadas" : "perdidas";
+            const pozo = p.apuesta && p.pagado?.[p.jugadores[0]] && p.pagado?.[p.jugadores[1]] ? p.apuesta : 0;
+            const premio = resultado === "ganadas" ? pozo * 2 : resultado === "empates" ? pozo : 0;
+            lote.update(b.ref, {
+                [`stats.${resultado}`]: increment(1),
+                [`stats.juegos.${p.juego}.${resultado}`]: increment(1),
+                xp: increment(resultado === "ganadas" ? 30 : 10),
+                ...(premio ? { fichas: increment(premio) } : {}),
+            });
+            await lote.commit();
+            if (premio) avisoFichas(resultado === "ganadas" ? `🏆 ¡Ganaste el pozo! +${formatear(premio)} fichas` : `🤝 Empate: vuelven tus ${formatear(premio)} fichas`);
+        } else {
+            await lote.commit();
+        }
+    } catch {
+        liquidando.delete(p.id);
+    }
+}
+
+// Nivel según la experiencia (30 por victoria, 10 por derrota o empate)
+export const nivelDe = (xp = 0) => Math.floor(Math.sqrt(xp / 40)) + 1;
+
 export function escucharPartida(id, alCambiar, alFallar) {
+    let primera = true;
     return onSnapshot(
         doc(db, "partidas", id),
-        (d) => alCambiar(d.exists() ? { id: d.id, ...d.data() } : null),
+        (d) => {
+            const p = d.exists() ? { id: d.id, ...d.data() } : null;
+            if (p && primera) {
+                primera = false;
+                abrirChatPartida(p);
+            }
+            if (p) {
+                pintarPozo(p);
+                liquidar(p);
+            }
+            alCambiar(p);
+        },
         alFallar
     );
+}
+
+// ---------- Chat ----------
+export const TEXTO_MAX = 300;
+export const RAPIDOS = ["👍", "😂", "😮", "😡", "🔥", "👏", "😎", "🙏", "¡Bien jugado!", "¡Suerte!", "Uff", "GG"];
+
+export function escucharChat(ruta, alCambiar, cuantos = 60) {
+    const q = query(collection(db, ...ruta, "mensajes"), orderBy("creado", "desc"), limit(cuantos));
+    return onSnapshot(q, (snap) => alCambiar(snap.docs.map((d) => ({ id: d.id, ...d.data() })).reverse()), () => {});
+}
+
+export function enviarMensaje(ruta, texto) {
+    texto = String(texto).trim().slice(0, TEXTO_MAX);
+    if (!texto) return;
+    return addDoc(collection(db, ...ruta, "mensajes"), { de: yo(), texto, creado: serverTimestamp() });
+}
+
+// Mensajes sin leer: se guarda en el dispositivo hasta cuándo leíste cada chat
+export function marcarLeido(clave) {
+    try {
+        localStorage.setItem(`leido-${clave}`, Date.now());
+    } catch {}
+}
+export function sinLeer(clave, mensajes) {
+    let leido = 0;
+    try {
+        leido = Number(localStorage.getItem(`leido-${clave}`) || 0);
+    } catch {}
+    return mensajes.filter((m) => m.de !== yo() && (m.creado?.toMillis?.() ?? Date.now()) > leido).length;
+}
+
+const escaparHtml = (t) => String(t).replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
+
+// Arma una lista de mensajes con burbujas (se usa en el chat de amigos y en el de partidas)
+export function htmlMensajes(mensajes, nombres = {}) {
+    return mensajes
+        .map((m) => {
+            const mio = m.de === yo();
+            const hora = m.creado?.toDate?.().toLocaleTimeString("es", { hour: "2-digit", minute: "2-digit" }) ?? "";
+            const soloEmoji = /^\p{Extended_Pictographic}{1,3}$/u.test(m.texto);
+            return `<div class="msj ${mio ? "mio" : ""} ${soloEmoji ? "emoji" : ""}">
+                ${mio ? "" : `<b>${escaparHtml(nombres[m.de] ?? "")}</b>`}<span>${escaparHtml(m.texto)}</span><small>${hora}</small></div>`;
+        })
+        .join("");
+}
+
+export const CSS_CHAT = `
+.chat-flotante { position: fixed; right: 8px; top: calc(58px + env(safe-area-inset-top)); z-index: 50; width: 44px; height: 44px; border-radius: 50%; border: none; font-size: 1.3rem; background: #ffd166e6; box-shadow: 0 6px 18px #0009; }
+.chat-flotante .insignia-chat { position: absolute; top: -4px; right: -4px; min-width: 20px; padding: 1px 5px; border-radius: 999px; background: #ff4d6d; color: #fff; font: 900 0.75rem system-ui, sans-serif; }
+.pozo-flotante { position: fixed; left: 50%; bottom: calc(6px + env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: 40; padding: 4px 12px; border-radius: 999px; background: #000a; color: #ffd166; font: 900 0.8rem system-ui, sans-serif; pointer-events: none; border: 1px solid #ffd16655; }
+.panel-chat { position: fixed; inset: auto 0 0 0; z-index: 60; max-width: 560px; margin: 0 auto; height: min(70vh, 520px); display: flex; flex-direction: column; background: #1d1650; border-radius: 20px 20px 0 0; box-shadow: 0 -10px 30px #000a; padding: 12px 12px calc(12px + env(safe-area-inset-bottom)); color: #fff; font-family: system-ui, sans-serif; animation: subir-chat 0.25s ease-out; }
+@keyframes subir-chat { from { transform: translateY(100%); } }
+.panel-chat header { display: flex; justify-content: space-between; align-items: center; font-weight: 900; margin-bottom: 8px; }
+.panel-chat header button { font: inherit; background: #ffffff18; color: #fff; border: none; border-radius: 10px; padding: 6px 12px; }
+.lista-msj { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; padding: 4px 2px; }
+.msj { align-self: flex-start; max-width: 80%; padding: 7px 11px; border-radius: 16px 16px 16px 4px; background: #ffffff1c; font-size: 0.95rem; overflow-wrap: anywhere; }
+.msj.mio { align-self: flex-end; border-radius: 16px 16px 4px 16px; background: #6c4cf5; }
+.msj b { display: block; font-size: 0.7rem; color: #ffd166; }
+.msj small { display: block; text-align: right; font-size: 0.62rem; opacity: 0.6; }
+.msj.emoji { background: none; font-size: 2rem; padding: 0 4px; }
+.rapidos { display: flex; gap: 6px; overflow-x: auto; padding: 6px 0; scrollbar-width: none; }
+.rapidos button { flex-shrink: 0; font: 700 0.95rem system-ui, sans-serif; color: #fff; background: #ffffff14; border: 1px solid #ffffff22; border-radius: 999px; padding: 6px 10px; }
+.form-chat { display: flex; gap: 6px; }
+.form-chat input { flex: 1; min-width: 0; font: inherit; font-size: 16px; color: #fff; background: #ffffff12; border: 1px solid #ffffff22; border-radius: 12px; padding: 10px; outline: none; }
+.form-chat button { font: 900 1rem system-ui, sans-serif; border: none; border-radius: 12px; padding: 0 16px; background: #ffd166; color: #2a1400; }
+.burbuja-rival { position: fixed; left: 50%; top: 30%; transform: translateX(-50%); z-index: 55; padding: 10px 16px; border-radius: 18px; background: #fff; color: #1d1650; font: 800 1.05rem system-ui, sans-serif; box-shadow: 0 10px 30px #0009; animation: burbuja 2.6s ease-out forwards; pointer-events: none; max-width: 80vw; text-align: center; }
+.burbuja-rival.emoji { font-size: 3rem; background: none; box-shadow: none; }
+@keyframes burbuja { 0% { opacity: 0; transform: translate(-50%, 20px) scale(0.6); } 12% { opacity: 1; transform: translate(-50%, 0) scale(1.05); } 80% { opacity: 1; transform: translate(-50%, -10px); } 100% { opacity: 0; transform: translate(-50%, -40px); } }
+`;
+
+function ponerCss() {
+    if (document.getElementById("css-chat")) return;
+    const s = document.createElement("style");
+    s.id = "css-chat";
+    s.textContent = CSS_CHAT;
+    document.head.appendChild(s);
+}
+
+// Panel de chat reutilizable. Devuelve { cerrar }.
+export function panelChat({ titulo, ruta, nombres, clave, alCerrar }) {
+    ponerCss();
+    const panel = document.createElement("div");
+    panel.className = "panel-chat";
+    panel.innerHTML = `<header><span>${escaparHtml(titulo)}</span><button type="button">Cerrar</button></header>
+        <div class="lista-msj"></div><div class="rapidos">${RAPIDOS.map((r) => `<button type="button">${r}</button>`).join("")}</div>
+        <form class="form-chat"><input maxlength="${TEXTO_MAX}" placeholder="Escribí un mensaje…" autocomplete="off"><button>➤</button></form>`;
+    const lista = panel.querySelector(".lista-msj");
+    const parar = escucharChat(ruta, (mensajes) => {
+        lista.innerHTML = mensajes.length ? htmlMensajes(mensajes, nombres) : `<p style="opacity:.6;text-align:center">Todavía no hay mensajes. ¡Saludá!</p>`;
+        lista.scrollTop = lista.scrollHeight;
+        marcarLeido(clave);
+    });
+    const cerrar = () => {
+        parar();
+        panel.remove();
+        marcarLeido(clave);
+        alCerrar?.();
+    };
+    panel.querySelector("header button").addEventListener("click", cerrar);
+    for (const b of panel.querySelectorAll(".rapidos button")) b.addEventListener("click", () => enviarMensaje(ruta, b.textContent));
+    panel.querySelector("form").addEventListener("submit", (e) => {
+        e.preventDefault();
+        const input = panel.querySelector("input");
+        enviarMensaje(ruta, input.value);
+        input.value = "";
+    });
+    document.body.appendChild(panel);
+    return { cerrar };
+}
+
+// Botón de chat flotante dentro de las partidas online (aparece solo en todos los juegos)
+function abrirChatPartida(p) {
+    if (document.querySelector(".chat-flotante")) return;
+    ponerCss();
+    const ruta = ["partidas", p.id];
+    const clave = `partida-${p.id}`;
+    const boton = document.createElement("button");
+    boton.className = "chat-flotante";
+    boton.type = "button";
+    boton.innerHTML = `💬<span class="insignia-chat" hidden></span>`;
+    let abierto = null;
+    let vistos = null;
+    escucharChat(ruta, (mensajes) => {
+        const nuevos = vistos === null ? [] : mensajes.filter((m) => !vistos.has(m.id) && m.de !== yo());
+        vistos = new Set(mensajes.map((m) => m.id));
+        // Los mensajes del rival aparecen un momento en el medio de la pantalla
+        if (!abierto) {
+            for (const m of nuevos.slice(-1)) {
+                const b = document.createElement("div");
+                b.className = `burbuja-rival${/^\p{Extended_Pictographic}{1,3}$/u.test(m.texto) ? " emoji" : ""}`;
+                b.textContent = m.texto;
+                document.body.appendChild(b);
+                setTimeout(() => b.remove(), 2700);
+                navigator.vibrate?.(30);
+            }
+        }
+        const n = abierto ? 0 : sinLeer(clave, mensajes);
+        const insignia = boton.querySelector(".insignia-chat");
+        insignia.hidden = !n;
+        insignia.textContent = n;
+    });
+    boton.addEventListener("click", () => {
+        if (abierto) return abierto.cerrar();
+        boton.querySelector(".insignia-chat").hidden = true;
+        const rival = p.jugadores.find((j) => j !== yo());
+        abierto = panelChat({ titulo: `💬 ${p.nombres?.[rival] ?? "Chat"}`, ruta, nombres: p.nombres, clave, alCerrar: () => (abierto = null) });
+    });
+    document.body.appendChild(boton);
+}
+
+// Cartel con el pozo de la apuesta arriba del juego
+function pintarPozo(p) {
+    if (!p.apuesta) return;
+    let el = document.querySelector(".pozo-flotante");
+    if (!el) {
+        ponerCss();
+        el = document.createElement("div");
+        el.className = "pozo-flotante";
+        document.body.appendChild(el);
+    }
+    const ambos = p.pagado?.[p.jugadores[0]] && p.pagado?.[p.jugadores[1]];
+    el.textContent = p.estado === "terminada"
+        ? p.ganador === "empate" ? `🤝 Empate · vuelven ${formatear(p.apuesta)}` : `🏆 Pozo ${formatear(p.apuesta * 2)} para ${p.nombres?.[p.ganador] ?? "?"}`
+        : `🪙 Pozo ${formatear(p.apuesta * (ambos ? 2 : 1))}${ambos ? "" : " · falta que acepte"}`;
 }
 
 export const actualizarPartida = (id, cambios) => updateDoc(doc(db, "partidas", id), { ...cambios, actualizada: serverTimestamp() });
@@ -160,15 +433,21 @@ export const actualizarPartida = (id, cambios) => updateDoc(doc(db, "partidas", 
 // Revancha compartida: el primero que la pide crea la partida nueva y la anota en la terminada;
 // si el otro también toca "Revancha", entra a esa misma. Es una transacción, así que aunque
 // los dos toquen a la vez se crea una sola.
-export function revancha(idAnterior, datosIniciales) {
+export async function revancha(idAnterior, datosIniciales) {
     const refAnterior = doc(db, "partidas", idAnterior);
+    const b = await billetera();
     return runTransaction(db, async (tx) => {
         const anterior = await tx.get(refAnterior);
         const p = anterior.data();
         if (p.revancha) return p.revancha;
         const rival = p.jugadores.find((j) => j !== yo());
         const nueva = doc(collection(db, "partidas"));
+        // Se repite la misma apuesta si te alcanzan las fichas
+        const apuesta = b && p.apuesta && fichas() >= p.apuesta ? p.apuesta : 0;
+        if (apuesta) tx.update(b.ref, { fichas: increment(-apuesta) });
         tx.set(nueva, {
+            apuesta,
+            pagado: apuesta ? { [yo()]: true } : {},
             juego: p.juego,
             jugadores: [yo(), rival],
             nombres: p.nombres,
@@ -194,6 +473,14 @@ export async function irARevancha(partida, datosIniciales) {
     location.search = `?partida=${id}`;
 }
 export const borrarPartida = (id) => deleteDoc(doc(db, "partidas", id));
+
+// Chat entre dos amigos: chats/{idAmistad}/mensajes
+export const rutaChatAmigo = (uid) => ["chats", idAmistad(yo(), uid)];
+
+// Billetera y estadísticas de un jugador (para el ranking y el perfil)
+export function escucharBilletera(uid, alCambiar) {
+    return onSnapshot(doc(db, "billeteras", uid), (d) => alCambiar(d.exists() ? d.data() : null), () => {});
+}
 
 export const JUEGOS_ONLINE = {
     arco: { nombre: "Tiro con arco", emoji: "🏹", carpeta: "games/arco/", reglas: "../games/arco/reglas.js" },
