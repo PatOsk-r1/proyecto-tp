@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="es" class="verificando">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>Rompeladrillos · Proyecto TP</title>
+    <meta name="theme-color" content="#10002b">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="../../icons/icon-180.png">
+    <link rel="manifest" href="../../manifest.webmanifest">
+
+    <link rel="stylesheet" href="../../css/estilos.css">
+    <link rel="stylesheet" href="../../css/juegos3d.css">
+    <link rel="stylesheet" href="../../css/solitario.css">
+    <style>
+        .tema-ladrillos {
+            --fondo: #0a0118;
+            --fondo-2: #240046;
+            --texto-suave: #e0c3fc;
+            --acento: #4cc9f0;
+            --acento-2: #4361ee;
+            --panel: #06000fcc;
+        }
+        .tema-ladrillos .boton-grande { color: #06000f; }
+        .zona-juego { padding: 6px; }
+    </style>
+</head>
+<body class="pantalla-3d tema-ladrillos">
+    <header class="barra-juego">
+        <a class="boton-volver" href="../../">‹ Juegos</a>
+        <h1>Rompeladrillos</h1>
+    </header>
+
+    <div class="info-juego">
+        <div class="dato"><span>Puntos</span><strong id="puntos">0</strong></div>
+        <div class="dato"><span>Nivel</span><strong id="nivel">1</strong></div>
+        <div class="dato"><span>Vidas</span><strong id="vidas">3</strong></div>
+        <div class="dato"><span>Récord</span><strong id="record">0</strong></div>
+    </div>
+
+    <main class="zona-juego">
+        <canvas id="lienzo" class="lienzo-juego"></canvas>
+        <div id="centro" class="mensaje-centro">
+            <div id="titulo-centro">Rompeladrillos<div class="chico">Mové la paleta con el dedo. Agarrá los premios que caen.</div></div>
+            <button id="jugar" class="boton-grande" type="button">Jugar</button>
+        </div>
+    </main>
+
+    <script type="module">
+        import { exigirSesion } from "../../js/sesion.js";
+        exigirSesion();
+    </script>
+    <script type="module" src="juego.js"></script>
+</body>
+</html>
