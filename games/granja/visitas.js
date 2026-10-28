@@ -3,15 +3,15 @@ const TAU = Math.PI * 2;
 
 // piel, pelo, ropa, gorro, anteojos, bigote… y cómo saluda cada uno
 export const PERSONAS = {
-    "Don Tito": { piel: "#e8b894", pelo: "#d9d9d9", peinado: "pelado", ropa: "#3a6ea5", detalle: "#c1121f", gorro: "gorra", bigote: true, saludo: "¡Hola, granjero!" },
-    "Doña Rosa": { piel: "#f1c7a3", pelo: "#bdbdbd", peinado: "rodete", ropa: "#e5989b", detalle: "#fff", aros: true, saludo: "¡Buen día, querido!" },
-    "El panadero": { piel: "#d9a066", pelo: "#5c3a1e", peinado: "corto", ropa: "#ffffff", detalle: "#e9c46a", gorro: "chef", bigote: true, mejillas: true, saludo: "¡Buenas! Para el pan de mañana," },
-    "La escuela": { piel: "#c68b59", pelo: "#2b1a0e", peinado: "largo", ropa: "#6a994e", detalle: "#f2e8cf", anteojos: true, saludo: "¡Hola! Para el comedor de la escuela," },
-    "El restaurante": { piel: "#f3d1b0", pelo: "#1b1b1b", peinado: "corto", ropa: "#f8f9fa", detalle: "#d62828", gorro: "chef", bigote: "grande", saludo: "¡Buenas! Para la cocina del restaurante," },
-    "La feria": { piel: "#e0ac69", pelo: "#ff8c42", peinado: "largo", ropa: "#7b2cbf", detalle: "#ffd166", gorro: "rayas", mejillas: true, saludo: "¡Hola, hola! Para mi puesto de la feria," },
-    "Abuela Marta": { piel: "#f6d5b8", pelo: "#f1f1f1", peinado: "rulos", ropa: "#9d4edd", detalle: "#e0aaff", anteojos: true, chal: true, saludo: "¡Hola, tesoro!" },
+    "Don Tito": { voz: 170, piel: "#e8b894", pelo: "#d9d9d9", peinado: "pelado", ropa: "#3a6ea5", detalle: "#c1121f", gorro: "gorra", bigote: true, saludo: "¡Hola, granjero!" },
+    "Doña Rosa": { voz: 330, piel: "#f1c7a3", pelo: "#bdbdbd", peinado: "rodete", ropa: "#e5989b", detalle: "#fff", aros: true, saludo: "¡Buen día, querido!" },
+    "El panadero": { voz: 210, piel: "#d9a066", pelo: "#5c3a1e", peinado: "corto", ropa: "#ffffff", detalle: "#e9c46a", gorro: "chef", bigote: true, mejillas: true, saludo: "¡Buenas! Para el pan de mañana," },
+    "La escuela": { voz: 300, piel: "#c68b59", pelo: "#2b1a0e", peinado: "largo", ropa: "#6a994e", detalle: "#f2e8cf", anteojos: true, saludo: "¡Hola! Para el comedor de la escuela," },
+    "El restaurante": { voz: 150, piel: "#f3d1b0", pelo: "#1b1b1b", peinado: "corto", ropa: "#f8f9fa", detalle: "#d62828", gorro: "chef", bigote: "grande", saludo: "¡Buenas! Para la cocina del restaurante," },
+    "La feria": { voz: 390, piel: "#e0ac69", pelo: "#ff8c42", peinado: "largo", ropa: "#7b2cbf", detalle: "#ffd166", gorro: "rayas", mejillas: true, saludo: "¡Hola, hola! Para mi puesto de la feria," },
+    "Abuela Marta": { voz: 360, piel: "#f6d5b8", pelo: "#f1f1f1", peinado: "rulos", ropa: "#9d4edd", detalle: "#e0aaff", anteojos: true, chal: true, saludo: "¡Hola, tesoro!" },
 };
-const POR_DEFECTO = { piel: "#e8b894", pelo: "#5c3a1e", peinado: "corto", ropa: "#2a9d8f", detalle: "#fff", saludo: "¡Hola!" };
+const POR_DEFECTO = { voz: 260, piel: "#e8b894", pelo: "#5c3a1e", peinado: "corto", ropa: "#2a9d8f", detalle: "#fff", saludo: "¡Hola!" };
 export const persona = (quien) => PERSONAS[quien] ?? POR_DEFECTO;
 
 // Cómo se nombra cada cosa según la cantidad
