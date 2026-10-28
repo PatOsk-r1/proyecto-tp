@@ -64,13 +64,22 @@ service cloud.firestore {
       return get(/databases/$(database)/documents/amistades/$(idAmistad(a, b))).data.estado == 'aceptada';
     }
 
+    // Mensaje de chat. tipo: texto, sticker, partida (un juego mandado por el chat) o regalo (fichas).
+    // Un regalo o una partida en el chat tienen que existir de verdad y ser de quien manda el mensaje.
     function mensajeValido() {
-      return request.resource.data.keys().hasOnly(['de', 'texto', 'creado'])
-        && request.resource.data.de == request.auth.uid
-        && request.resource.data.texto is string
-        && request.resource.data.texto.size() > 0
-        && request.resource.data.texto.size() <= 300
-        && request.resource.data.creado == request.time;
+      let d = request.resource.data;
+      let tipo = d.get('tipo', 'texto');
+      return d.keys().hasOnly(['de', 'texto', 'creado', 'tipo', 'sticker', 'partida', 'juego', 'apuesta', 'regalo', 'cantidad'])
+        && d.de == request.auth.uid
+        && d.texto is string
+        && d.texto.size() > 0
+        && d.texto.size() <= 300
+        && d.creado == request.time
+        && tipo in ['texto', 'sticker', 'partida', 'regalo']
+        && (tipo != 'sticker' || (d.sticker is string && d.sticker.size() <= 20))
+        && (tipo != 'regalo' || (getAfter(/databases/$(database)/documents/regalos/$(d.regalo)).data.de == request.auth.uid
+            && getAfter(/databases/$(database)/documents/regalos/$(d.regalo)).data.cantidad == d.cantidad))
+        && (tipo != 'partida' || getAfter(/databases/$(database)/documents/partidas/$(d.partida)).data.creador == request.auth.uid);
     }
 
     function fichasDe(uid) {
