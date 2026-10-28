@@ -189,6 +189,38 @@
                 ctx.stroke();
             }
         },
+        magos() {
+            fondo("#14092e", "#2a1260");
+            ctx.strokeStyle = "#5a4380";
+            ctx.lineWidth = 14;
+            ctx.lineJoin = "round";
+            ctx.beginPath();
+            ctx.moveTo(W * 0.15, H);
+            ctx.lineTo(W * 0.15, H * 0.15);
+            ctx.lineTo(W * 0.85, H * 0.15);
+            ctx.lineTo(W * 0.85, H);
+            ctx.stroke();
+            const mago = (x, y, c) => {
+                ctx.fillStyle = c;
+                ctx.beginPath();
+                ctx.moveTo(x - 9, y + 12);
+                ctx.lineTo(x, y - 4);
+                ctx.lineTo(x + 9, y + 12);
+                ctx.fill();
+                circulo(x, y - 5, 4, "#ffd6a5");
+                ctx.beginPath();
+                ctx.moveTo(x - 7, y - 7);
+                ctx.lineTo(x + 2, y - 20);
+                ctx.lineTo(x + 7, y - 7);
+                ctx.fill();
+            };
+            mago(W * 0.38, H * 0.55, "#ff7a1a");
+            mago(W * 0.62, H * 0.55, "#4cc9f0");
+            mago(W * 0.5, H * 0.85, "#ffd166");
+            brillo(W * 0.5, H * 0.55, 20, "#c77dff88");
+            bola(W * 0.15, H * 0.45, 7, "#9d4edd");
+            bola(W * 0.6, H * 0.15, 7, "#f72585");
+        },
         apilar() {
             fondo("#ff8fab", "#8ec5ff", 0.3);
             const colores = ["#ff595e", "#ffca3a", "#8ac926", "#1982c4", "#6a4c93", "#ff924c"];
