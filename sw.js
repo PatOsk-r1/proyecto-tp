@@ -1,7 +1,7 @@
 // Service worker: guarda los archivos para que la app funcione sin internet.
 // publicar.ps1 sube solo el número de VERSION en cada publicación para que
 // el iPhone descargue la versión nueva.
-const VERSION = "v36";
+const VERSION = "v37";
 const CACHE = `proyecto-tp-${VERSION}`;
 
 const ARCHIVOS_BASE = [
@@ -50,8 +50,8 @@ self.addEventListener("activate", (evento) => {
 // Los pedidos de login a Firebase nunca se guardan.
 const LIBRERIAS = ["https://www.gstatic.com/firebasejs/", "https://cdn.jsdelivr.net/npm/three@"];
 
-// Responde rápido con lo guardado y actualiza en segundo plano.
-// Así los juegos nuevos quedan guardados la primera vez que se abren.
+// Archivos propios: primero la red (así nunca se mezclan archivos viejos y nuevos de un juego)
+// y lo guardado solo si no hay internet. Librerías externas: primero lo guardado (no cambian).
 self.addEventListener("fetch", (evento) => {
     const pedido = evento.request;
     const propio = pedido.url.startsWith(self.location.origin);
@@ -61,13 +61,14 @@ self.addEventListener("fetch", (evento) => {
     evento.respondWith(
         caches.open(CACHE).then(async (cache) => {
             const guardado = await cache.match(pedido, { ignoreSearch: true });
-            const deRed = fetch(pedido)
-                .then((respuesta) => {
-                    if (respuesta.ok) cache.put(pedido, respuesta.clone());
-                    return respuesta;
-                })
-                .catch(() => guardado);
-            return guardado || deRed;
+            if (libreria && guardado) return guardado;
+            try {
+                const respuesta = await fetch(pedido, { cache: "no-cache" });
+                if (respuesta.ok) cache.put(pedido, respuesta.clone());
+                return respuesta;
+            } catch {
+                return guardado || Response.error();
+            }
         })
     );
 });
