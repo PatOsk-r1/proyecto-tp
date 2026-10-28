@@ -1,0 +1,130 @@
+.tema-solitario {
+    --ancho-carta: min(calc((100vw - 40px) / 7), 76px);
+    --alto-carta: calc(var(--ancho-carta) * 1.4);
+}
+
+.mesa-sol {
+    position: relative;
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 10px 8px 20px;
+    background: radial-gradient(ellipse at 50% 30%, #1c8a4e, #0e5a31 60%, #08401f);
+}
+
+.fila-arriba,
+.columnas {
+    display: grid;
+    grid-template-columns: repeat(7, var(--ancho-carta));
+    justify-content: center;
+    gap: 4px;
+}
+
+.columnas {
+    margin-top: 12px;
+    align-items: start;
+}
+
+.pila {
+    position: relative;
+    width: var(--ancho-carta);
+    height: var(--alto-carta);
+    border-radius: 7px;
+    border: 2px dashed #ffffff40;
+}
+
+.pila.base::before {
+    content: "A";
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 900;
+    font-size: 1.2rem;
+    color: #ffffff40;
+}
+
+.columna {
+    position: relative;
+    width: var(--ancho-carta);
+    min-height: var(--alto-carta);
+    border-radius: 7px;
+    border: 2px dashed #ffffff26;
+}
+
+.carta-s {
+    position: absolute;
+    left: -2px;
+    width: var(--ancho-carta);
+    height: var(--alto-carta);
+    border-radius: 7px;
+    background: linear-gradient(160deg, #fff, #efeae0);
+    box-shadow: 0 2px 5px #0007;
+    color: #1a1a1a;
+    font-weight: 900;
+    transition: top 0.18s, transform 0.12s;
+    cursor: pointer;
+}
+
+.carta-s.roja {
+    color: #d32f2f;
+}
+
+.carta-s .esq {
+    position: absolute;
+    top: 3px;
+    left: 4px;
+    font-size: calc(var(--ancho-carta) * 0.27);
+    line-height: 0.95;
+    text-align: center;
+}
+
+.carta-s .grande {
+    position: absolute;
+    right: 4px;
+    bottom: 2px;
+    font-size: calc(var(--ancho-carta) * 0.5);
+    line-height: 1;
+}
+
+.carta-s.boca-abajo {
+    background:
+        radial-gradient(circle at 50% 50%, #ffd166 0 10%, transparent 11%),
+        repeating-linear-gradient(45deg, #b71c1c 0 5px, #8e1414 5px 10px);
+    border: 3px solid #fff;
+}
+
+.carta-s.boca-abajo > * {
+    display: none;
+}
+
+.carta-s.mueve {
+    animation: llegar 0.22s ease-out;
+}
+
+@keyframes llegar {
+    from {
+        transform: scale(1.12);
+        box-shadow: 0 10px 20px #000a;
+    }
+}
+
+.carta-s.no-va {
+    animation: sacudir 0.3s;
+}
+
+@keyframes sacudir {
+    25% { transform: translateX(-4px); }
+    75% { transform: translateX(4px); }
+}
+
+.mazo .vacio {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.6rem;
+    color: #ffffff80;
+}
