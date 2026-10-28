@@ -22,32 +22,87 @@
             --panel: #1a0303cc;
         }
         .mesa-dados {
+            position: relative;
             flex: 1;
             min-height: 0;
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: space-evenly;
-            padding: 10px;
-            background: radial-gradient(ellipse at 50% 40%, #1c8a4e, #0b4a26 70%);
-            margin: 0 10px;
-            border-radius: 24px;
-            border: 6px solid #5a2e10;
-            box-shadow: inset 0 0 40px #0009;
+            justify-content: space-between;
+            gap: 8px;
+            padding: 12px 10px;
+            margin: 0 10px 8px;
+            border-radius: 28px;
+            background:
+                repeating-linear-gradient(45deg, #ffffff05 0 2px, transparent 2px 7px),
+                radial-gradient(ellipse at 50% 35%, #1fa35b, #0b4a26 75%);
+            border: 8px solid #5a2e10;
+            box-shadow: inset 0 0 50px #000a, 0 0 0 3px #c9a227, 0 10px 24px #0008;
+            overflow: hidden;
         }
-        .dados {
+        .historial {
             display: flex;
-            gap: 40px;
-            perspective: 600px;
-            height: 110px;
-            align-items: center;
+            gap: 4px;
+            min-height: 26px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .historial span {
+            min-width: 26px;
+            height: 26px;
+            display: grid;
+            place-items: center;
+            border-radius: 50%;
+            font-size: 0.75rem;
+            font-weight: 900;
+            background: #0006;
+            border: 2px solid #ffffff44;
+            animation: aparecer 0.3s ease-out;
+        }
+        .historial span.bajo { border-color: #4cc9f0; }
+        .historial span.siete { border-color: #ffd166; background: #ffd16655; }
+        .historial span.sobre { border-color: #ff4d6d; }
+        .zona-tiro {
+            position: relative;
+            width: 100%;
+            height: 150px;
+            perspective: 700px;
+        }
+        .tiro {
+            position: absolute;
+            top: 40px;
+            width: 70px;
+            height: 70px;
+        }
+        .tiro:nth-child(1) { left: calc(50% - 90px); }
+        .tiro:nth-child(2) { left: calc(50% + 20px); }
+        .tiro.volando { animation: lanzar 1.3s cubic-bezier(0.25, 0.6, 0.3, 1) both; }
+        .tiro:nth-child(2).volando { animation-delay: 0.08s; }
+        @keyframes lanzar {
+            0% { transform: translate(140px, 120px) scale(0.6); }
+            35% { transform: translate(40px, -50px) scale(1.15); }
+            55% { transform: translate(10px, 0) scale(1); }
+            70% { transform: translate(0, -18px) scale(1.04); }
+            82% { transform: translate(0, 0) scale(1); }
+            90% { transform: translate(0, -5px); }
+            100% { transform: translate(0, 0); }
+        }
+        .sombra-dado {
+            position: absolute;
+            left: 5px;
+            right: 5px;
+            bottom: -16px;
+            height: 14px;
+            border-radius: 50%;
+            background: #0007;
+            filter: blur(3px);
         }
         .dado {
             position: relative;
             width: 70px;
             height: 70px;
             transform-style: preserve-3d;
-            transition: transform 1.2s cubic-bezier(0.2, 0.7, 0.2, 1);
+            transition: transform 1.25s cubic-bezier(0.2, 0.7, 0.2, 1);
         }
         .cara-dado {
             position: absolute;
@@ -55,46 +110,59 @@
             display: grid;
             grid-template: repeat(3, 1fr) / repeat(3, 1fr);
             padding: 8px;
-            border-radius: 12px;
+            border-radius: 13px;
             background: linear-gradient(145deg, #ffffff, #e9e4dc);
-            box-shadow: inset 0 0 8px #0003;
+            box-shadow: inset 0 0 10px #0003, inset 0 -3px 0 #0001;
+            backface-visibility: hidden;
         }
         .cara-dado i {
             width: 12px;
             height: 12px;
             margin: auto;
             border-radius: 50%;
-            background: #c62828;
+            background: radial-gradient(circle at 35% 35%, #ff6b6b, #a4161a);
             box-shadow: inset 1px 1px 2px #0006;
         }
+        .dado.gana .cara-dado { box-shadow: inset 0 0 10px #0003, 0 0 16px #ffd166; }
         .suma {
-            font-size: 1.8rem;
+            font-size: 1.5rem;
             font-weight: 900;
             min-height: 1.3em;
+            text-align: center;
             text-shadow: 0 2px 6px #000a;
         }
         .suma.gano { color: var(--acento); animation: aparecer 0.35s ease-out; }
+        .racha {
+            font-size: 0.85rem;
+            font-weight: 800;
+            color: #ff9f1c;
+            min-height: 1.2em;
+        }
         .apuestas-dados {
             width: min(100%, 460px);
             display: grid;
             grid-template-columns: 1fr 1fr 1fr;
-            gap: 8px;
+            gap: 6px;
         }
         .opcion-dado {
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 2px;
-            padding: 12px 6px;
+            gap: 1px;
+            padding: 9px 4px;
             font: inherit;
             color: #fff;
-            background: #0006;
-            border: 2px solid #ffffff33;
-            border-radius: 14px;
+            background: #00000055;
+            border: 2px solid #f1e3b0aa;
+            border-radius: 12px;
+            transition: transform 0.1s;
         }
-        .opcion-dado strong { font-size: 1.1rem; }
-        .opcion-dado span { font-size: 0.75rem; color: var(--texto-suave); }
+        .opcion-dado:active { transform: scale(0.95); }
+        .opcion-dado strong { font-size: 0.95rem; }
+        .opcion-dado span { font-size: 0.68rem; color: var(--texto-suave); }
         .opcion-dado.elegida { border-color: var(--acento); background: #ffd16633; box-shadow: 0 0 14px #ffd16666; }
+        .opcion-dado.acierto { animation: acierto 0.25s steps(2) 6; }
+        @keyframes acierto { 50% { background: #ffd16688; } }
     </style>
 </head>
 <body class="pantalla-3d tema-casino tema-dados">
@@ -105,12 +173,20 @@
     </header>
 
     <main class="mesa-dados">
-        <div class="dados"><div id="dado1" class="dado"></div><div id="dado2" class="dado"></div></div>
-        <div id="suma" class="suma">¿Bajo, siete o sobre?</div>
+        <div id="historial" class="historial"></div>
+        <div class="zona-tiro">
+            <div class="tiro"><div id="dado1" class="dado"></div><div class="sombra-dado"></div></div>
+            <div class="tiro"><div id="dado2" class="dado"></div><div class="sombra-dado"></div></div>
+        </div>
+        <div id="suma" class="suma">Elegí tu apuesta y tirá</div>
+        <div id="racha" class="racha"></div>
         <div class="apuestas-dados">
-            <button class="opcion-dado" data-apuesta="bajo"><strong>Bajo 7</strong><span>2 a 6 · paga 1 a 1</span></button>
-            <button class="opcion-dado" data-apuesta="siete"><strong>Siete</strong><span>paga 4 a 1</span></button>
-            <button class="opcion-dado" data-apuesta="sobre"><strong>Sobre 7</strong><span>8 a 12 · paga 1 a 1</span></button>
+            <button class="opcion-dado" data-apuesta="bajo"><strong>Bajo 7</strong><span>2 a 6 · ×2</span></button>
+            <button class="opcion-dado" data-apuesta="siete"><strong>Siete</strong><span>justo 7 · ×5</span></button>
+            <button class="opcion-dado" data-apuesta="sobre"><strong>Sobre 7</strong><span>8 a 12 · ×2</span></button>
+            <button class="opcion-dado" data-apuesta="dobles"><strong>Dobles</strong><span>dos iguales · ×5</span></button>
+            <button class="opcion-dado" data-apuesta="serpiente"><strong>🐍 1 + 1</strong><span>ojos de serpiente · ×31</span></button>
+            <button class="opcion-dado" data-apuesta="doce"><strong>👑 6 + 6</strong><span>doble seis · ×31</span></button>
         </div>
     </main>
 
@@ -120,7 +196,7 @@
             <div class="apuesta">Apuesta<strong id="apuesta">10</strong></div>
             <button id="mas" class="redondo" type="button">+</button>
         </div>
-        <button id="tirar" class="accion" type="button">Tirar dados</button>
+        <button id="tirar" class="accion" type="button">🎲 Tirar dados</button>
         <button id="recargar" class="accion secundaria" type="button" hidden>Recargar fichas</button>
     </div>
 
