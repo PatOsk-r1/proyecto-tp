@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="es" class="verificando">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>Serpiente · Proyecto TP</title>
+    <meta name="theme-color" content="#1b4332">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="../../icons/icon-180.png">
+    <link rel="manifest" href="../../manifest.webmanifest">
+
+    <link rel="stylesheet" href="../../css/estilos.css">
+    <link rel="stylesheet" href="../../css/juegos3d.css">
+    <link rel="stylesheet" href="../../css/solitario.css">
+    <style>
+        .tema-serpiente {
+            --fondo: #0b2a1e;
+            --fondo-2: #1b4332;
+            --texto-suave: #d8f3dc;
+            --acento: #ffd23f;
+            --acento-2: #ff9f1c;
+            --panel: #051a12cc;
+        }
+        .zona-juego { padding: 8px; }
+        #lienzo { border-radius: 16px; box-shadow: 0 14px 30px #000a; }
+        .flechas {
+            display: grid;
+            grid-template-columns: repeat(3, 56px);
+            grid-template-rows: repeat(2, 48px);
+            gap: 6px;
+            justify-content: center;
+            padding: 6px 0 calc(8px + env(safe-area-inset-bottom));
+            background: var(--panel);
+        }
+        .flechas button {
+            font: inherit;
+            font-size: 1.4rem;
+            color: #fff;
+            background: #ffffff1c;
+            border: 2px solid #ffffff30;
+            border-radius: 14px;
+        }
+        .flechas button:active { background: #ffd23f55; }
+        .flechas .arriba { grid-column: 2; }
+        .flechas .izq { grid-column: 1; grid-row: 2; }
+        .flechas .abajo { grid-column: 2; grid-row: 2; }
+        .flechas .der { grid-column: 3; grid-row: 2; }
+    </style>
+</head>
+<body class="pantalla-3d tema-serpiente">
+    <header class="barra-juego">
+        <a class="boton-volver" href="../../">‹ Juegos</a>
+        <h1>Serpiente</h1>
+    </header>
+
+    <div class="info-juego">
+        <div class="dato"><span>Puntos</span><strong id="puntos">0</strong></div>
+        <div class="dato"><span>Largo</span><strong id="largo">3</strong></div>
+        <div class="dato"><span>Récord</span><strong id="record">0</strong></div>
+    </div>
+
+    <main class="zona-juego">
+        <canvas id="lienzo" class="lienzo-juego"></canvas>
+        <div id="centro" class="mensaje-centro">
+            <div id="titulo-centro">Serpiente<div class="chico">Deslizá el dedo (o usá las flechas) para girar. Comé frutas y no te choques.</div></div>
+            <button id="jugar" class="boton-grande" type="button">Jugar</button>
+        </div>
+    </main>
+
+    <div class="flechas">
+        <button class="arriba" data-dir="0,-1" aria-label="Arriba">▲</button>
+        <button class="izq" data-dir="-1,0" aria-label="Izquierda">◀</button>
+        <button class="abajo" data-dir="0,1" aria-label="Abajo">▼</button>
+        <button class="der" data-dir="1,0" aria-label="Derecha">▶</button>
+    </div>
+
+    <script type="module">
+        import { exigirSesion } from "../../js/sesion.js";
+        exigirSesion();
+    </script>
+    <script type="module" src="juego.js"></script>
+</body>
+</html>
