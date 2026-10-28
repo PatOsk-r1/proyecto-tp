@@ -13,6 +13,9 @@ const JUEGOS = [
     { categoria: "multi", nombre: "Tiro con arco", descripcion: "Duelo de 5 rondas con viento", emoji: "🏹", carpeta: "games/arco/" },
     { categoria: "multi", nombre: "4 en línea", descripcion: "Juntá cuatro fichas antes que tu rival", emoji: "🔴", carpeta: "games/cuatro/" },
     { categoria: "multi", nombre: "Ta-te-tí", descripcion: "Tres en línea, rápido y clásico", emoji: "❌", carpeta: "games/tateti/" },
+    { categoria: "multi", nombre: "Damas", descripcion: "Comé todas las fichas del rival", emoji: "⚫", carpeta: "games/damas/" },
+    { categoria: "multi", nombre: "Mancala", descripcion: "Sembrá semillas y llená tu granero", emoji: "🥥", carpeta: "games/mancala/" },
+    { categoria: "multi", nombre: "Batalla naval", descripcion: "Hundí la flota enemiga", emoji: "🚢", carpeta: "games/naval/" },
 
     { categoria: "casino", nombre: "Blackjack", descripcion: "Llegá a 21 sin pasarte", emoji: "🃏", carpeta: "games/blackjack/" },
     { categoria: "casino", nombre: "Ruleta", descripcion: "Apostá a números, colores o docenas", emoji: "🎡", carpeta: "games/ruleta/" },
