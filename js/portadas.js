@@ -729,6 +729,33 @@
             ctx.lineTo(x, y - r + 8);
             ctx.fill();
         },
+        raspadita() {
+            fondo("#10002b", "#3c096c");
+            ctx.save();
+            ctx.translate(W / 2, H / 2);
+            ctx.rotate(-0.08);
+            const g = ctx.createLinearGradient(-W * 0.35, 0, W * 0.35, 0);
+            g.addColorStop(0, "#ffd166");
+            g.addColorStop(1, "#d00000");
+            caja(-W * 0.35, -H * 0.38, W * 0.7, H * 0.76, 10, g);
+            caja(-W * 0.3, -H * 0.24, W * 0.6, H * 0.56, 6, "#fff8e8");
+            const plata = ctx.createLinearGradient(-W * 0.3, 0, W * 0.3, 0);
+            plata.addColorStop(0, "#adb5bd");
+            plata.addColorStop(0.5, "#f8f9fa");
+            plata.addColorStop(1, "#868e96");
+            ctx.fillStyle = plata;
+            ctx.beginPath();
+            ctx.moveTo(-W * 0.3, -H * 0.24);
+            ctx.lineTo(W * 0.3, -H * 0.24);
+            ctx.lineTo(W * 0.3, H * 0.05);
+            ctx.quadraticCurveTo(0, H * 0.25, -W * 0.3, H * 0.32);
+            ctx.fill();
+            ctx.fillStyle = "#d00000";
+            ctx.font = "900 18px sans-serif";
+            ctx.textAlign = "center";
+            ctx.fillText("★ ★ ★", W * 0.06, H * 0.26);
+            ctx.restore();
+        },
         plinko() {
             fondo("#240046", "#5a189a");
             for (let f = 0; f < 5; f++) for (let c = 0; c <= f + 3; c++) circulo(W / 2 + (c - (f + 3) / 2) * 16, H * 0.14 + f * H * 0.14, 2.6, "#e0aaff");
