@@ -12,7 +12,7 @@ export async function conectarOnline({ idPartida, yo, actividad, alCambiar, alFa
         idPartida,
         (p) => {
             if (!p) return alFallar("La partida ya no existe");
-            if (primera && p.estado === "invitada" && p.creador !== yo) online.actualizarPartida(idPartida, { estado: "jugando" });
+            if (primera && p.estado === "invitada" && p.creador !== yo) online.aceptarPartida(p);
             alCambiar(p, primera);
             primera = false;
         },
