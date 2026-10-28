@@ -8,6 +8,8 @@ const JUEGOS = [
     { categoria: "solo", nombre: "Fusión", descripcion: "Juntá dos iguales para crear algo mejor", emoji: "🧩", carpeta: "games/fusion/" },
     { categoria: "solo", nombre: "Apilar", descripcion: "Soltá cada bloque justo encima del anterior", emoji: "🧱", carpeta: "games/apilar/" },
     { categoria: "solo", nombre: "Espiral", descripcion: "Girá la torre y hacé caer la pelota", emoji: "🌀", carpeta: "games/espiral/" },
+    { categoria: "solo", nombre: "Panadería", descripcion: "Horneá, contratá encargados y abrí sucursales", emoji: "🥐", carpeta: "games/panaderia/" },
+    { categoria: "solo", nombre: "Colonia espacial", descripcion: "Construí satélites y estaciones en órbita", emoji: "🪐", carpeta: "games/colonia/" },
 
     { categoria: "multi", nombre: "Pool", descripcion: "Bola 8 contra un amigo o la compu", emoji: "🎱", carpeta: "games/pool/" },
     { categoria: "multi", nombre: "Tiro con arco", descripcion: "Duelo de 5 rondas con viento", emoji: "🏹", carpeta: "games/arco/" },
