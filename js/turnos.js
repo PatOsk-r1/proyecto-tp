@@ -21,11 +21,9 @@ export async function conectarOnline({ idPartida, yo, actividad, alCambiar, alFa
     return online;
 }
 
-// Nueva partida contra el mismo amigo
-export async function pedirRevancha(online, juego, partida, yo, datosIniciales) {
-    const rival = partida.jugadores.find((j) => j !== yo);
-    const id = await online.crearPartida(juego, partida.nombres[yo], { uid: rival, nombre: partida.nombres[rival] }, datosIniciales());
-    location.search = `?partida=${id}`;
+// Revancha contra el mismo amigo: si el otro ya la pidió, se entra a esa misma partida
+export function pedirRevancha(online, juego, partida, yo, datosIniciales) {
+    return online.irARevancha(partida, datosIniciales);
 }
 
 // Botones de dificultad (data-nivel) guardados en el estado del juego
