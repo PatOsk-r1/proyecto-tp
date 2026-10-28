@@ -581,6 +581,27 @@
             ctx.textAlign = "left";
             ctx.fillText("2.47×", W * 0.1, H * 0.3);
         },
+        minas() {
+            fondo("#07131d", "#123048");
+            const s = Math.min(W, H) / 5.2;
+            const ox = W / 2 - s * 2.5;
+            const oy = H / 2 - s * 2.5 + 2;
+            for (let f = 0; f < 5; f++) for (let c = 0; c < 5; c++) {
+                const x = ox + c * s + 1.5;
+                const y = oy + f * s + 1.5;
+                const abierta = (f * 5 + c) % 3 === 0;
+                caja(x, y, s - 3, s - 3, 4, abierta ? "#0a1d2c" : "#2c5c80");
+                if (abierta) {
+                    ctx.fillStyle = f === 2 && c === 3 ? "#ff4d6d" : "#4ef0b3";
+                    ctx.beginPath();
+                    ctx.moveTo(x + s / 2 - 1.5, y + s * 0.2);
+                    ctx.lineTo(x + s * 0.78, y + s * 0.45);
+                    ctx.lineTo(x + s / 2 - 1.5, y + s * 0.75);
+                    ctx.lineTo(x + s * 0.2, y + s * 0.45);
+                    ctx.fill();
+                }
+            }
+        },
         plinko() {
             fondo("#240046", "#5a189a");
             for (let f = 0; f < 5; f++) for (let c = 0; c <= f + 3; c++) circulo(W / 2 + (c - (f + 3) / 2) * 16, H * 0.14 + f * H * 0.14, 2.6, "#e0aaff");
