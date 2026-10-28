@@ -99,7 +99,7 @@ function fin() {
         online ? "" : `${estado.victorias} ganadas · ${estado.empates} empates · ${estado.derrotas} perdidas`
     }</div>`;
     $("opciones").hidden = Boolean(online);
-    $("jugar").textContent = online ? "Revancha" : "Otra vez";
+    $("jugar").textContent = online ? online.textoRevancha(partida, yo) : "Otra vez";
     setTimeout(() => ($("centro").hidden = false), 900);
 }
 
@@ -129,8 +129,7 @@ for (const b of document.querySelectorAll(".dificultad button")) {
 
 $("jugar").addEventListener("click", async () => {
     if (!online) return empezarContraBot();
-    const id = await online.crearPartida("tateti", partida.nombres[yo], { uid: rival(), nombre: partida.nombres[rival()] }, datosIniciales());
-    location.search = `?partida=${id}`;
+    await online.irARevancha(partida, datosIniciales);
 });
 
 if (idPartida) {
