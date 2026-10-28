@@ -3,6 +3,7 @@
 import {
     THREE, crearEscena, material, formatear, cargar, guardar, textoFlotante, aPantalla, vibrar, crearParticulas,
 } from "../../js/comun3d.js";
+import { icono } from "../../js/iconos.js";
 
 const $ = (id) => document.getElementById(id);
 const CLAVE = "colonia";
@@ -12,12 +13,12 @@ const MAX_HORAS_AUSENTE = 4;
 const MAX_VISIBLES = 8;
 
 const EDIFICIOS = [
-    { id: "panel", nombre: "Panel solar", icono: "🔆", costo: 15, produce: 0.3, radio: 2.5, velocidad: 0.9, color: 0x3a86ff },
-    { id: "satelite", nombre: "Satélite", icono: "🛰️", costo: 150, produce: 2.5, radio: 3.3, velocidad: 0.6, color: 0xe0e0e0 },
-    { id: "estacion", nombre: "Estación", icono: "🏗️", costo: 1800, produce: 20, radio: 4.2, velocidad: 0.42, color: 0xffb703 },
-    { id: "luna", nombre: "Mina lunar", icono: "🌕", costo: 22000, produce: 160, radio: 5.2, velocidad: 0.3, color: 0xbdbdbd },
-    { id: "nave", nombre: "Carguero", icono: "🚀", costo: 280000, produce: 1300, radio: 6.2, velocidad: 0.22, color: 0xff4d6d },
-    { id: "dyson", nombre: "Anillo Dyson", icono: "💫", costo: 4e6, produce: 11000, radio: 7.3, velocidad: 0.12, color: 0xffd23f },
+    { id: "panel", nombre: "Panel solar", icono: "panel", costo: 15, produce: 0.3, radio: 2.5, velocidad: 0.9, color: 0x3a86ff },
+    { id: "satelite", nombre: "Satélite", icono: "satelite", costo: 150, produce: 2.5, radio: 3.3, velocidad: 0.6, color: 0xe0e0e0 },
+    { id: "estacion", nombre: "Estación", icono: "estacion", costo: 1800, produce: 20, radio: 4.2, velocidad: 0.42, color: 0xffb703 },
+    { id: "luna", nombre: "Mina lunar", icono: "luna", costo: 22000, produce: 160, radio: 5.2, velocidad: 0.3, color: 0xbdbdbd },
+    { id: "nave", nombre: "Carguero", icono: "cohete", costo: 280000, produce: 1300, radio: 6.2, velocidad: 0.22, color: 0xff4d6d },
+    { id: "dyson", nombre: "Anillo Dyson", icono: "anillo", costo: 4e6, produce: 11000, radio: 7.3, velocidad: 0.12, color: 0xffd23f },
 ];
 
 const estado = cargar(CLAVE, { energia: 0, total: 0, materia: 0, toque: 0, edificios: {}, ultimaVez: Date.now() });
@@ -74,7 +75,7 @@ const planeta = new THREE.Mesh(geoPlaneta, new THREE.MeshStandardMaterial({ vert
 scene.add(planeta);
 const atmosfera = new THREE.Mesh(
     new THREE.SphereGeometry(1.75, 32, 24),
-    new THREE.MeshBasicMaterial({ color: 0x7df9ff, transparent: true, opacity: 0.12, side: THREE.BackSide })
+    new THREE.MeshBasicMaterial({ color: 0x7df9ff, transparent: true, opacity: 0.12, side: THREE.BackSide, blending: THREE.AdditiveBlending, depthWrite: false })
 );
 scene.add(atmosfera);
 
@@ -217,10 +218,10 @@ const tarjetas = EDIFICIOS.map((e) => ({
         if (estado.energia < costo) return;
         estado.energia -= costo;
         estado.edificios[e.id]++;
-        if (HITOS.includes(cantidad(e))) avisar(`${e.icono} ¡${e.nombre} ahora produce el doble!`);
+        if (HITOS.includes(cantidad(e))) avisar(`¡${e.nombre} ahora produce el doble!`);
         ubicarPiezas(orbitas.find((o) => o.e === e), true);
         const p = aPantalla(new THREE.Vector3(e.radio, 0, 0), camera, renderer.domElement);
-        textoFlotante(p.x, p.y, e.icono, "#ffffff");
+        textoFlotante(p.x, p.y, `+1 ${e.nombre}`, "#ffffff");
         vibrar(25);
         actualizar();
     }),
@@ -228,7 +229,7 @@ const tarjetas = EDIFICIOS.map((e) => ({
 
 function pintarTarjeta(b, titulo, nivel, detalle, costo, visible = true) {
     b.hidden = !visible;
-    b.querySelector(".titulo").textContent = titulo;
+    b.querySelector(".titulo").innerHTML = titulo;
     b.querySelector(".nivel").textContent = nivel;
     b.querySelector(".detalle").textContent = detalle;
     b.querySelector(".precio").textContent = `⚡ ${formatear(costo)}`;
@@ -247,12 +248,12 @@ function actualizar() {
     $("energia").textContent = `⚡ ${formatear(estado.energia)}`;
     $("por-segundo").textContent = `${formatear(porSegundo())} por segundo · tocá el planeta`;
     $("materia").textContent = estado.materia;
-    pintarTarjeta(tarjetaToque, "👆 Toque potente", `Nv ${estado.toque}`, `+${formatear(porToque())} por toque`, costoToque());
+    pintarTarjeta(tarjetaToque, `${icono("toque")}Toque potente`, `Nv ${estado.toque}`, `+${formatear(porToque())} por toque`, costoToque());
     tarjetas.forEach(({ e, b }, k) => {
         const hito = HITOS.find((h) => cantidad(e) < h);
         // Se muestra cada edificio cuando ya tenés alguno del anterior
         const visible = k === 0 || cantidad(EDIFICIOS[k - 1]) > 0 || cantidad(e) > 0;
-        pintarTarjeta(b, `${e.icono} ${e.nombre}`, `×${cantidad(e)}`, `+${formatear(e.produce * bonoHitos(e) * multiplicador())}/s c/u${hito ? ` · ×2 al ${hito}` : ""}`, costoDe(e), visible);
+        pintarTarjeta(b, `${icono(e.icono)}${e.nombre}`, `×${cantidad(e)}`, `+${formatear(e.produce * bonoHitos(e) * multiplicador())}/s c/u${hito ? ` · ×2 al ${hito}` : ""}`, costoDe(e), visible);
     });
 }
 
