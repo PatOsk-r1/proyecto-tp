@@ -1,5 +1,19 @@
 // Ayudas para juegos 2D en canvas: tamaño nítido en pantallas retina, bucle de animación y partículas.
 
+// Safari anterior a iOS 16 no tiene roundRect: versión simple con un solo radio
+if (typeof CanvasRenderingContext2D !== "undefined" && !CanvasRenderingContext2D.prototype.roundRect) {
+    CanvasRenderingContext2D.prototype.roundRect = function (x, y, w, h, r = 0) {
+        let radio = Array.isArray(r) ? r[0] ?? 0 : r;
+        radio = Math.max(0, Math.min(radio, Math.abs(w) / 2, Math.abs(h) / 2));
+        this.moveTo(x + radio, y);
+        this.arcTo(x + w, y, x + w, y + h, radio);
+        this.arcTo(x + w, y + h, x, y + h, radio);
+        this.arcTo(x, y + h, x, y, radio);
+        this.arcTo(x, y, x + w, y, radio);
+        this.closePath();
+    };
+}
+
 export function crearLienzo(canvas, alCambiarTamano) {
     const ctx = canvas.getContext("2d");
     const datos = { ctx, ancho: 0, alto: 0 };
