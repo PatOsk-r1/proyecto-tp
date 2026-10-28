@@ -152,11 +152,19 @@ export async function regalarFichas(amigo, cantidad, miNombre) {
     mandar();
     if (leer() < cantidad) throw new Error("No te alcanzan las fichas.");
     const { fs, ref } = nube;
-    const lote = fs.writeBatch(ref.firestore);
-    lote.set(fs.doc(fs.collection(ref.firestore, "regalos")), {
+    const db = ref.firestore;
+    const lote = fs.writeBatch(db);
+    const regalo = fs.doc(fs.collection(db, "regalos"));
+    lote.set(regalo, {
         de: ref.id, para: amigo.uid, nombreDe: miNombre, cantidad, cobrado: false, creado: fs.serverTimestamp(),
     });
     lote.update(ref, { fichas: fs.increment(-cantidad) });
+    // El regalo también aparece en el chat con ese amigo
+    const chat = ref.id < amigo.uid ? `${ref.id}_${amigo.uid}` : `${amigo.uid}_${ref.id}`;
+    lote.set(fs.doc(fs.collection(db, "chats", chat, "mensajes")), {
+        de: ref.id, texto: `🎁 Te regalé ${cantidad.toLocaleString("es")} fichas`, creado: fs.serverTimestamp(),
+        tipo: "regalo", regalo: regalo.id, cantidad,
+    });
     await lote.commit();
 }
 
