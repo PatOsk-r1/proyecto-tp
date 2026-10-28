@@ -27,7 +27,25 @@
             </div>
             <div class="pildora-g"><span class="ico-g">🏠</span><strong id="granero">0</strong></div>
         </div>
+        <button id="ajustes" class="boton-ajustes" type="button" aria-label="Ajustes">⚙️</button>
     </header>
+
+    <div id="hoja-ajustes" class="fondo-ajustes" hidden>
+        <div class="ajustes-g" role="dialog" aria-label="Ajustes">
+            <h2>⚙️ Ajustes</h2>
+            <label class="control-vol">
+                <span>🎵 Música</span>
+                <input id="vol-musica" type="range" min="0" max="100" step="1">
+                <b id="txt-musica"></b>
+            </label>
+            <label class="control-vol">
+                <span>🔊 Sonidos</span>
+                <input id="vol-efectos" type="range" min="0" max="100" step="1">
+                <b id="txt-efectos"></b>
+            </label>
+            <button id="cerrar-ajustes" class="boton-verde ancho" type="button">Listo</button>
+        </div>
+    </div>
 
     <div class="cuerpo-g">
         <section class="campo">
