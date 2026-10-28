@@ -16,6 +16,61 @@
     <style>
         .zona-juego { padding: 0; }
         .tema-espacio .boton-grande { color: #02010a; }
+        .bomba {
+            position: absolute;
+            right: 12px;
+            bottom: calc(14px + env(safe-area-inset-bottom));
+            width: 62px;
+            height: 62px;
+            border-radius: 50%;
+            font: inherit;
+            font-size: 1.5rem;
+            color: #fff;
+            background: radial-gradient(circle at 35% 30%, #ff8fa3, #d00000 60%, #6a040f);
+            border: 3px solid #ffffff55;
+            box-shadow: 0 0 18px #ff4d6d88, 0 4px 0 #0008;
+            z-index: 3;
+        }
+        .bomba b {
+            position: absolute;
+            top: -4px;
+            right: -4px;
+            min-width: 22px;
+            padding: 1px 5px;
+            border-radius: 999px;
+            background: #fff;
+            color: #d00000;
+            font-size: 0.75rem;
+        }
+        .bomba:disabled { filter: grayscale(1); opacity: 0.5; }
+        .boton-hangar {
+            pointer-events: auto;
+            font: inherit;
+            font-weight: 900;
+            font-size: 1rem;
+            color: #fff;
+            background: linear-gradient(180deg, #3a86ff, #3a0ca3);
+            border: none;
+            border-radius: 999px;
+            padding: 10px 18px;
+            box-shadow: 0 4px 0 #0008;
+        }
+        .hangar { justify-content: flex-start; padding-top: 16px; overflow-y: auto; pointer-events: auto; }
+        .lista-hangar { width: min(100%, 420px); display: flex; flex-direction: column; gap: 7px; }
+        .item-h {
+            display: flex; align-items: center; gap: 10px; padding: 8px 12px;
+            font: inherit; text-align: left; color: #fff;
+            background: linear-gradient(160deg, #ffffff1c, #ffffff08);
+            border: 1px solid #ffffff2a; border-radius: 14px;
+        }
+        .item-h canvas { width: 48px; height: 48px; flex-shrink: 0; }
+        .item-h .ico { font-size: 1.4rem; width: 48px; text-align: center; }
+        .item-h .txt { flex: 1; font-size: 0.85rem; font-weight: 800; }
+        .item-h .txt small { display: block; color: var(--texto-suave); font-weight: 600; }
+        .item-h .precio { font-weight: 900; color: #7df9ff; white-space: nowrap; }
+        .item-h.puesta { border-color: #7df9ff; box-shadow: 0 0 14px #7df9ff55; }
+        .item-h:disabled { opacity: 0.45; }
+        .sub-h { font-size: 0.9rem; color: var(--texto-suave); margin-top: 4px; }
     </style>
 </head>
 <body class="pantalla-3d tema-espacio">
@@ -26,15 +81,26 @@
 
     <div class="info-juego">
         <div class="dato"><span>Puntos</span><strong id="puntos">0</strong></div>
+        <div class="dato"><span>Sector</span><strong id="sector">1</strong></div>
         <div class="dato"><span>Vidas</span><strong id="vidas">3</strong></div>
-        <div class="dato"><span>Récord</span><strong id="record">0</strong></div>
+        <div class="dato"><span>Cristales</span><strong id="cristales">0</strong></div>
     </div>
 
     <main class="zona-juego">
         <canvas id="lienzo" class="lienzo-juego"></canvas>
+        <button id="bomba" class="bomba" type="button" hidden>💥<b id="bombas">0</b></button>
         <div id="centro" class="mensaje-centro">
-            <div id="titulo-centro">Corredor espacial<div class="chico">Mové la nave con el dedo; dispara sola. Esquivá y destruí todo lo que puedas.</div></div>
+            <div id="titulo-centro">Corredor espacial<div class="chico">Mové la nave con el dedo; dispara sola. Cada sector termina con un jefe. Récord: <span id="record">0</span></div></div>
             <button id="jugar" class="boton-grande" type="button">Despegar</button>
+            <button id="abrir-hangar" class="boton-hangar" type="button">🚀 Hangar</button>
+        </div>
+        <div id="hangar" class="mensaje-centro hangar" hidden>
+            <div>🚀 Hangar <span style="color:#7df9ff;font-size:1rem">💎 <b id="cristales-hangar">0</b></span></div>
+            <div class="sub-h">Naves</div>
+            <div id="naves" class="lista-hangar"></div>
+            <div class="sub-h">Mejoras</div>
+            <div id="mejoras" class="lista-hangar"></div>
+            <button id="cerrar-hangar" class="boton-grande" type="button">Listo</button>
         </div>
     </main>
 
