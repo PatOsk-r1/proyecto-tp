@@ -93,19 +93,89 @@ function tocar(i) {
     }
 }
 
+const pausa = (ms) => new Promise((ok) => setTimeout(ok, ms));
+const celda = (i) => casillas[aTablero(i)];
+
+function chispas(x, y, color) {
+    for (let k = 0; k < 10; k++) {
+        const c = document.createElement("span");
+        c.className = "chispa-d";
+        c.style.cssText = `left:${x}px;top:${y}px;background:${k % 2 ? color : "#ffd23f"}`;
+        document.body.appendChild(c);
+        const a = (k / 10) * Math.PI * 2;
+        c.animate([{ transform: "translate(-50%,-50%)", opacity: 1 }, { transform: `translate(${Math.cos(a) * 40 - 3}px, ${Math.sin(a) * 40 - 3}px)`, opacity: 0 }], { duration: 450, easing: "ease-out" }).onfinish = () => c.remove();
+    }
+}
+
+function flotante(i, texto) {
+    const r = celda(i).getBoundingClientRect();
+    const el = document.createElement("div");
+    el.className = "flotante-d";
+    el.style.left = `${r.left + r.width / 2}px`;
+    el.style.top = `${r.top}px`;
+    el.textContent = texto;
+    document.body.appendChild(el);
+    setTimeout(() => el.remove(), 1200);
+}
+
+// Desliza la ficha de una casilla a otra (en arco si es un salto)
+async function deslizar(desde, hasta, salto) {
+    const ficha = celda(desde).querySelector(".ficha-d");
+    if (!ficha) return;
+    const r0 = ficha.getBoundingClientRect();
+    const r1 = celda(hasta).getBoundingClientRect();
+    const clon = ficha.cloneNode(true);
+    clon.classList.remove("elegida", "puede");
+    clon.classList.add("ficha-volando");
+    Object.assign(clon.style, { left: `${r0.left}px`, top: `${r0.top}px`, width: `${r0.width}px`, height: `${r0.height}px` });
+    document.body.appendChild(clon);
+    ficha.style.visibility = "hidden";
+    const dx = r1.left + (r1.width - r0.width) / 2 - r0.left;
+    const dy = r1.top + (r1.height - r0.height) / 2 - r0.top;
+    const anim = clon.animate(
+        [
+            { transform: "translate(0,0) scale(1)" },
+            { transform: `translate(${dx / 2}px, ${dy / 2 - (salto ? 26 : 6)}px) scale(${salto ? 1.25 : 1.08})`, offset: 0.5 },
+            { transform: `translate(${dx}px, ${dy}px) scale(1)` },
+        ],
+        { duration: salto ? 340 : 240, easing: "ease-in-out" }
+    );
+    await anim.finished;
+    clon.remove();
+}
+
 // Mueve la ficha salto por salto
 async function animar(antes, jugada) {
     animando = true;
     let t = [...antes];
     let desde = jugada.desde;
+    const eraDama = esDama(antes[jugada.desde]);
     for (let k = 0; k < jugada.camino.length; k++) {
         const paso = { desde, camino: [jugada.camino[k]], capturas: jugada.capturas[k] !== undefined ? [jugada.capturas[k]] : [] };
+        await deslizar(desde, jugada.camino[k], paso.capturas.length > 0);
+        if (paso.capturas.length) {
+            const comida = celda(paso.capturas[0]).querySelector(".ficha-d");
+            if (comida) {
+                const r = comida.getBoundingClientRect();
+                comida.classList.add("comida");
+                chispas(r.left + r.width / 2, r.top + r.height / 2, comida.classList.contains("roja") ? "#ff4d6d" : "#adb5bd");
+                await pausa(200);
+            }
+        }
         t = aplicar(t, paso);
         desde = jugada.camino[k];
         dibujar(t);
         vibrar(paso.capturas.length ? 25 : 8);
-        await new Promise((ok) => setTimeout(ok, 260));
+        await pausa(60);
     }
+    // Coronación
+    if (!eraDama && esDama(t[desde])) {
+        celda(desde).querySelector(".ficha-d")?.classList.add("corona");
+        flotante(desde, "♛ ¡Dama!");
+        vibrar([40, 40, 80]);
+        await pausa(500);
+    }
+    if (jugada.capturas.length > 1) flotante(desde, `¡Comiste ${jugada.capturas.length}!`);
     animando = false;
 }
 
