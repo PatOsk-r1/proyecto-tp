@@ -199,6 +199,11 @@ function clavar(tiro, color) {
 let partida = null; // misma forma que en Firestore, también contra la compu
 let online = null; // módulo multijugador cuando se juega con un amigo
 const yo = usuario.uid ?? "yo";
+const ganadorArco = (p) => {
+    const t = totales(p);
+    const [a, b] = p.jugadores;
+    return (t[a] ?? 0) === (t[b] ?? 0) ? "empate" : (t[a] ?? 0) > (t[b] ?? 0) ? a : b;
+};
 let mostrados = 0; // tiros ya dibujados en la diana
 let animando = false;
 
@@ -317,6 +322,7 @@ async function disparar(uid, yawTiro, pitchTiro) {
             tiros: nuevos,
             turno: fin ? null : turnoDe(proxima),
             estado: fin ? "terminada" : "jugando",
+            ganador: fin ? ganadorArco(proxima) : null,
         });
         // La animación arranca cuando llega el cambio desde Firestore
     } else {
@@ -501,7 +507,7 @@ async function iniciarOnline() {
                 // Al abrir: dibujar las flechas que ya se tiraron, sin animar
                 for (const t of p.tiros) clavar(t, t.uid === yo ? AZUL : ROJO);
                 mostrados = p.tiros.length;
-                if (p.estado === "invitada" && p.creador !== yo) online.actualizarPartida(idPartida, { estado: "jugando" });
+                if (p.estado === "invitada" && p.creador !== yo) online.aceptarPartida(p);
             }
             // Animar los tiros nuevos (propios o del amigo) de a uno
             while (mostrados < partida.tiros.length && !animando) {
