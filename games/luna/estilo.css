@@ -1,0 +1,234 @@
+.tema-luna {
+    --fondo: #070816;
+    --fondo-2: #1a1d45;
+    --texto-suave: #c9d2ff;
+    --acento: #7df9ff;
+    --acento-2: #4cc9f0;
+    --panel: #060714dd;
+}
+
+.tema-luna .boton-grande {
+    color: #08102a;
+}
+
+.zona-juego {
+    padding: 4px;
+}
+
+.boton-chico-l {
+    margin-left: auto;
+    font: inherit;
+    color: #fff;
+    background: #ffffff1c;
+    border: 1px solid #ffffff33;
+    border-radius: 10px;
+    padding: 6px 12px;
+}
+
+.progreso {
+    position: absolute;
+    top: 8px;
+    left: 50%;
+    width: 46%;
+    height: 8px;
+    transform: translateX(-50%);
+    border-radius: 999px;
+    background: #0009;
+    border: 1px solid #ffffff33;
+    overflow: hidden;
+    pointer-events: none;
+}
+
+.progreso div {
+    height: 100%;
+    width: 0;
+    background: linear-gradient(90deg, #7df9ff, #f72585);
+}
+
+/* ---------- Cartas de defensas ---------- */
+
+.cartas {
+    display: flex;
+    gap: 6px;
+    padding: 8px 8px calc(10px + env(safe-area-inset-bottom));
+    background: var(--panel);
+    border-top: 1px solid var(--borde);
+}
+
+.lista-cartas {
+    flex: 1;
+    display: flex;
+    gap: 6px;
+    overflow-x: auto;
+    scrollbar-width: none;
+}
+
+.carta {
+    position: relative;
+    flex: 0 0 58px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1px;
+    padding: 4px 2px;
+    font: inherit;
+    font-size: 0.62rem;
+    font-weight: 800;
+    color: var(--texto);
+    background: linear-gradient(180deg, #ffffff18, #ffffff06);
+    border: 2px solid #ffffff22;
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.carta canvas {
+    width: 36px;
+    height: 36px;
+}
+
+.carta b {
+    color: var(--acento);
+}
+
+.carta.elegida {
+    border-color: var(--acento);
+    box-shadow: 0 0 10px #7df9ff88;
+}
+
+.carta:disabled {
+    opacity: 0.45;
+}
+
+.carta i {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    height: 0;
+    background: #000a;
+    pointer-events: none;
+}
+
+.quitar {
+    flex: 0 0 48px;
+    font-size: 1.3rem;
+    background: #ffffff12;
+    border: 2px solid #ffffff22;
+    border-radius: 12px;
+}
+
+.quitar.elegida {
+    border-color: #ff8a80;
+    background: #ff8a8033;
+}
+
+/* ---------- Menú y taller ---------- */
+
+.elegir-nivel {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    pointer-events: auto;
+}
+
+.elegir-nivel button {
+    width: 44px;
+    height: 44px;
+    font: inherit;
+    font-size: 1.4rem;
+    font-weight: 900;
+    color: #fff;
+    background: #ffffff1c;
+    border: 1px solid #ffffff33;
+    border-radius: 50%;
+}
+
+.elegir-nivel button:disabled {
+    opacity: 0.3;
+}
+
+.elegir-nivel div {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 60px;
+}
+
+.elegir-nivel small {
+    color: var(--texto-suave);
+    font-weight: 800;
+}
+
+.elegir-nivel b {
+    font-size: 2rem;
+    color: var(--acento);
+}
+
+.enlace-taller {
+    pointer-events: auto;
+    font: inherit;
+    font-weight: 900;
+    font-size: 1rem;
+    color: #fff;
+    background: #3a0ca3;
+    border: none;
+    border-radius: 999px;
+    padding: 10px 18px;
+}
+
+.taller {
+    justify-content: flex-start;
+    padding-top: 24px;
+    overflow-y: auto;
+}
+
+.titulo-taller {
+    font-size: 1.4rem;
+}
+
+.titulo-taller span {
+    font-size: 1rem;
+    color: var(--acento);
+}
+
+.mejoras-taller {
+    width: min(100%, 420px);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    pointer-events: auto;
+}
+
+.mejora-t {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    font: inherit;
+    text-align: left;
+    color: #fff;
+    background: #ffffff14;
+    border: 1px solid #ffffff2a;
+    border-radius: 14px;
+}
+
+.mejora-t .txt {
+    flex: 1;
+    font-size: 0.85rem;
+    font-weight: 700;
+}
+
+.mejora-t .txt small {
+    display: block;
+    color: var(--texto-suave);
+    font-weight: 600;
+}
+
+.mejora-t .precio {
+    font-weight: 900;
+    color: var(--acento);
+}
+
+.mejora-t:disabled {
+    opacity: 0.45;
+}
