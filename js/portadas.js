@@ -675,6 +675,28 @@
             }
             for (const [k, x] of [[0, 0.2], [1, 0.4], [2, 0.6], [3, 0.8]]) bola(W * x, oy - s * 0.2 - 2, s * 0.32, k % 2 ? "#ffd166" : "#c9bfff");
         },
+        rueda() {
+            fondo("#160326", "#4a0e5c");
+            const x = W / 2;
+            const y = H * 0.56;
+            const r = H * 0.4;
+            circulo(x, y, r + 5, "#ffd166");
+            const colores = ["#3a2a4a", "#8ac926", "#3a2a4a", "#1982c4", "#3a2a4a", "#ffbe0b", "#3a2a4a", "#ff7a1a", "#3a2a4a", "#ff006e", "#3a2a4a", "#1982c4"];
+            colores.forEach((c, i) => {
+                ctx.fillStyle = c;
+                ctx.beginPath();
+                ctx.moveTo(x, y);
+                ctx.arc(x, y, r, (i / 12) * TAU, ((i + 1) / 12) * TAU);
+                ctx.fill();
+            });
+            circulo(x, y, r * 0.25, "#b5179e");
+            ctx.fillStyle = "#fff";
+            ctx.beginPath();
+            ctx.moveTo(x - 8, y - r - 8);
+            ctx.lineTo(x + 8, y - r - 8);
+            ctx.lineTo(x, y - r + 8);
+            ctx.fill();
+        },
         plinko() {
             fondo("#240046", "#5a189a");
             for (let f = 0; f < 5; f++) for (let c = 0; c <= f + 3; c++) circulo(W / 2 + (c - (f + 3) / 2) * 16, H * 0.14 + f * H * 0.14, 2.6, "#e0aaff");
