@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="es" class="verificando">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>Puntos y cajas · Proyecto TP</title>
+    <meta name="theme-color" content="#14213d">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="../../icons/icon-180.png">
+    <link rel="manifest" href="../../manifest.webmanifest">
+
+    <link rel="stylesheet" href="../../css/estilos.css">
+    <link rel="stylesheet" href="../../css/juegos3d.css">
+    <link rel="stylesheet" href="../../css/tablero.css">
+    <style>
+        .tema-cajas {
+            --fondo: #0e1630;
+            --fondo-2: #22305f;
+            --texto-suave: #d0dbff;
+            --acento: #ffd23f;
+            --acento-2: #ff9f1c;
+            --panel: #080e22cc;
+        }
+        #hoja {
+            width: min(94vw, 58vh, 480px);
+            aspect-ratio: 1;
+            border-radius: 18px;
+            background:
+                repeating-linear-gradient(0deg, #e8eefc 0 23px, #c9d6f5 23px 24px),
+                #f4f7ff;
+            box-shadow: 0 16px 34px #000a;
+            touch-action: manipulation;
+        }
+        .linea-c { stroke-linecap: round; transition: stroke 0.2s; }
+        .linea-c.libre { stroke: #c2cbe0; stroke-dasharray: 2 10; }
+        .linea-c.j1 { stroke: #e63946; }
+        .linea-c.j2 { stroke: #3a86ff; }
+        .linea-c.ultima { filter: drop-shadow(0 0 6px #ffd23f); }
+        .zona-toque { stroke: transparent; cursor: pointer; }
+        .caja-c { transition: fill 0.3s; }
+        .caja-c.j1 { fill: #e6394633; }
+        .caja-c.j2 { fill: #3a86ff33; }
+        .letra-c { font-weight: 900; text-anchor: middle; dominant-baseline: central; }
+        .punto-c { fill: #14213d; }
+        .color-j1 { color: #ff6b75; }
+        .color-j2 { color: #6aa6ff; }
+    </style>
+</head>
+<body class="pantalla-3d tema-cajas">
+    <header class="barra-juego">
+        <a class="boton-volver" href="../../">‹ Juegos</a>
+        <h1>Puntos y cajas</h1>
+    </header>
+
+    <div class="marcador-turnos">
+        <div id="j-yo" class="jugador-t"><span>Vos</span><span class="puntos-t">0</span></div>
+        <span id="estado" class="estado-t">Tu turno</span>
+        <div id="j-rival" class="jugador-t"><span>Rival</span><span class="puntos-t">0</span></div>
+    </div>
+
+    <main class="zona-tablero">
+        <svg id="hoja" viewBox="0 0 600 600"></svg>
+        <div id="aviso" class="aviso-t">Uní dos puntos. Si cerrás una caja, es tuya y jugás de nuevo.</div>
+
+        <div id="centro" class="mensaje-centro">
+            <div id="titulo-centro">Puntos y cajas<div class="chico">Cerrá más cajas que tu rival</div></div>
+            <div class="dificultad">
+                <button data-nivel="0">Fácil</button>
+                <button data-nivel="1">Normal</button>
+                <button data-nivel="2">Difícil</button>
+            </div>
+            <button id="jugar" class="boton-grande" type="button">Jugar contra la compu</button>
+            <a class="enlace-amigos" href="../../amigos.html">👥 Jugar con un amigo</a>
+        </div>
+    </main>
+
+    <script type="module">
+        import { exigirSesion } from "../../js/sesion.js";
+        exigirSesion();
+    </script>
+    <script type="module" src="juego.js"></script>
+</body>
+</html>
