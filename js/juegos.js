@@ -18,6 +18,8 @@ const JUEGOS = [
     { categoria: "solo", nombre: "Corredor espacial", descripcion: "Esquivá y destruí oleadas de naves", emoji: "🚀", carpeta: "games/espacial/" },
     { categoria: "solo", nombre: "Solitario", descripcion: "El clásico de cartas: armá las cuatro pilas", emoji: "♣️", carpeta: "games/solitario/" },
     { categoria: "solo", nombre: "Sopa de letras", descripcion: "Encontrá las palabras escondidas", emoji: "🔤", carpeta: "games/sopa/" },
+    { categoria: "solo", nombre: "Defensa de torres", descripcion: "Poné torres y frená las oleadas", emoji: "🏰", carpeta: "games/torres/" },
+    { categoria: "solo", nombre: "Minigolf", descripcion: "9 hoyos con agua, arena y molinos", emoji: "⛳", carpeta: "games/minigolf/" },
 
     { categoria: "multi", nombre: "Pool", descripcion: "Bola 8 contra un amigo o la compu", emoji: "🎱", carpeta: "games/pool/" },
     { categoria: "multi", nombre: "Tiro con arco", descripcion: "Duelo de 5 rondas con viento", emoji: "🏹", carpeta: "games/arco/" },
