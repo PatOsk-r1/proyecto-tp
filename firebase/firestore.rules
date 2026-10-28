@@ -130,6 +130,16 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    // Progreso guardado de cada juego (copia en la nube del almacenamiento del dispositivo). Solo lo ve y edita su dueño.
+    match /progreso/{uid}/claves/{clave} {
+      allow read, delete: if conectado() && request.auth.uid == uid;
+      allow create, update: if conectado() && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['valor', 'tsLocal', 'ts'])
+        && request.resource.data.valor is string
+        && request.resource.data.valor.size() < 500000
+        && request.resource.data.tsLocal is number;
+    }
+
     // Regalos de fichas entre amigos. Quien regala paga en el mismo lote; quien recibe cobra una sola vez.
     match /regalos/{id} {
       allow read: if conectado() && (resource.data.de == request.auth.uid || resource.data.para == request.auth.uid);
