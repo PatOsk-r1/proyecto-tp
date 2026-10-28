@@ -1,6 +1,8 @@
 // Fichas del casino: una sola billetera para todos los juegos de casino y los desafíos con apuesta.
 // Se guarda en este dispositivo y, con sesión iniciada, también en la nube (Firestore: billeteras/{uid}),
 // así se pueden regalar fichas a amigos y el saldo es el mismo en todos tus dispositivos.
+import { claveJuego, recordarXp } from "./experiencia.js";
+
 const CLAVE = "casino-fichas";
 const CLAVE_RECARGA = "casino-recarga";
 const INICIAL = 1000;
@@ -122,6 +124,11 @@ async function conectarNube() {
         const datos = d.data();
         recargaNube = datos.recarga ?? "";
         escribir((datos.fichas ?? 0) + pendiente);
+        // Fuera de los juegos se guarda el nivel de cada juego para mostrarlo en la lista
+        if (!claveJuego()) {
+            recordarXp(datos.stats);
+            dispatchEvent(new CustomEvent("experiencia"));
+        }
     });
     // Regalos que te mandaron: se cobran solos
     const q = fs.query(fs.collection(db, "regalos"), fs.where("para", "==", usuario.uid), fs.where("cobrado", "==", false));
