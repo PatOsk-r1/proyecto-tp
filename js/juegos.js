@@ -28,5 +28,6 @@ const JUEGOS = [
     { categoria: "casino", nombre: "Tragamonedas", descripcion: "Tres iguales y te llevás el premio", emoji: "🎰", carpeta: "games/tragamonedas/" },
     { categoria: "casino", nombre: "Plinko", descripcion: "Soltá bolas entre clavos y multiplicá", emoji: "🔮", carpeta: "games/plinko/" },
     { categoria: "casino", nombre: "Crash", descripcion: "Retirate antes de que explote el cohete", emoji: "🚀", carpeta: "games/crash/" },
+    { categoria: "casino", nombre: "Minas", descripcion: "Encontrá gemas sin pisar una bomba", emoji: "💎", carpeta: "games/minas/" },
     { categoria: "casino", nombre: "Dados", descripcion: "¿Bajo, siete o sobre?", emoji: "🎲", carpeta: "games/dados/" },
 ];
