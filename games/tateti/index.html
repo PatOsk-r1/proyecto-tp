@@ -31,6 +31,7 @@
             padding: 16px;
         }
         .tablero {
+            position: relative;
             width: min(88vw, 380px);
             aspect-ratio: 1;
             display: grid;
@@ -60,6 +61,17 @@
         .celda.o { color: #4cc9f0; text-shadow: 0 0 18px #4cc9f088; }
         .celda.nueva { animation: aparecer 0.25s ease-out; }
         .celda.ganadora { background: #ffd23f44; box-shadow: 0 0 22px #ffd23f; }
+        .celda svg { width: 72%; height: 72%; overflow: visible; }
+        .celda svg * { fill: none; stroke-linecap: round; stroke-width: 14; }
+        .celda.x svg * { stroke: #ff4d6d; filter: drop-shadow(0 0 6px #ff4d6d); }
+        .celda.o svg * { stroke: #4cc9f0; filter: drop-shadow(0 0 6px #4cc9f0); }
+        .celda.nueva svg * { stroke-dasharray: 260; stroke-dashoffset: 260; animation: trazar 0.35s ease-out forwards; }
+        .celda.nueva svg line:nth-child(2) { animation-delay: 0.15s; }
+        @keyframes trazar { to { stroke-dashoffset: 0; } }
+        .celda:not(:disabled):hover { background: linear-gradient(160deg, #ffffff33, #ffffff10); }
+        .linea-ganadora { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+        .linea-ganadora line { stroke: #ffd23f; stroke-width: 10; stroke-linecap: round; filter: drop-shadow(0 0 10px #ffd23f); stroke-dasharray: 600; stroke-dashoffset: 600; animation: trazar 0.5s 0.2s ease-out forwards; }
+        .confeti { position: fixed; top: -12px; width: 9px; height: 14px; border-radius: 2px; z-index: 20; pointer-events: none; }
         .simbolo-x { color: #ff4d6d; font-weight: 900; margin-right: 6px; }
         .simbolo-o { color: #4cc9f0; font-weight: 900; margin-right: 6px; }
     </style>
