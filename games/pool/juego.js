@@ -653,7 +653,7 @@ function alCambiarPartida(p) {
         tiroN = p.pool.tiroN;
         juego.grupos = [p.pool.grupos?.[yo] ?? null, p.pool.grupos?.[rival] ?? null];
         $("centro").hidden = true;
-        if (p.estado === "invitada" && p.creador !== yo) online.actualizarPartida(idPartida, { estado: "jugando" });
+        if (p.estado === "invitada" && p.creador !== yo) online.aceptarPartida(p);
         return seguirSegunPartida();
     }
     if (p.pool.tiroN > tiroN) {
