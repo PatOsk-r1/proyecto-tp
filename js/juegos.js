@@ -12,6 +12,7 @@ const JUEGOS = [
     { categoria: "solo", nombre: "Rompeladrillos", descripcion: "Rompé todos los ladrillos con la pelota", emoji: "🧱", carpeta: "games/ladrillos/" },
     { categoria: "solo", nombre: "Corredor espacial", descripcion: "Esquivá y destruí oleadas de naves", emoji: "🚀", carpeta: "games/espacial/" },
     { categoria: "solo", nombre: "Defensa de torres", descripcion: "Poné torres y frená las oleadas", emoji: "🏰", carpeta: "games/torres/" },
+    { categoria: "solo", nombre: "Fusión mágica", descripcion: "Fusioná magos y frená a los monstruos", emoji: "🧙", carpeta: "games/magos/" },
     { categoria: "solo", nombre: "Defensa lunar", descripcion: "Frená a los aliens en 5 carriles", emoji: "👽", carpeta: "games/luna/" },
 
     { categoria: "multi", nombre: "Pool", descripcion: "Bola 8 contra un amigo o la compu", emoji: "🎱", carpeta: "games/pool/" },
