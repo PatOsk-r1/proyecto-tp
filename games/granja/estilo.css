@@ -258,6 +258,140 @@
     border: 2px solid #8d5a2b;
 }
 
+/* ---------- Garra de premios ---------- */
+.boton-garra {
+    position: absolute;
+    left: 8px;
+    bottom: calc(24% + 34px);
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    padding: 5px 9px 5px 7px;
+    font-size: 1.3rem;
+    border-radius: 999px;
+    background: var(--crema);
+    border: 2px solid #4a2e17;
+    box-shadow: 0 3px 0 #0005;
+    opacity: 0.75;
+}
+
+.boton-garra b {
+    font-size: 0.8rem;
+    font-weight: 900;
+    color: var(--marron);
+}
+
+.boton-garra.hay {
+    opacity: 1;
+    background: linear-gradient(180deg, #ffe066, #f4a261);
+    animation: latido 1.4s ease-in-out infinite;
+}
+
+.fondo-garra {
+    position: fixed;
+    inset: 0;
+    z-index: 60;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 12px;
+    background: #000b;
+    animation: aparecer 0.2s ease-out;
+}
+
+.maquina-garra {
+    width: min(360px, 100%);
+    max-height: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 10px;
+    border-radius: 22px;
+    background: linear-gradient(180deg, #ff4d6d, #c9184a);
+    border: 4px solid #590d22;
+    box-shadow: 0 20px 50px #000c;
+}
+
+.cartel-garra {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 12px;
+    border-radius: 12px;
+    background: #590d22;
+    color: #ffd166;
+    font-weight: 900;
+}
+
+.cartel-garra b {
+    color: #fff;
+    font-size: 0.9rem;
+}
+
+.lienzo-garra {
+    width: 100%;
+    aspect-ratio: 320 / 380;
+    max-height: 56vh;
+    object-fit: contain;
+    border-radius: 14px;
+    border: 3px solid #590d22;
+    background: #140d33;
+    touch-action: none;
+}
+
+.mensaje-garra {
+    min-height: 2.4em;
+    text-align: center;
+    font-weight: 900;
+    font-size: 0.85rem;
+    color: #fff;
+}
+
+.controles-garra {
+    display: grid;
+    grid-template-columns: 64px 1fr 64px;
+    gap: 8px;
+}
+
+.controles-garra button {
+    height: 52px;
+    font: inherit;
+    font-weight: 900;
+    font-size: 1.2rem;
+    border-radius: 14px;
+    border: 3px solid #590d22;
+    color: #590d22;
+    background: linear-gradient(180deg, #fff4dc, #f6e3bc);
+    box-shadow: 0 4px 0 #590d22;
+    touch-action: none;
+}
+
+.controles-garra .bajar-garra {
+    color: #fff;
+    background: linear-gradient(180deg, #8fd14f, #3f9a2a);
+    text-shadow: 0 1px 0 #2a5a14;
+}
+
+.controles-garra button:active:not(:disabled) {
+    transform: translateY(3px);
+    box-shadow: 0 1px 0 #590d22;
+}
+
+.controles-garra button:disabled {
+    opacity: 0.45;
+}
+
+.salir-garra {
+    font: inherit;
+    font-weight: 900;
+    padding: 8px;
+    border-radius: 12px;
+    border: none;
+    background: #590d22;
+    color: #fff4dc;
+}
+
 .version-g {
     text-align: center;
     font-size: 0.7rem;
