@@ -606,7 +606,7 @@ function terminar(ganador, motivo) {
     }
     vibrar(ganador === 0 ? 80 : 150);
     $("titulo-centro").innerHTML = `${ganador === 0 ? "¡Ganaste!" : `Ganó ${nombres[ganador]}`}<div class="chico">${motivo}</div>`;
-    $("jugar").textContent = online ? "Revancha" : "Otra partida";
+    $("jugar").textContent = online ? online.textoRevancha(partida, yo) : "Otra partida";
     $("opciones").hidden = Boolean(online);
     $("centro").hidden = false;
     pintarControles();
@@ -643,6 +643,8 @@ function alCambiarPartida(p) {
     }
     const primera = !partida;
     partida = p;
+    // Si la partida ya terminó y el amigo pidió la revancha, el botón cambia a "Aceptar revancha"
+    if (!primera && p.estado === "terminada" && juego.fase === "fin") $("jugar").textContent = online.textoRevancha(p, yo);
     if (primera) {
         const rival = p.jugadores.find((j) => j !== yo);
         jugadores = [yo, rival];
@@ -948,10 +950,9 @@ for (const b of document.querySelectorAll(".dificultad button")) {
 
 $("jugar").addEventListener("click", async () => {
     if (online) {
-        // Revancha: nueva partida contra el mismo amigo
+        // Revancha: si el amigo ya la pidió, se entra a esa misma partida
         const { datosIniciales } = await import("./reglas.js");
-        const id = await online.crearPartida("pool", partida.nombres[yo], { uid: jugadores[1], nombre: nombres[1] }, datosIniciales());
-        location.search = `?partida=${id}`;
+        await online.irARevancha(partida, datosIniciales);
         return;
     }
     armarMesa(armarTriangulo());
