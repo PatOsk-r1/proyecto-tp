@@ -168,7 +168,7 @@ function fin() {
         empate ? "Muchas jugadas sin comer" : gane ? "Tu rival se quedó sin jugadas" : "Te quedaste sin jugadas"
     }</div>`;
     document.querySelector(".dificultad").hidden = Boolean(online);
-    $("jugar").textContent = online ? "Revancha" : "Otra vez";
+    $("jugar").textContent = online ? online.textoRevancha(partida, yo) : "Otra vez";
     setTimeout(() => ($("centro").hidden = false), 800);
 }
 
