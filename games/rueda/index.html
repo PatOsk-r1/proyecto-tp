@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="es" class="verificando">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>Rueda de la fortuna · Proyecto TP</title>
+    <meta name="theme-color" content="#2b0a3d">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="../../icons/icon-180.png">
+    <link rel="manifest" href="../../manifest.webmanifest">
+
+    <link rel="stylesheet" href="../../css/estilos.css">
+    <link rel="stylesheet" href="../../css/juegos3d.css">
+    <style>
+        .tema-rueda {
+            --fondo: #160326;
+            --fondo-2: #4a0e5c;
+            --texto-suave: #f1d4ff;
+            --acento: #ffd166;
+            --acento-2: #ff7a1a;
+            --panel: #0e0218cc;
+        }
+        .zona-rueda {
+            flex: 1;
+            min-height: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            padding: 6px 10px;
+        }
+        #rueda { width: min(88vw, 46vh, 400px); height: min(88vw, 46vh, 400px); }
+        .resultado-r { min-height: 1.4em; font-size: 1.3rem; font-weight: 900; text-align: center; text-shadow: 0 2px 6px #000a; }
+        .resultado-r.gano { color: var(--acento); animation: aparecer 0.3s ease-out; }
+        .leyenda { display: flex; gap: 5px; flex-wrap: wrap; justify-content: center; }
+        .leyenda span { padding: 3px 9px; border-radius: 999px; font-size: 0.75rem; font-weight: 900; color: #160326; background: var(--c); }
+        .leyenda span.toco { outline: 3px solid #fff; animation: latir 0.5s ease-in-out 3; }
+        .riesgo { display: flex; gap: 4px; justify-content: center; padding: 3px; border-radius: 12px; background: #0006; align-self: center; }
+        .riesgo button { font: inherit; font-size: 0.8rem; font-weight: 800; color: var(--texto-suave); background: none; border: none; border-radius: 9px; padding: 6px 14px; }
+        .riesgo button.activa { color: #160326; background: linear-gradient(180deg, #ffe08a, #ff9f1c); }
+        .riesgo button:disabled:not(.activa) { opacity: 0.4; }
+        .fila-girar { display: flex; gap: 8px; }
+        .fila-girar #girar { flex: 2; color: #2a1400; }
+        .fila-girar #auto { flex: 1; }
+        #auto.activo { background: linear-gradient(180deg, #ffadad, #e63946); }
+    </style>
+</head>
+<body class="pantalla-3d tema-casino tema-rueda">
+    <header class="barra-juego">
+        <a class="boton-volver" href="../../">‹ Juegos</a>
+        <h1>Rueda de la fortuna</h1>
+        <div id="fichas" class="fichas-total"></div>
+    </header>
+
+    <main class="zona-rueda">
+        <canvas id="rueda" width="800" height="800"></canvas>
+        <div id="resultado" class="resultado-r">Elegí el riesgo y girá</div>
+        <div id="leyenda" class="leyenda"></div>
+    </main>
+
+    <div class="controles-casino">
+        <div class="riesgo">
+            <button data-riesgo="bajo">Bajo</button>
+            <button data-riesgo="medio" class="activa">Medio</button>
+            <button data-riesgo="alto">Alto</button>
+        </div>
+        <div class="apuesta-fila">
+            <button id="menos" class="redondo" type="button">−</button>
+            <div class="apuesta">Apuesta<strong id="apuesta">10</strong></div>
+            <button id="mas" class="redondo" type="button">+</button>
+        </div>
+        <div class="fila-girar">
+            <button id="girar" class="accion" type="button">🎡 Girar</button>
+            <button id="auto" class="accion secundaria" type="button">🔁 Auto</button>
+        </div>
+        <button id="recargar" class="accion secundaria" type="button" hidden>Recargar fichas</button>
+    </div>
+
+    <script type="module">
+        import { exigirSesion } from "../../js/sesion.js";
+        exigirSesion();
+    </script>
+    <script type="module" src="juego.js"></script>
+</body>
+</html>
