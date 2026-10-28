@@ -7,6 +7,9 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { fichas, billetera, avisoFichas, regalarFichas } from "./fichas.js";
 import { EMOJIS, REACCIONES, htmlEmojiAnimado, soloEmojis } from "./emojis.js";
+import { nivelDe, progresoNivel, catalogo, anotarXp } from "./experiencia.js";
+
+export { nivelDe };
 
 // 1500 → 1.5K, 2000000 → 2M (sin importar comun3d, que trae Three.js)
 export const formatear = (n) =>
@@ -138,8 +141,18 @@ export function escucharPartidas(alCambiar) {
     return onSnapshot(q, (snap) => {
         const lista = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
         lista.forEach(liquidar);
+        lista.forEach(limpiar);
         alCambiar(lista);
     });
+}
+
+// Solo se guardan las partidas en curso: una terminada se borra cuando los dos cobraron
+// y ya pasaron unos minutos (para que se pueda ver el resultado y pedir la revancha).
+const EN_CURSO = ["invitada", "jugando"];
+export const enCurso = (p) => EN_CURSO.includes(p.estado);
+function limpiar(p) {
+    const vieja = Date.now() - (p.actualizada?.toMillis?.() ?? Date.now()) > 10 * 60000;
+    if (p.estado === "terminada" && vieja && p.jugadores.every((u) => p.cobrado?.[u])) deleteDoc(doc(db, "partidas", p.id)).catch(() => {});
 }
 
 // apuesta: fichas que pone cada uno; el ganador se lleva las dos (en empate vuelven)
@@ -226,13 +239,16 @@ export async function liquidar(p) {
             const resultado = p.ganador === "empate" ? "empates" : p.ganador === yo() ? "ganadas" : "perdidas";
             const pozo = p.apuesta && p.pagado?.[p.jugadores[0]] && p.pagado?.[p.jugadores[1]] ? p.apuesta : 0;
             const premio = resultado === "ganadas" ? pozo * 2 : resultado === "empates" ? pozo : 0;
+            const xp = resultado === "ganadas" ? 30 : 10;
             lote.update(b.ref, {
                 [`stats.${resultado}`]: increment(1),
                 [`stats.juegos.${p.juego}.${resultado}`]: increment(1),
-                xp: increment(resultado === "ganadas" ? 30 : 10),
+                [`stats.juegos.${p.juego}.xp`]: increment(xp),
+                xp: increment(xp),
                 ...(premio ? { fichas: increment(premio) } : {}),
             });
             await lote.commit();
+            anotarXp(p.juego, xp);
             if (premio) avisoFichas(resultado === "ganadas" ? `🏆 ¡Ganaste el pozo! +${formatear(premio)} fichas` : `🤝 Empate: vuelven tus ${formatear(premio)} fichas`);
         } else {
             await lote.commit();
@@ -241,9 +257,6 @@ export async function liquidar(p) {
         liquidando.delete(p.id);
     }
 }
-
-// Nivel según la experiencia (30 por victoria, 10 por derrota o empate)
-export const nivelDe = (xp = 0) => Math.floor(Math.sqrt(xp / 40)) + 1;
 
 export function escucharPartida(id, alCambiar, alFallar) {
     let primera = true;
@@ -318,7 +331,7 @@ function textoDia(fecha) {
 }
 
 // Una burbuja de mensaje. visto: hasta cuándo leyó el otro (para los ✓✓)
-function htmlMensaje(m, { nombres, primero, ultimo, visto }) {
+function htmlMensaje(m, { nombres, primero, ultimo, visto, activas }) {
     const mio = m.de === yo();
     const hora = m.creado?.toDate?.().toLocaleTimeString("es", { hour: "2-digit", minute: "2-digit" }) ?? "";
     const quien = !mio && primero && nombres[m.de] ? `<b class="autor">${escaparHtml(nombres[m.de])}</b>` : "";
@@ -329,11 +342,13 @@ function htmlMensaje(m, { nombres, primero, ultimo, visto }) {
     let cuerpo;
     if (m.tipo === "partida" && JUEGOS_ONLINE[m.juego]) {
         const j = JUEGOS_ONLINE[m.juego];
+        // Si la partida ya terminó (no está entre las que siguen en curso), queda como recuerdo sin botón
+        const termino = activas && !activas.has(m.partida);
         clase = "tarjeta";
-        cuerpo = `<div class="tarjeta-msj"><span class="grande">${htmlEmojiAnimado(j.emoji)}</span>
+        cuerpo = `<div class="tarjeta-msj${termino ? " terminada" : ""}"><span class="grande">${htmlEmojiAnimado(j.emoji)}</span>
             <strong>${mio ? "Desafiaste a" : "¡Te desafió a"} ${j.nombre}${mio ? "" : "!"}</strong>
             <span>${m.apuesta ? `🪙 Apuesta ${formatear(m.apuesta)} cada uno` : "Sin apuesta"}</span>
-            <a href="${urlJuego(m.juego, m.partida)}">${mio ? "Abrir partida" : "Jugar"}</a></div>`;
+            ${termino ? `<span class="fin-partida">Partida terminada</span>` : `<a href="${urlJuego(m.juego, m.partida)}">${mio ? "Abrir partida" : "Jugar"}</a>`}</div>`;
     } else if (m.tipo === "regalo") {
         clase = "tarjeta";
         cuerpo = `<div class="tarjeta-msj regalo"><span class="grande">${htmlEmojiAnimado("🎁")}</span>
@@ -355,7 +370,8 @@ function htmlMensaje(m, { nombres, primero, ultimo, visto }) {
 }
 
 // Lista completa con separadores de día y mensajes agrupados (seguidos del mismo, en pocos minutos)
-export function htmlMensajes(mensajes, nombres = {}, visto = 0) {
+// activas: ids de las partidas que siguen en curso (las tarjetas de las demás aparecen como terminadas)
+export function htmlMensajes(mensajes, nombres = {}, visto = 0, activas = null) {
     let html = "";
     let diaAnterior = "";
     mensajes.forEach((m, i) => {
@@ -369,7 +385,7 @@ export function htmlMensajes(mensajes, nombres = {}, visto = 0) {
         const despues = mensajes[i + 1];
         const pegado = (a, b) => a && b && a.de === b.de && Math.abs(ms(a.creado) - ms(b.creado)) < 180000 &&
             (a.creado?.toDate?.() ?? new Date()).toDateString() === (b.creado?.toDate?.() ?? new Date()).toDateString();
-        html += htmlMensaje(m, { nombres, primero: !pegado(antes, m), ultimo: !pegado(m, despues), visto });
+        html += htmlMensaje(m, { nombres, primero: !pegado(antes, m), ultimo: !pegado(m, despues), visto, activas });
     });
     return html;
 }
@@ -476,6 +492,44 @@ export const CSS_CHAT = `
 .hoja-chat .boton { font: 900 0.95rem system-ui, sans-serif; border: none; border-radius: 12px; padding: 10px 14px; background: #ffd166; color: #2a1400; }
 .hoja-chat .boton.gris { background: #ffffff18; color: #fff; }
 .hoja-chat .error { color: #ffb4a8; font-size: 0.9rem; }
+.cabeza-chat .avatar-c, .cabeza-chat .quien { cursor: pointer; }
+.tarjeta-msj.terminada { background: linear-gradient(145deg, #3b3566, #2a2550); opacity: 0.85; }
+.tarjeta-msj .fin-partida { font: 800 0.8rem system-ui, sans-serif; text-align: center; padding: 6px; border-radius: 10px; background: #0003; color: #c9c3f0; }
+.partidas-chat { display: flex; gap: 8px; overflow-x: auto; padding: 8px 10px; background: #0d0a26b3; border-bottom: 1px solid #ffffff14; scrollbar-width: none; }
+.partidas-chat[hidden] { display: none; }
+.chip-partida { flex-shrink: 0; display: flex; align-items: center; gap: 8px; padding: 6px 6px 6px 10px; border-radius: 14px; border: 1px solid #ffffff22; background: #ffffff10; color: #fff; font: 700 0.85rem system-ui, sans-serif; text-align: left; animation: pop-reaccion 0.3s; }
+.chip-partida .e { font-size: 1.4rem; }
+.chip-partida b { display: block; font-size: 0.85rem; }
+.chip-partida small { display: block; font-size: 0.72rem; color: #c9c3f0; }
+.chip-partida i { font-style: normal; font-weight: 900; font-size: 0.8rem; padding: 6px 10px; border-radius: 10px; background: #ffffff1c; }
+.chip-partida.urgente { border-color: #ffd166; background: #ffd16618; }
+.chip-partida.urgente small { color: #ffd166; }
+.chip-partida.urgente i { background: #ffd166; color: #2a1400; }
+.perfil-hoja { display: flex; flex-direction: column; gap: 12px; }
+.cabeza-perfil { display: flex; align-items: center; gap: 14px; }
+.avatar-perfil { position: relative; width: 76px; height: 76px; flex-shrink: 0; }
+.avatar-perfil img, .avatar-perfil > span:first-child { width: 100%; height: 100%; border-radius: 50%; display: flex; align-items: center; justify-content: center; font: 900 2rem system-ui, sans-serif; color: #1b1440; background: var(--c, #ffd166); object-fit: cover; box-shadow: 0 0 0 3px #ffd166; }
+.nivel-insignia { position: absolute; right: -4px; bottom: -4px; min-width: 28px; height: 28px; padding: 0 6px; border-radius: 999px; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #ffd166, #ff9f1c); color: #2a1400; font: 900 0.9rem system-ui, sans-serif; border: 3px solid #241a5c; }
+.datos-perfil { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.datos-perfil h2 { font-size: 1.25rem; overflow: hidden; text-overflow: ellipsis; }
+.barra-xp { height: 6px; border-radius: 999px; background: #ffffff1a; overflow: hidden; }
+.barra-xp.grande { height: 9px; margin-top: 4px; }
+.barra-xp i { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #7ee0ff, #b388ff); transform-origin: left; animation: llenar-xp 0.8s ease-out; }
+@keyframes llenar-xp { from { transform: scaleX(0); } }
+.numeros-hoja { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.numeros-hoja div { display: flex; flex-direction: column; align-items: center; padding: 8px 2px; border-radius: 12px; background: #ffffff10; font-size: 0.7rem; opacity: 0.9; }
+.numeros-hoja b { font-size: 1.1rem; color: #ffd166; }
+.perfil-hoja h3 { font-size: 0.95rem; margin-top: 4px; }
+.niveles { list-style: none; display: flex; flex-direction: column; gap: 8px; padding: 0; margin: 0; }
+.niveles li { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 12px; background: #ffffff0c; }
+.niveles .e { font-size: 1.6rem; width: 32px; text-align: center; }
+.dato-nivel { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.fila-nivel { display: flex; justify-content: space-between; gap: 8px; }
+.fila-nivel b { font-size: 0.92rem; }
+.fila-nivel .nv { flex-shrink: 0; font: 900 0.78rem system-ui, sans-serif; padding: 2px 8px; border-radius: 999px; background: #b388ff33; color: #d9c4ff; }
+.dato-nivel small { font-size: 0.7rem; opacity: 0.7; }
+.botones-perfil { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.hoja-chat .boton.peligro { background: #ff4d6d33; color: #ffb3c1; }
 .aviso-copiado { position: fixed; left: 50%; bottom: 120px; transform: translateX(-50%); z-index: 90; padding: 8px 14px; border-radius: 999px; background: #000c; color: #fff; font: 700 0.85rem system-ui, sans-serif; animation: aparecer-menu 0.2s; }
 `;
 
@@ -488,16 +542,92 @@ function ponerCss() {
 }
 
 // Hoja inferior para elegir algo (juego, regalo)
-function hojaChat(html) {
+function hojaChat(html, alCerrar) {
     ponerCss();
     const fondo = document.createElement("div");
     fondo.className = "hoja-chat-fondo";
     fondo.innerHTML = `<div class="hoja-chat">${html}<button class="boton gris cerrar" type="button">Cancelar</button></div>`;
-    const cerrar = () => fondo.remove();
+    const cerrar = () => {
+        fondo.remove();
+        alCerrar?.();
+    };
     fondo.addEventListener("click", (e) => e.target === fondo && cerrar());
     fondo.querySelector(".cerrar").addEventListener("click", cerrar);
     document.body.appendChild(fondo);
     return { fondo, cerrar };
+}
+
+// Perfil de un jugador (el tuyo o el de un amigo): nivel total, victorias, fichas y el nivel de cada juego.
+// acciones: [{ texto, accion, clase }] para los botones de abajo. Se actualiza solo mientras está abierto.
+export function hojaPerfil(uid, nombre, { acciones = [] } = {}) {
+    let datos = null;
+    let b = null;
+    let juegos = [];
+    const paradas = [];
+    const { fondo, cerrar } = hojaChat(`<div class="perfil-hoja"></div>`, () => paradas.forEach((p) => p()));
+    fondo.querySelector(".cerrar").textContent = "Cerrar";
+    const caja = fondo.querySelector(".perfil-hoja");
+    const infoJuego = (clave) =>
+        juegos.find((j) => j.carpeta === `games/${clave}/`) ?? JUEGOS_ONLINE[clave] ?? { nombre: clave, emoji: "🎮" };
+
+    function pintarPerfil() {
+        const s = b?.stats ?? {};
+        const filas = Object.entries(s.juegos ?? {})
+            .map(([clave, r]) => ({ info: infoJuego(clave), r: r ?? {}, xp: r?.xp ?? 0 }))
+            .filter((f) => f.xp > 0 || f.r.ganadas || f.r.perdidas || f.r.empates)
+            .sort((x, y) => y.xp - x.xp);
+        const total = progresoNivel(b?.xp ?? 0);
+        const htmlFila = (f) => {
+            const p = progresoNivel(f.xp);
+            const r = f.r;
+            const record = r.ganadas || r.perdidas || r.empates ? ` · ${r.ganadas ?? 0}G ${r.perdidas ?? 0}P${r.empates ? ` ${r.empates}E` : ""}` : "";
+            return `<li><span class="e">${f.info.emoji}</span><div class="dato-nivel">
+                <div class="fila-nivel"><b>${escaparHtml(f.info.nombre)}</b><span class="nv">Nv ${p.nivel}</span></div>
+                <div class="barra-xp"><i style="width:${p.porcentaje}%"></i></div>
+                <small>${formatear(f.xp)} XP · faltan ${formatear(p.falta)} para el ${p.nivel + 1}${record}</small></div></li>`;
+        };
+        caja.innerHTML = `
+            <div class="cabeza-perfil">
+                <div class="avatar-perfil">${htmlAvatar(datos, escaparHtml(nombre))}<span class="nivel-insignia">${total.nivel}</span></div>
+                <div class="datos-perfil">
+                    <h2>${escaparHtml(datos?.nombre ?? nombre)}</h2>
+                    <span class="suave">${uid === yo() ? "Tu perfil" : textoConexion(datos)}</span>
+                    <div class="barra-xp grande"><i style="width:${total.porcentaje}%"></i></div>
+                    <small class="suave">Nivel ${total.nivel} · ${formatear(total.actual)}/${formatear(total.total)} XP</small>
+                </div>
+            </div>
+            <div class="numeros-hoja">
+                <div><b>${s.ganadas ?? 0}</b>Victorias</div><div><b>${s.perdidas ?? 0}</b>Derrotas</div>
+                <div><b>${s.empates ?? 0}</b>Empates</div><div><b>${b ? formatear(b.fichas ?? 0) : "?"}</b>Fichas</div>
+            </div>
+            <h3>Nivel por juego</h3>
+            ${filas.length
+                ? `<ul class="niveles">${filas.map(htmlFila).join("")}</ul>`
+                : `<p class="suave">Todavía no tiene niveles. Cada minuto jugado y cada partida ganada suman experiencia en ese juego.</p>`}
+            ${acciones.length ? `<div class="botones-perfil">${acciones.map((a, i) => `<button type="button" class="boton ${a.clase ?? ""}" data-i="${i}">${a.texto}</button>`).join("")}</div>` : ""}`;
+        for (const btn of caja.querySelectorAll("[data-i]")) {
+            btn.addEventListener("click", () => {
+                cerrar();
+                acciones[btn.dataset.i].accion();
+            });
+        }
+    }
+    paradas.push(
+        escucharUsuario(uid, (d) => {
+            datos = d;
+            pintarPerfil();
+        }),
+        escucharBilletera(uid, (d) => {
+            b = d;
+            pintarPerfil();
+        })
+    );
+    catalogo().then((l) => {
+        juegos = l;
+        pintarPerfil();
+    });
+    pintarPerfil();
+    return { cerrar };
 }
 
 const APUESTAS_DESAFIO = [0, 100, 1000, 10000, 100000, 1000000, 10000000];
@@ -631,6 +761,7 @@ export function panelChat({ titulo, ruta, nombres, clave, alCerrar, amigo, miNom
             <div class="quien"><strong>${escaparHtml(titulo.replace(/^💬\s*/, ""))}</strong><span class="estado"></span></div>
             ${amigo ? `<button type="button" class="accion-c" data-a="juego" aria-label="Mandar un juego">🎮</button><button type="button" class="accion-c" data-a="regalo" aria-label="Regalar fichas">🎁</button>` : ""}
         </header>
+        <div class="partidas-chat" hidden></div>
         <div class="lista-msj"></div>
         <div class="pie-chat">
             <div class="respondiendo"><div></div><button type="button" aria-label="Cancelar respuesta">✕</button></div>
@@ -694,11 +825,45 @@ export function panelChat({ titulo, ruta, nombres, clave, alCerrar, amigo, miNom
         setDoc(refMeta, { escribiendo: { [yo()]: serverTimestamp() } }, { merge: true }).catch(() => {});
     };
 
+    // Partidas en curso con este amigo: arriba del chat, para entrar a jugar o aceptar
+    let activas = null;
+    const barraPartidas = panel.querySelector(".partidas-chat");
+    if (esAmigo && otroUid) {
+        const q = query(collection(db, "partidas"), where("jugadores", "array-contains", yo()));
+        paradas.push(onSnapshot(q, (snap) => {
+            const enCursoConEl = snap.docs
+                .map((d) => ({ id: d.id, ...d.data() }))
+                .filter((p) => p.jugadores.includes(otroUid) && enCurso(p))
+                .sort((a, b) => (b.turno === yo()) - (a.turno === yo()) || ms(b.actualizada) - ms(a.actualizada));
+            activas = new Set(enCursoConEl.map((p) => p.id));
+            pintarPartidas(enCursoConEl);
+            pintar();
+        }, () => {}));
+    }
+    function pintarPartidas(partidas) {
+        barraPartidas.hidden = !partidas.length;
+        barraPartidas.replaceChildren(...partidas.map((p) => {
+            const j = JUEGOS_ONLINE[p.juego] ?? { emoji: "🎮", nombre: p.juego };
+            const meDesafio = p.estado === "invitada" && p.creador !== yo();
+            const miTurno = p.estado === "jugando" && p.turno === yo();
+            const texto = meDesafio ? "¡Te desafió!" : p.estado === "invitada" ? "Falta que acepte" : miTurno ? "Tu turno" : "Turno del otro";
+            const b = document.createElement("button");
+            b.type = "button";
+            b.className = `chip-partida${meDesafio || miTurno ? " urgente" : ""}`;
+            b.innerHTML = `<span class="e">${j.emoji}</span><span><b>${escaparHtml(j.nombre)}</b><small>${texto}${p.apuesta ? ` · 🪙${formatear(p.apuesta)}` : ""}</small></span><i>${meDesafio ? "Aceptar" : miTurno ? "Jugar" : "Ver"}</i>`;
+            b.addEventListener("click", async () => {
+                if (meDesafio && !(await aceptarPartida(p))) return;
+                location.href = urlJuego(p.juego, p.id);
+            });
+            return b;
+        }));
+    }
+
     function pintar() {
         const abajo = lista.scrollHeight - lista.scrollTop - lista.clientHeight < 120;
         const visto = meta.leido?.[otroUid] ? ms(meta.leido[otroUid]) : 0;
         lista.innerHTML = mensajes.length
-            ? htmlMensajes(mensajes, nombres, visto)
+            ? htmlMensajes(mensajes, nombres, visto, activas)
             : `<div class="vacio-chat"><span>👋</span>Todavía no hay mensajes.<br>¡Saludá!</div>`;
         pintarEstado();
         if (abajo || !pintar.yaBajo) {
@@ -806,6 +971,13 @@ export function panelChat({ titulo, ruta, nombres, clave, alCerrar, amigo, miNom
         regalo: () => hojaRegalo(amigo, miNombre),
     };
     for (const b of panel.querySelectorAll("[data-a]")) b.addEventListener("click", () => acciones[b.dataset.a]());
+    // Tocar la foto o el nombre abre su perfil (con sus niveles)
+    const verPerfil = () =>
+        otroUid && hojaPerfil(otroUid, titulo.replace(/^💬\s*/, ""), {
+            acciones: amigo ? [{ texto: "⚔️ Desafiar", accion: acciones.juego }, { texto: "🎁 Regalar", accion: acciones.regalo }] : [],
+        });
+    panel.querySelector(".avatar-c").addEventListener("click", verPerfil);
+    panel.querySelector(".quien").addEventListener("click", verPerfil);
     panel.querySelector(".volver").addEventListener("click", cerrar);
     document.body.appendChild(panel);
     return { cerrar };
