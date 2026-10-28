@@ -1,8 +1,8 @@
 // Tragamonedas de casino: 5 rodillos, 10 líneas, comodín, giros gratis, rueda del pozo,
 // tres pozos acumulados y logros. Usa las fichas compartidas del casino.
 import { formatear, vibrar, MONEDA } from "../../js/comun3d.js";
-import { fichas, cambiarFichas, recargar } from "../../js/fichas.js";
-import { APUESTAS } from "../../js/casino.js";
+import { fichas, cambiarFichas, recargar, puedeRecargar } from "../../js/fichas.js";
+import { APUESTAS, mantenerApretado } from "../../js/casino.js";
 import { crearLienzo, bucle } from "../../js/lienzo2d.js";
 import { SIMBOLOS, NOMBRES, LINEAS, POZOS, RUEDA, PROB_RUEDA, GIROS_GRATIS, PAGO_BONO, MULT_GRATIS, tirada, evaluar, sortear } from "./reglas.js";
 
@@ -837,7 +837,7 @@ function pintar() {
     $("girar").disabled = !girando && girosGratis === 0 && fichas() < apuesta;
     $("menos").disabled = girando || girosGratis > 0 || nivelApuesta === 0;
     $("mas").disabled = girando || girosGratis > 0 || nivelApuesta === APUESTAS.length - 1;
-    $("recargar").hidden = fichas() >= 10 || girando || girosGratis > 0;
+    $("recargar").hidden = !puedeRecargar() || girando || girosGratis > 0;
     $("auto").classList.toggle("activo", auto);
     $("turbo").classList.toggle("activo", turbo);
     $("giros-gratis").hidden = girosGratis === 0 && !gratisActivo;
@@ -845,6 +845,9 @@ function pintar() {
     $("logros-cuenta").textContent = `${Object.keys(estado.logros).length}/${LOGROS.length}`;
 }
 
+mantenerApretado($("menos"));
+mantenerApretado($("mas"));
+addEventListener("fichas", () => !girando && pintar());
 $("menos").addEventListener("click", () => {
     nivelApuesta = Math.max(0, nivelApuesta - 1);
     pintar();
@@ -868,7 +871,7 @@ $("turbo").addEventListener("click", () => {
 });
 $("recargar").addEventListener("click", () => {
     recargar();
-    $("mensaje").textContent = "¡Fichas recargadas!";
+    $("mensaje").textContent = "¡+500 fichas de regalo! Volvé mañana por más";
     pintar();
 });
 $("rodillos").addEventListener("click", () => girando && pararYa());
