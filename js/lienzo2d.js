@@ -14,12 +14,14 @@ if (typeof CanvasRenderingContext2D !== "undefined" && !CanvasRenderingContext2D
     };
 }
 
-export function crearLienzo(canvas, alCambiarTamano) {
+// maxEscala: resolución máxima (menos = más rápido en pantallas retina)
+export function crearLienzo(canvas, alCambiarTamano, maxEscala = 2) {
     const ctx = canvas.getContext("2d");
-    const datos = { ctx, ancho: 0, alto: 0 };
+    const datos = { ctx, ancho: 0, alto: 0, escala: 1 };
     function medir() {
         const caja = canvas.getBoundingClientRect();
-        const escala = Math.min(devicePixelRatio, 2);
+        const escala = Math.min(devicePixelRatio, maxEscala);
+        datos.escala = escala;
         canvas.width = Math.round(caja.width * escala);
         canvas.height = Math.round(caja.height * escala);
         ctx.setTransform(escala, 0, 0, escala, 0, 0);
