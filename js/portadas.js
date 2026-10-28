@@ -121,6 +121,33 @@
             ctx.fill();
             ctx.restore();
         },
+        granja() {
+            fondo("#87c5ff", "#d7f0ff", 0.2);
+            circulo(W * 0.85, H * 0.18, 12, "#ffd166");
+            caja(0, H * 0.45, W, H, 0, "#74c69d");
+            for (let k = 0; k < 3; k++) {
+                const x = W * (0.08 + k * 0.2);
+                caja(x, H * 0.55, W * 0.17, H * 0.32, 6, "#8d5a2b");
+                ctx.fillStyle = ["#e9c46a", "#f77f00", "#e63946"][k];
+                for (let j = 0; j < 3; j++) {
+                    ctx.beginPath();
+                    ctx.arc(x + W * 0.03 + j * W * 0.055, H * 0.68, 4, 0, TAU);
+                    ctx.fill();
+                }
+                ctx.fillStyle = "#52b788";
+                for (let j = 0; j < 3; j++) caja(x + W * 0.025 + j * W * 0.055, H * 0.6, 3, 7, 1, "#52b788");
+            }
+            // Granero rojo
+            caja(W * 0.68, H * 0.42, W * 0.26, H * 0.4, 3, "#c1121f");
+            ctx.fillStyle = "#780000";
+            ctx.beginPath();
+            ctx.moveTo(W * 0.65, H * 0.44);
+            ctx.lineTo(W * 0.81, H * 0.24);
+            ctx.lineTo(W * 0.97, H * 0.44);
+            ctx.fill();
+            caja(W * 0.76, H * 0.6, W * 0.1, H * 0.22, 2, "#fff");
+            caja(W * 0.775, H * 0.62, W * 0.07, H * 0.2, 1, "#780000");
+        },
         apilar() {
             fondo("#ff8fab", "#8ec5ff", 0.3);
             const colores = ["#ff595e", "#ffca3a", "#8ac926", "#1982c4", "#6a4c93", "#ff924c"];
