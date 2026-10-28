@@ -39,6 +39,11 @@
     min-height: 0;
 }
 
+/* Se puede deslizar el dedo sobre el campo sin que la página se mueva */
+#lienzo {
+    touch-action: none;
+}
+
 .aviso-granja {
     position: absolute;
     top: 10px;
