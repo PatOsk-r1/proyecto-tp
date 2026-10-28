@@ -4,6 +4,7 @@ import {
     THREE, crearEscena, material, formatear, cargar, guardar, textoFlotante, aPantalla, vibrar,
     fondoDegradado, geometriaRoca, crearParticulas,
 } from "../../js/comun3d.js";
+import { icono } from "../../js/iconos.js";
 
 const $ = (id) => document.getElementById(id);
 const CLAVE = "mina";
@@ -32,15 +33,15 @@ const NIVELES_PICO = [
 ];
 
 const MAQUINAS = [
-    { id: "excavadora", nombre: "Excavadora", icono: "🚜", costo: { piedra: 20 }, produce: { piedra: 1 }, pos: [-2.4, 1.7] },
-    { id: "vagoneta", nombre: "Mina de carbón", icono: "⛏️", costo: { piedra: 80 }, produce: { carbon: 0.6 }, pos: [2.4, 1.7] },
+    { id: "excavadora", nombre: "Excavadora", icono: "excavadora", costo: { piedra: 20 }, produce: { piedra: 1 }, pos: [-2.4, 1.7] },
+    { id: "vagoneta", nombre: "Mina de carbón", icono: "pico", costo: { piedra: 80 }, produce: { carbon: 0.6 }, pos: [2.4, 1.7] },
     {
-        id: "fundicion", nombre: "Fundición", icono: "🔥",
+        id: "fundicion", nombre: "Fundición", icono: "fundicion",
         costo: { piedra: 150, carbon: 50 }, produce: { hierro: 0.5 }, consume: { carbon: 0.25 }, pos: [-2.6, -1.3],
     },
-    { id: "taladro", nombre: "Taladro de oro", icono: "🛠️", costo: { hierro: 120, carbon: 150 }, produce: { oro: 0.25 }, pos: [2.6, -1.3] },
+    { id: "taladro", nombre: "Taladro de oro", icono: "taladro", costo: { hierro: 120, carbon: 150 }, produce: { oro: 0.25 }, pos: [2.6, -1.3] },
     {
-        id: "refineria", nombre: "Refinería", icono: "💎",
+        id: "refineria", nombre: "Refinería", icono: "diamante",
         costo: { oro: 80, hierro: 400 }, produce: { cristal: 0.08 }, consume: { oro: 0.05 }, pos: [0, -3.1],
     },
 ];
@@ -397,7 +398,7 @@ alAnimar((dt) => {
             const p = aPantalla(ayuda.set(m.pos[0], 2.1, m.pos[1]), camera, renderer.domElement);
             e.style.left = `${p.x - caja2d.left}px`;
             e.style.top = `${p.y - caja2d.top}px`;
-            e.textContent = `${m.icono} ×${n}`;
+            e.innerHTML = `${icono(m.icono)} ×${n}`;
         }
     }
 });
@@ -546,7 +547,7 @@ function actualizar() {
 
     const proxima = IDS.find((id) => VETA_REQUIERE[id] === estado.pico + 1);
     pintarTarjeta(tarjetaPico, {
-        titulo: `<span class="icono">⛏️</span>Mejorar pico`,
+        titulo: `${icono("pico")}Mejorar pico`,
         nivel: `Nv ${estado.pico}`,
         detalle: proxima ? `Desbloquea la veta de ${RECURSOS[proxima].nombre}` : `+60% por golpe`,
         costo: costoPico(estado.pico),
@@ -557,7 +558,7 @@ function actualizar() {
         const produce = Object.entries(m.produce).map(([r, c]) => `+${formatear(c * multiplicador())} ${RECURSOS[r].nombre}/s`);
         const consume = Object.entries(m.consume ?? {}).map(([r, c]) => `usa ${formatear(c)} ${RECURSOS[r].nombre}/s`);
         pintarTarjeta(b, {
-            titulo: `<span class="icono">${m.icono}</span>${m.nombre}`,
+            titulo: `${icono(m.icono)}${m.nombre}`,
             nivel: `×${estado.maquinas[m.id]}`,
             detalle: [...produce, ...consume].join(" · "),
             costo,
@@ -566,7 +567,7 @@ function actualizar() {
     }
 
     pintarTarjeta(tarjetaNucleo, {
-        titulo: `<span class="icono">🔮</span>Núcleo de cristal`,
+        titulo: `${icono("orbe")}Núcleo de cristal`,
         nivel: `Nv ${estado.nucleo}`,
         detalle: `Todo produce ×1.5 más`,
         costo: costoNucleo(),
