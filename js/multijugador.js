@@ -3,7 +3,7 @@
 import { app, auth } from "./sesion.js";
 import {
     getFirestore, doc, getDoc, collection, query, where, onSnapshot, writeBatch, setDoc, updateDoc, deleteDoc, addDoc,
-    serverTimestamp, deleteField,
+    serverTimestamp, deleteField, runTransaction,
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 export const db = app ? getFirestore(app) : null;
@@ -156,6 +156,43 @@ export function escucharPartida(id, alCambiar, alFallar) {
 }
 
 export const actualizarPartida = (id, cambios) => updateDoc(doc(db, "partidas", id), { ...cambios, actualizada: serverTimestamp() });
+
+// Revancha compartida: el primero que la pide crea la partida nueva y la anota en la terminada;
+// si el otro también toca "Revancha", entra a esa misma. Es una transacción, así que aunque
+// los dos toquen a la vez se crea una sola.
+export function revancha(idAnterior, datosIniciales) {
+    const refAnterior = doc(db, "partidas", idAnterior);
+    return runTransaction(db, async (tx) => {
+        const anterior = await tx.get(refAnterior);
+        const p = anterior.data();
+        if (p.revancha) return p.revancha;
+        const rival = p.jugadores.find((j) => j !== yo());
+        const nueva = doc(collection(db, "partidas"));
+        tx.set(nueva, {
+            juego: p.juego,
+            jugadores: [yo(), rival],
+            nombres: p.nombres,
+            creador: yo(),
+            estado: "invitada",
+            turno: yo(),
+            creada: serverTimestamp(),
+            actualizada: serverTimestamp(),
+            ...datosIniciales(),
+        });
+        tx.update(refAnterior, { revancha: nueva.id, revanchaDe: yo(), actualizada: serverTimestamp() });
+        return nueva.id;
+    });
+}
+
+// Texto del botón al terminar: si el rival ya pidió la revancha, se ofrece unirse
+export const textoRevancha = (p, uid) =>
+    !p.revancha ? "Revancha" : p.revanchaDe && p.revanchaDe !== uid ? "Aceptar revancha" : "Ir a la revancha";
+
+// Va a la revancha (la crea si todavía no existe)
+export async function irARevancha(partida, datosIniciales) {
+    const id = partida.revancha ?? (await revancha(partida.id, datosIniciales));
+    location.search = `?partida=${id}`;
+}
 export const borrarPartida = (id) => deleteDoc(doc(db, "partidas", id));
 
 export const JUEGOS_ONLINE = {
