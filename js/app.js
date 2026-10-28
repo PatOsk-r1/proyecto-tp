@@ -1,7 +1,7 @@
 // Página principal: pestañas Solo / Multijugador / Casino con la lista de juegos de cada una
 const lista = document.getElementById("lista-juegos");
 const pestanas = document.querySelectorAll(".pestana");
-const NUEVOS = ["games/magos/", "games/raspadita/", "games/baccarat/", "games/sicbo/", "games/muralla/"];
+const NUEVOS = ["games/raspadita/", "games/baccarat/", "games/sicbo/", "games/muralla/", "games/ciudad/"];
 
 function leer(clave, porDefecto) {
     try {
