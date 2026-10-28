@@ -298,6 +298,160 @@
     gap: 6px;
 }
 
+.item.tocable .info {
+    cursor: pointer;
+}
+
+.fichas-perfil {
+    margin-top: 2px;
+    font-weight: 900;
+    color: #ffd166;
+}
+
+.ranking {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.fila-ranking {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    border-radius: 12px;
+    background: #ffffff0d;
+}
+
+.fila-ranking.yo {
+    outline: 2px solid #ffd16688;
+}
+
+.fila-ranking .puesto {
+    width: 28px;
+    text-align: center;
+    font-size: 1.2rem;
+    font-weight: 900;
+}
+
+.nombre-ranking {
+    flex: 1;
+    min-width: 0;
+    font-weight: 800;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.nombre-ranking small {
+    display: block;
+    font-weight: 600;
+    font-size: 0.75rem;
+    color: var(--texto-suave);
+}
+
+.fila-ranking b {
+    color: #ffd166;
+    white-space: nowrap;
+}
+
+.opciones-monto {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin: 6px 0;
+}
+
+.monto {
+    font: inherit;
+    font-weight: 800;
+    color: var(--texto);
+    background: #ffffff14;
+    border: 2px solid #ffffff22;
+    border-radius: 999px;
+    padding: 7px 12px;
+}
+
+.monto.elegido {
+    border-color: #ffd166;
+    color: #ffd166;
+}
+
+.monto:disabled {
+    opacity: 0.35;
+}
+
+.ficha-amigo {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    text-align: center;
+}
+
+.ficha-amigo .avatar-grande {
+    width: 88px;
+    height: 88px;
+    font-size: 2.2rem;
+}
+
+.numeros-perfil {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
+    width: 100%;
+    margin: 6px 0;
+}
+
+.numeros-perfil div {
+    padding: 8px 2px;
+    border-radius: 12px;
+    background: #ffffff0d;
+    font-size: 0.72rem;
+    color: var(--texto-suave);
+}
+
+.numeros-perfil b {
+    display: block;
+    font-size: 1.1rem;
+    color: var(--texto);
+}
+
+.por-juego {
+    list-style: none;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 0.85rem;
+    text-align: left;
+}
+
+.por-juego li {
+    display: flex;
+    justify-content: space-between;
+    padding: 5px 8px;
+    border-radius: 8px;
+    background: #ffffff0a;
+}
+
+.por-juego span {
+    color: var(--texto-suave);
+}
+
+.botones-ficha {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    width: 100%;
+    margin-top: 6px;
+}
+
+.hoja {
+    max-height: 88vh;
+    overflow-y: auto;
+}
+
 .item.destacado {
     outline: 2px solid var(--acento);
 }
