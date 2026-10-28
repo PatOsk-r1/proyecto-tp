@@ -21,13 +21,19 @@ const LINEAS = [
 
 const estado = cargar(CLAVE, { dinero: 0, total: 0, estrellas: 0, lineas: {}, ultimaVez: Date.now() });
 for (const l of LINEAS) estado.lineas[l.id] ??= { nivel: l.id === "pan" ? 1 : 0, encargado: false, progreso: 0 };
+estado.recetas ??= {};
+const UMBRAL_RECETA = [25, 100, 250];
+const recetas = (l) => estado.recetas[l.id] ?? 0;
+const costoReceta = (l) => l.costo * 60 * 12 ** recetas(l);
+let impulsoHasta = 0;
+const impulso = () => (impulsoHasta > Date.now() ? 7 : 1);
 
 let compraDe = "1";
 
 const multiplicador = () => 1 + estado.estrellas * 0.1;
 const datos = (l) => estado.lineas[l.id];
 const tiempoDe = (l) => l.tiempo / 2 ** HITOS.filter((h) => datos(l).nivel >= h).length;
-const gananciaDe = (l) => l.gana * datos(l).nivel * multiplicador();
+const gananciaDe = (l) => l.gana * datos(l).nivel * multiplicador() * 3 ** recetas(l) * impulso();
 const costoDe = (l, cantidad) => (l.costo * CRECIMIENTO ** datos(l).nivel * (CRECIMIENTO ** cantidad - 1)) / (CRECIMIENTO - 1);
 const proximoHito = (l) => HITOS.find((h) => datos(l).nivel < h);
 const estrellasNuevas = () => Math.floor(Math.sqrt(estado.total / 1e6));
@@ -57,6 +63,7 @@ const tarjetas = LINEAS.map((l) => {
         <div class="botones-l">
             <button class="comprar-l"></button>
             <button class="encargado-l"></button>
+            <button class="receta-l"></button>
         </div>
         <div class="barra-l"><div></div><span></span></div>`;
     el.querySelector(".horno").addEventListener("click", (e) => {
@@ -84,6 +91,15 @@ const tarjetas = LINEAS.map((l) => {
         datos(l).progreso ||= 0.0001;
         avisar(`Contrataste un encargado de ${l.nombre}`);
         vibrar(30);
+        actualizar();
+    });
+    el.querySelector(".receta-l").addEventListener("click", () => {
+        const costo = costoReceta(l);
+        if (estado.dinero < costo || recetas(l) >= 3 || datos(l).nivel < UMBRAL_RECETA[recetas(l)]) return;
+        estado.dinero -= costo;
+        estado.recetas[l.id] = recetas(l) + 1;
+        avisar(`📜 Receta secreta: ${l.nombre} ahora gana ×${3 ** recetas(l)}`);
+        vibrar(40);
         actualizar();
     });
     $("lineas").appendChild(el);
@@ -118,6 +134,12 @@ function actualizar() {
         enc.hidden = d.encargado || d.nivel === 0;
         enc.textContent = `Encargado $${formatear(l.encargado)}`;
         enc.disabled = estado.dinero < l.encargado;
+        const rec = el.querySelector(".receta-l");
+        const r = recetas(l);
+        rec.hidden = r >= 3 || d.nivel < UMBRAL_RECETA[r];
+        rec.textContent = `📜 Receta ×3 · $${formatear(costoReceta(l))}`;
+        rec.disabled = estado.dinero < costoReceta(l);
+        el.querySelector(".info-l strong").textContent = `${l.nombre}${r ? " " + "⭐".repeat(r) : ""}`;
     }
 }
 
@@ -148,10 +170,13 @@ function ciclo(ahora) {
             if (!d.encargado) {
                 const caja = tarjetas.find((t) => t.l === l).el.getBoundingClientRect();
                 textoFlotante(caja.left + caja.width / 2, caja.top + 10, `+$${formatear(gananciaDe(l))}`, "#ffcf6e");
+                volarMonedas(caja.left + 40, caja.top + 30, 4);
             }
         }
     }
     pintarBarras();
+    moverDorada(dt);
+    document.body.classList.toggle("impulso", impulso() > 1);
     acumulado += dt;
     if (acumulado > 0.15) {
         acumulado = 0;
@@ -159,6 +184,68 @@ function ciclo(ahora) {
     }
     requestAnimationFrame(ciclo);
 }
+
+// ---------- Efectos ----------
+function volarMonedas(x, y, cantidad) {
+    const destino = $("dinero").getBoundingClientRect();
+    for (let k = 0; k < cantidad; k++) {
+        const m = document.createElement("span");
+        m.className = "moneda-vuela";
+        m.style.left = `${x}px`;
+        m.style.top = `${y}px`;
+        document.body.appendChild(m);
+        const dx = destino.left + destino.width / 2 - x;
+        const dy = destino.top + destino.height / 2 - y;
+        m.animate(
+            [
+                { transform: "translate(0,0) scale(0.6)", opacity: 1 },
+                { transform: `translate(${dx * 0.3 + (Math.random() - 0.5) * 60}px, ${dy * 0.3 - 40}px) scale(1.1)`, opacity: 1, offset: 0.35 },
+                { transform: `translate(${dx}px, ${dy}px) scale(0.5)`, opacity: 0.6 },
+            ],
+            { duration: 650 + k * 70, easing: "ease-in" }
+        ).onfinish = () => m.remove();
+    }
+}
+
+// Medialuna dorada: cruza la pantalla cada tanto; si la tocás, todo gana ×7 por 20 segundos
+const dorada = document.createElement("button");
+dorada.className = "dorada";
+dorada.type = "button";
+dorada.hidden = true;
+dorada.innerHTML = icono("medialuna");
+document.body.appendChild(dorada);
+let proximaDorada = 40 + Math.random() * 50;
+let doradaT = 0;
+function moverDorada(dt) {
+    if (dorada.hidden) {
+        proximaDorada -= dt;
+        if (proximaDorada <= 0) {
+            dorada.hidden = false;
+            doradaT = 0;
+            dorada.dataset.y = 18 + Math.random() * 50;
+        }
+        return;
+    }
+    doradaT += dt / 9;
+    if (doradaT >= 1) {
+        dorada.hidden = true;
+        proximaDorada = 60 + Math.random() * 60;
+        return;
+    }
+    const x = -60 + doradaT * (innerWidth + 120);
+    const y = (innerHeight * dorada.dataset.y) / 100 + Math.sin(doradaT * 12) * 18;
+    dorada.style.transform = `translate(${x}px, ${y}px) rotate(${Math.sin(doradaT * 20) * 15}deg)`;
+}
+dorada.addEventListener("click", () => {
+    const caja = dorada.getBoundingClientRect();
+    dorada.hidden = true;
+    proximaDorada = 70 + Math.random() * 60;
+    impulsoHasta = Date.now() + 20000;
+    avisar("✨ ¡Medialuna dorada! Todo gana ×7 por 20 segundos");
+    textoFlotante(caja.left + 30, caja.top + 20, "×7", "#ffe08a");
+    volarMonedas(caja.left + 30, caja.top + 30, 10);
+    vibrar([40, 40, 80]);
+});
 
 // ---------- Sucursales ----------
 $("abrir-sucursal").addEventListener("click", () => {
@@ -174,6 +261,7 @@ $("confirmar-sucursal").addEventListener("click", () => {
     estado.dinero = 0;
     estado.total = 0;
     for (const l of LINEAS) estado.lineas[l.id] = { nivel: l.id === "pan" ? 1 : 0, encargado: false, progreso: 0 };
+    estado.recetas = {};
     $("sucursal").hidden = true;
     avisar(`⭐ ¡Nueva sucursal! Ahora todo gana ×${multiplicador().toFixed(1)}`);
     guardarProgreso();
