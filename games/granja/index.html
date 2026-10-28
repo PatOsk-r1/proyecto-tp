@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <title>Granja · Proyecto TP</title>
-    <meta name="theme-color" content="#2d6a4f">
+    <meta name="theme-color" content="#5a3a1e">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <link rel="apple-touch-icon" href="../../icons/icon-180.png">
@@ -16,30 +16,41 @@
     <link rel="stylesheet" href="estilo.css">
 </head>
 <body class="pantalla-3d tema-granja">
-    <header class="barra-juego">
+    <header class="barra-juego barra-granja">
         <a class="boton-volver" href="../../">‹ Juegos</a>
         <h1>Granja</h1>
+        <div class="hud-g">
+            <div class="pildora-g"><i class="moneda-g"></i><strong id="monedas">0</strong></div>
+            <div class="pildora-g nivel-g">
+                <span class="estrella-g"><b id="nivel">1</b></span>
+                <div class="barra-xp"><div id="xp"></div></div>
+            </div>
+            <div class="pildora-g"><span class="ico-g">🏠</span><strong id="granero">0</strong></div>
+        </div>
     </header>
 
-    <div class="info-juego">
-        <div class="dato"><span>Monedas</span><strong id="monedas">0</strong></div>
-        <div class="dato nivel-dato"><span>Nivel <b id="nivel">1</b></span><div class="barra-xp"><div id="xp"></div></div></div>
-        <div class="dato"><span>Granero</span><strong id="granero">0</strong></div>
+    <div class="cuerpo-g">
+        <section class="campo">
+            <canvas id="lienzo" class="lienzo-juego"></canvas>
+            <div id="aviso" class="aviso-granja" hidden></div>
+        </section>
+
+        <div class="columna-g">
+            <!-- En pantallas grandes los pedidos quedan siempre a la vista -->
+            <aside class="lado-g">
+                <h2>📋 Pedidos</h2>
+                <div id="pedidos-lado" class="lista-pedidos"></div>
+            </aside>
+            <nav class="pestanas-g">
+                <button class="pestana-g activa" data-p="semillas">🌱<small>Semillas</small></button>
+                <button class="pestana-g solo-celular" data-p="pedidos">📋<small>Pedidos</small><i id="pedidos-listos" hidden></i></button>
+                <button class="pestana-g" data-p="almacen">🏠<small>Granero</small></button>
+                <button class="pestana-g" data-p="animales">🐔<small>Animales</small></button>
+                <button class="pestana-g" data-p="mejoras">⭐<small>Mejoras</small></button>
+            </nav>
+            <main id="panel" class="panel-g"></main>
+        </div>
     </div>
-
-    <section class="campo">
-        <canvas id="lienzo" class="lienzo-juego"></canvas>
-        <div id="aviso" class="aviso-granja" hidden></div>
-    </section>
-
-    <nav class="pestanas-g">
-        <button class="pestana-g activa" data-p="semillas">🌱<small>Semillas</small></button>
-        <button class="pestana-g" data-p="pedidos">📋<small>Pedidos</small><i id="pedidos-listos" hidden></i></button>
-        <button class="pestana-g" data-p="almacen">🏠<small>Granero</small></button>
-        <button class="pestana-g" data-p="animales">🐔<small>Animales</small></button>
-        <button class="pestana-g" data-p="mejoras">⭐<small>Mejoras</small></button>
-    </nav>
-    <main id="panel" class="panel-g"></main>
 
     <script type="module">
         import { exigirSesion } from "../../js/sesion.js";
