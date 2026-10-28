@@ -221,6 +221,28 @@
             bola(W * 0.15, H * 0.45, 7, "#9d4edd");
             bola(W * 0.6, H * 0.15, 7, "#f72585");
         },
+        muralla() {
+            fondo("#3d4f24", "#6a994e", 0.2);
+            caja(0, H * 0.78, W, H, 0, "#6c757d");
+            for (let x = 0; x < W; x += 18) caja(x + 2, H * 0.72, 12, H * 0.08, 0, "#868e96");
+            ctx.save();
+            ctx.translate(W / 2, H * 0.86);
+            ctx.rotate(-1.1);
+            caja(-4, -4, 26, 8, 2, "#6f4518");
+            ctx.restore();
+            ctx.strokeStyle = "#ffffff55";
+            ctx.setLineDash([4, 5]);
+            ctx.beginPath();
+            ctx.moveTo(W / 2, H * 0.86);
+            ctx.lineTo(W * 0.75, H * 0.25);
+            ctx.stroke();
+            ctx.setLineDash([]);
+            for (const [x, y, c, r] of [[0.75, 0.25, "#80b918", 9], [0.3, 0.35, "#55a630", 11], [0.55, 0.15, "#386641", 14]]) {
+                circulo(W * x, H * y, r, c);
+                circulo(W * x - r * 0.3, H * y - 2, r * 0.18, "#fff");
+                circulo(W * x + r * 0.3, H * y - 2, r * 0.18, "#fff");
+            }
+        },
         apilar() {
             fondo("#ff8fab", "#8ec5ff", 0.3);
             const colores = ["#ff595e", "#ffca3a", "#8ac926", "#1982c4", "#6a4c93", "#ff924c"];
