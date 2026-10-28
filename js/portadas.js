@@ -773,6 +773,28 @@
             ctx.fillStyle = "#ff8fa3";
             ctx.fillText("BANCA", W * 0.72, H * 0.92);
         },
+        sicbo() {
+            fondo("#6b0f0f", "#2a0404");
+            const dado = (x, y, rot, n) => {
+                ctx.save();
+                ctx.translate(x, y);
+                ctx.rotate(rot);
+                ctx.shadowColor = "#0008";
+                ctx.shadowBlur = 6;
+                caja(-14, -14, 28, 28, 6, "#fff");
+                ctx.shadowColor = "transparent";
+                const p = { 1: [[0, 0]], 3: [[-7, -7], [0, 0], [7, 7]], 4: [[-7, -7], [7, -7], [-7, 7], [7, 7]], 6: [[-7, -8], [7, -8], [-7, 0], [7, 0], [-7, 8], [7, 8]] }[n];
+                for (const [px, py] of p) circulo(px, py, 2.8, n === 1 || n === 4 ? "#d62828" : "#111");
+                ctx.restore();
+            };
+            dado(W * 0.3, H * 0.45, -0.25, 4);
+            dado(W * 0.5, H * 0.38, 0.1, 6);
+            dado(W * 0.7, H * 0.47, 0.3, 1);
+            ctx.fillStyle = "#ffd166";
+            ctx.font = "900 13px sans-serif";
+            ctx.textAlign = "center";
+            ctx.fillText("CHICO · GRANDE", W / 2, H * 0.85);
+        },
         plinko() {
             fondo("#240046", "#5a189a");
             for (let f = 0; f < 5; f++) for (let c = 0; c <= f + 3; c++) circulo(W / 2 + (c - (f + 3) / 2) * 16, H * 0.14 + f * H * 0.14, 2.6, "#e0aaff");
