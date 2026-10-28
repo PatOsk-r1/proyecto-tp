@@ -42,6 +42,38 @@
             gap: 4px;
             min-height: 22px;
         }
+        .opciones-plinko {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        .grupo-p {
+            display: flex;
+            gap: 3px;
+            padding: 3px;
+            border-radius: 12px;
+            background: #0006;
+        }
+        .grupo-p button {
+            font: inherit;
+            font-size: 0.78rem;
+            font-weight: 800;
+            color: var(--texto-suave);
+            background: none;
+            border: none;
+            border-radius: 9px;
+            padding: 6px 10px;
+        }
+        .grupo-p button.activa {
+            color: #10002b;
+            background: linear-gradient(180deg, #ff9df0, #ff4fd8);
+        }
+        .grupo-p button:disabled:not(.activa) { opacity: 0.4; }
+        .fila-soltar { display: flex; gap: 8px; }
+        .fila-soltar #soltar { flex: 2; }
+        .fila-soltar #auto { flex: 1; }
+        #auto.activo { background: linear-gradient(180deg, #ffadad, #e63946); }
         .ultimos span {
             padding: 2px 7px;
             border-radius: 6px;
@@ -60,6 +92,10 @@
     </header>
 
     <main class="zona-plinko">
+        <div class="opciones-plinko">
+            <div class="grupo-p"><button data-filas="8">8</button><button data-filas="12">12</button><button data-filas="16">16</button></div>
+            <div class="grupo-p"><button data-riesgo="bajo">Bajo</button><button data-riesgo="medio">Medio</button><button data-riesgo="alto">Alto</button></div>
+        </div>
         <div id="ultimos" class="ultimos"></div>
         <canvas id="tablero"></canvas>
     </main>
@@ -70,7 +106,10 @@
             <div class="apuesta">Por bola<strong id="apuesta">10</strong></div>
             <button id="mas" class="redondo" type="button">+</button>
         </div>
-        <button id="soltar" class="accion" type="button">Soltar bola</button>
+        <div class="fila-soltar">
+            <button id="soltar" class="accion" type="button">Soltar bola</button>
+            <button id="auto" class="accion secundaria" type="button">🔁 Auto</button>
+        </div>
         <button id="recargar" class="accion secundaria" type="button" hidden>Recargar fichas</button>
     </div>
 
