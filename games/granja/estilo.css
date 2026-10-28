@@ -258,6 +258,27 @@
     border: 2px solid #8d5a2b;
 }
 
+.version-g {
+    text-align: center;
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: var(--texto-suave);
+    opacity: 0.8;
+    margin-top: -8px;
+}
+
+.bolsa-abono {
+    height: 46px;
+    display: flex;
+    align-items: center;
+    font-size: 1.9rem;
+}
+
+.abono-c:not(:disabled) .vende-s {
+    background: #f3e1c4;
+    color: #7a4a22;
+}
+
 /* ---------- Cuerpo: campo + panel (abajo en el celular, al costado en la compu) ---------- */
 .cuerpo-g {
     flex: 1;
