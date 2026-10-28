@@ -37,8 +37,16 @@
         .linea-c.j1 { stroke: #e63946; }
         .linea-c.j2 { stroke: #3a86ff; }
         .linea-c.ultima { filter: drop-shadow(0 0 6px #ffd23f); }
+        .linea-c.nueva { stroke-dasharray: 120; stroke-dashoffset: 120; animation: trazo 0.3s ease-out forwards; }
+        @keyframes trazo { to { stroke-dashoffset: 0; } }
+        .linea-c.libre.apuntada { stroke: #ffd23f; stroke-dasharray: none; opacity: 0.8; }
         .zona-toque { stroke: transparent; cursor: pointer; }
-        .caja-c { transition: fill 0.3s; }
+        .caja-c { transition: fill 0.3s; transform-box: fill-box; transform-origin: center; }
+        .caja-c.nueva { animation: caja-pop 0.45s cubic-bezier(0.2, 1.6, 0.4, 1); }
+        @keyframes caja-pop { from { transform: scale(0.2); } }
+        .letra-c.nueva { animation: caja-pop 0.5s 0.1s cubic-bezier(0.2, 1.6, 0.4, 1) backwards; transform-box: fill-box; transform-origin: center; }
+        .chispa-c { pointer-events: none; }
+        .combo-c { font-weight: 900; text-anchor: middle; paint-order: stroke; stroke: #14213d; stroke-width: 6; fill: #ffd23f; pointer-events: none; }
         .caja-c.j1 { fill: #e6394633; }
         .caja-c.j2 { fill: #3a86ff33; }
         .letra-c { font-weight: 900; text-anchor: middle; dominant-baseline: central; }
