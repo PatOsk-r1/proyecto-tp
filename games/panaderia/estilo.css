@@ -1,0 +1,250 @@
+.tema-panaderia {
+    --fondo: #3b1d08;
+    --fondo-2: #7a4318;
+    --texto-suave: #ffe2c4;
+    --acento: #ffcf6e;
+    --acento-2: #f08a24;
+    --panel: #2a1405cc;
+}
+
+.boton-sucursal {
+    margin-left: auto;
+    font: inherit;
+    font-weight: 900;
+    color: #3b1d08;
+    background: linear-gradient(180deg, #ffe08a, #f0a020);
+    border: none;
+    border-radius: 999px;
+    padding: 8px 14px;
+    box-shadow: 0 3px 0 #0007;
+}
+
+.vidriera {
+    margin: 0 12px 8px;
+    padding: 12px 14px;
+    border-radius: 18px;
+    text-align: center;
+    background:
+        repeating-linear-gradient(90deg, #e63946 0 22px, #fff4e6 22px 44px) top / 100% 14px no-repeat,
+        linear-gradient(180deg, #8b4a1c, #5a2d0c);
+    padding-top: 22px;
+    box-shadow: 0 8px 18px #0007, inset 0 -4px 10px #0005;
+}
+
+.cartel-local {
+    font-size: 0.75rem;
+    font-weight: 900;
+    letter-spacing: 0.12em;
+    color: var(--acento);
+}
+
+.dinero {
+    font-size: 2.2rem;
+    font-weight: 900;
+    text-shadow: 0 3px 8px #000a;
+}
+
+.por-segundo {
+    font-size: 0.85rem;
+    color: var(--texto-suave);
+}
+
+.comprar-de {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    margin-top: 8px;
+    font-size: 0.8rem;
+    color: var(--texto-suave);
+}
+
+.cantidad {
+    font: inherit;
+    font-weight: 800;
+    font-size: 0.8rem;
+    color: var(--texto);
+    background: #0005;
+    border: 2px solid #ffffff30;
+    border-radius: 999px;
+    padding: 4px 10px;
+}
+
+.cantidad.activa {
+    border-color: var(--acento);
+    color: var(--acento);
+}
+
+.lineas {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 0 12px calc(16px + env(safe-area-inset-bottom));
+}
+
+.linea {
+    display: grid;
+    grid-template-columns: 64px 1fr auto;
+    grid-template-rows: auto auto;
+    gap: 6px 10px;
+    align-items: center;
+    padding: 10px;
+    border-radius: 16px;
+    background: linear-gradient(160deg, #ffffff1c, #ffffff08);
+    border: 1px solid #ffffff22;
+}
+
+.linea.bloqueada {
+    opacity: 0.55;
+}
+
+.horno {
+    grid-row: 1 / 3;
+    position: relative;
+    width: 64px;
+    height: 64px;
+    border-radius: 16px;
+    font-size: 2rem;
+    border: none;
+    background: radial-gradient(circle at 50% 70%, #ff9f43, #8a3b12 70%);
+    box-shadow: 0 4px 0 #3b1d08, inset 0 0 12px #000a;
+}
+
+.horno:active {
+    transform: translateY(3px);
+    box-shadow: 0 1px 0 #3b1d08, inset 0 0 12px #000a;
+}
+
+.horno .nivel-h {
+    position: absolute;
+    bottom: -6px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 0 7px;
+    border-radius: 999px;
+    background: #000c;
+    font-size: 0.7rem;
+    font-weight: 900;
+    color: var(--acento);
+}
+
+.horno.horneando {
+    animation: latir 0.6s ease-in-out infinite;
+}
+
+.info-l {
+    min-width: 0;
+}
+
+.info-l strong {
+    display: block;
+    font-size: 0.95rem;
+}
+
+.info-l span {
+    font-size: 0.75rem;
+    color: var(--texto-suave);
+}
+
+.barra-l {
+    grid-column: 2 / 4;
+    position: relative;
+    height: 18px;
+    border-radius: 999px;
+    background: #0006;
+    overflow: hidden;
+}
+
+.barra-l > div {
+    height: 100%;
+    width: 0;
+    background: linear-gradient(90deg, #ffcf6e, #f08a24);
+}
+
+.barra-l span {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.72rem;
+    font-weight: 900;
+    text-shadow: 0 1px 2px #000;
+}
+
+.botones-l {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.comprar-l,
+.encargado-l {
+    font: inherit;
+    font-size: 0.75rem;
+    font-weight: 900;
+    border: none;
+    border-radius: 10px;
+    padding: 6px 8px;
+    white-space: nowrap;
+}
+
+.comprar-l {
+    color: #3b1d08;
+    background: linear-gradient(180deg, #ffe08a, #f0a020);
+}
+
+.encargado-l {
+    color: #fff;
+    background: #2f6fd8;
+}
+
+.comprar-l:disabled,
+.encargado-l:disabled {
+    opacity: 0.4;
+}
+
+.hoja-fondo {
+    position: fixed;
+    inset: 0;
+    z-index: 30;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    background: #000a;
+}
+
+.hoja {
+    max-width: 420px;
+    padding: 20px;
+    border-radius: 20px;
+    background: #3b1d08;
+    border: 2px solid var(--acento);
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.grande-s {
+    font-size: 1.2rem;
+}
+
+.grande-s strong {
+    font-size: 2rem;
+    color: var(--acento);
+}
+
+.chico-s {
+    font-size: 0.8rem;
+    color: var(--texto-suave);
+}
+
+.botones-s {
+    display: flex;
+    gap: 8px;
+}
