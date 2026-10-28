@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="es" class="verificando">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>Sudoku · Proyecto TP</title>
+    <meta name="theme-color" content="#14213d">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="../../icons/icon-180.png">
+    <link rel="manifest" href="../../manifest.webmanifest">
+
+    <link rel="stylesheet" href="../../css/estilos.css">
+    <link rel="stylesheet" href="../../css/juegos3d.css">
+    <link rel="stylesheet" href="../../css/solitario.css">
+    <style>
+        .tema-sudoku {
+            --fondo: #0d1530;
+            --fondo-2: #1d2d5c;
+            --texto-suave: #cfdaff;
+            --acento: #ffd23f;
+            --acento-2: #ff9f1c;
+            --panel: #070c1ecc;
+        }
+        .grilla-s {
+            width: min(94vw, 52vh, 460px);
+            aspect-ratio: 1;
+            display: grid;
+            grid-template-columns: repeat(9, 1fr);
+            border: 3px solid #0d1530;
+            border-radius: 10px;
+            overflow: hidden;
+            background: #0d1530;
+            gap: 1px;
+            box-shadow: 0 14px 30px #000a;
+        }
+        .celda-s {
+            position: relative;
+            border: none;
+            padding: 0;
+            font: inherit;
+            font-size: clamp(1rem, 5.2vw, 1.6rem);
+            font-weight: 800;
+            color: #1d2d5c;
+            background: #f7f9ff;
+        }
+        .celda-s.fija { color: #0d1530; font-weight: 900; background: #e6ecfb; }
+        .celda-s.borde-d { margin-right: 2px; }
+        .celda-s.borde-a { margin-bottom: 2px; }
+        .celda-s.relacionada { background: #dbe5ff; }
+        .celda-s.igual { background: #ffe9a8; }
+        .celda-s.elegida { background: #ffd23f; }
+        .celda-s.error { color: #d62828; }
+        .celda-s.ok { animation: brillar 0.5s ease-out; }
+        @keyframes brillar { 50% { background: #b8f5c8; } }
+        .notas {
+            position: absolute;
+            inset: 2px;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            font-size: clamp(0.45rem, 2vw, 0.65rem);
+            font-weight: 700;
+            color: #6a7bb0;
+            line-height: 1;
+        }
+        .notas span { display: flex; align-items: center; justify-content: center; }
+        .teclado {
+            width: min(94vw, 460px);
+            display: grid;
+            grid-template-columns: repeat(9, 1fr);
+            gap: 5px;
+        }
+        .tecla {
+            aspect-ratio: 0.8;
+            font: inherit;
+            font-size: 1.3rem;
+            font-weight: 900;
+            color: #fff;
+            background: #ffffff1c;
+            border: 1px solid #ffffff30;
+            border-radius: 10px;
+        }
+        .tecla:active { transform: translateY(2px); background: #ffd23f55; }
+        .tecla.agotada { opacity: 0.25; }
+    </style>
+</head>
+<body class="pantalla-3d tema-sudoku">
+    <header class="barra-juego">
+        <a class="boton-volver" href="../../">‹ Juegos</a>
+        <h1>Sudoku</h1>
+    </header>
+
+    <div class="info-juego">
+        <div class="dato"><span>Nivel</span><strong id="nivel">Fácil</strong></div>
+        <div class="dato"><span>Errores</span><strong id="errores">0/3</strong></div>
+        <div class="dato"><span>Tiempo</span><strong id="tiempo">0:00</strong></div>
+    </div>
+
+    <main class="zona-juego">
+        <div id="grilla" class="grilla-s"></div>
+        <div id="teclado" class="teclado"></div>
+        <div id="centro" class="mensaje-centro">
+            <div id="titulo-centro">Sudoku<div class="chico">Completá con 1 a 9 sin repetir en fila, columna ni cuadro</div></div>
+            <div class="dificultad">
+                <button data-nivel="0">Fácil</button>
+                <button data-nivel="1">Medio</button>
+                <button data-nivel="2">Difícil</button>
+            </div>
+            <button id="continuar" class="boton-grande" type="button" hidden>Continuar</button>
+            <button id="jugar" class="boton-grande" type="button">Nuevo sudoku</button>
+        </div>
+    </main>
+
+    <div class="barra-botones">
+        <button id="notas" class="boton-modo" type="button">✏️ Notas</button>
+        <button id="borrar" class="boton-modo" type="button">⌫ Borrar</button>
+        <button id="pista" class="boton-modo" type="button">💡 Pista</button>
+        <button id="menu" class="boton-modo" type="button">☰ Menú</button>
+    </div>
+
+    <script type="module">
+        import { exigirSesion } from "../../js/sesion.js";
+        exigirSesion();
+    </script>
+    <script type="module" src="juego.js"></script>
+</body>
+</html>
