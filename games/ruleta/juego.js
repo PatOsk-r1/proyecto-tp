@@ -1,6 +1,6 @@
 // Ruleta europea (un solo cero). Usa las fichas compartidas del casino.
 import { formatear, textoFlotante, vibrar, MONEDA } from "../../js/comun3d.js";
-import { fichas, cambiarFichas, recargar } from "../../js/fichas.js";
+import { fichas, cambiarFichas, recargar, puedeRecargar, LIMITE_APUESTA } from "../../js/fichas.js";
 
 const $ = (id) => document.getElementById(id);
 
@@ -225,6 +225,7 @@ function apostar(clave) {
     if (girando) return;
     const disponible = fichas() - totalApostado();
     if (ficha > disponible) return mensaje("No te alcanzan las fichas", "perdio");
+    if (totalApostado() + ficha > LIMITE_APUESTA) return mensaje("Límite: 10M por tirada", "perdio");
     apuestas[clave] = (apuestas[clave] ?? 0) + ficha;
     vibrar(10);
     mensaje(`Apostado: ${formatear(totalApostado())}`);
@@ -315,7 +316,7 @@ function pintar() {
     $("girar").textContent = nada && Object.keys(anteriores).length && !girando ? "Repetir apuesta" : "Girar";
     if (nada && Object.keys(anteriores).length && !girando) $("girar").disabled = false;
     $("borrar").disabled = girando || nada;
-    $("recargar").hidden = fichas() >= 10 || girando;
+    $("recargar").hidden = !puedeRecargar() || girando;
     $("historial").innerHTML = historial.map((n) => `<span class="${colorDe(n)}">${n}</span>`).join("");
 }
 
@@ -348,3 +349,4 @@ $("recargar").addEventListener("click", () => {
 crearPano();
 dibujar();
 pintar();
+addEventListener("fichas", () => !girando && pintar());
