@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="es" class="verificando">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>Acuario · Proyecto TP</title>
+    <meta name="theme-color" content="#023e8a">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="../../icons/icon-180.png">
+    <link rel="manifest" href="../../manifest.webmanifest">
+
+    <link rel="stylesheet" href="../../css/estilos.css">
+    <link rel="stylesheet" href="../../css/juegos3d.css">
+    <style>
+        .tema-acuario {
+            --fondo: #03045e;
+            --fondo-2: #0077b6;
+            --texto-suave: #caf0f8;
+            --acento: #ffd166;
+            --acento-2: #f4a261;
+            --panel: #01204acc;
+        }
+        .boton-conchas {
+            margin-left: auto;
+            font: inherit;
+            font-weight: 900;
+            color: #03045e;
+            background: linear-gradient(180deg, #ffe5ec, #ffafcc);
+            border: none;
+            border-radius: 999px;
+            padding: 8px 14px;
+            box-shadow: 0 3px 0 #0008;
+        }
+        .pecera {
+            position: relative;
+            height: 40vh;
+            min-height: 220px;
+            margin: 0 10px;
+            border-radius: 22px;
+            overflow: hidden;
+            border: 4px solid #90e0ef55;
+            box-shadow: inset 0 0 30px #0007, 0 8px 20px #0008;
+            flex-shrink: 0;
+        }
+        .pecera canvas { width: 100%; height: 100%; display: block; touch-action: manipulation; }
+        .marcador-a {
+            position: absolute;
+            top: 8px;
+            left: 0;
+            right: 0;
+            text-align: center;
+            pointer-events: none;
+            text-shadow: 0 2px 6px #000a;
+        }
+        .marcador-a .grande { font-size: 2rem; font-weight: 900; }
+        .marcador-a .chico { font-size: 0.8rem; color: var(--texto-suave); font-weight: 700; }
+        .comprar-de {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            padding: 8px 0 4px;
+            font-size: 0.78rem;
+            color: var(--texto-suave);
+        }
+        .cantidad {
+            font: inherit;
+            font-weight: 800;
+            font-size: 0.78rem;
+            color: var(--texto);
+            background: #0005;
+            border: 2px solid #ffffff30;
+            border-radius: 999px;
+            padding: 3px 10px;
+        }
+        .cantidad.activa { border-color: var(--acento); color: var(--acento); }
+        .lista-a {
+            flex: 1;
+            min-height: 0;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            padding: 4px 10px calc(14px + env(safe-area-inset-bottom));
+        }
+        .fila-a {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 10px;
+            border-radius: 14px;
+            background: linear-gradient(160deg, #ffffff1c, #ffffff06);
+            border: 1px solid #ffffff22;
+        }
+        .fila-a canvas { width: 52px; height: 40px; flex-shrink: 0; }
+        .fila-a .txt { flex: 1; min-width: 0; font-size: 0.88rem; font-weight: 800; }
+        .fila-a .txt em { font-style: normal; color: var(--acento); font-size: 0.75rem; }
+        .fila-a .txt small { display: block; font-size: 0.72rem; color: var(--texto-suave); font-weight: 600; }
+        .fila-a button {
+            font: inherit;
+            font-size: 0.78rem;
+            font-weight: 900;
+            color: #3a2400;
+            background: linear-gradient(180deg, #ffe08a, #f4a261);
+            border: none;
+            border-radius: 10px;
+            padding: 8px 10px;
+            white-space: nowrap;
+            min-width: 86px;
+        }
+        .fila-a button:disabled { opacity: 0.4; }
+        .fila-a.oculta { display: none; }
+        .titulo-a { font-size: 0.85rem; font-weight: 800; color: var(--texto-suave); margin-top: 4px; }
+        .hoja-fondo { position: fixed; inset: 0; z-index: 30; display: flex; align-items: center; justify-content: center; padding: 20px; background: #000b; }
+        .hoja { max-width: 420px; padding: 20px; border-radius: 20px; background: #023e8a; border: 2px solid #ffafcc; text-align: center; display: flex; flex-direction: column; gap: 10px; }
+        .hoja strong.grande { font-size: 2rem; color: #ffafcc; }
+        .hoja .botones { display: flex; gap: 8px; }
+    </style>
+</head>
+<body class="pantalla-3d tema-acuario">
+    <header class="barra-juego">
+        <a class="boton-volver" href="../../">‹ Juegos</a>
+        <h1>Acuario</h1>
+        <button id="abrir-nuevo" class="boton-conchas" type="button">🐚 <span id="conchas">0</span></button>
+    </header>
+
+    <section class="pecera">
+        <canvas id="lienzo"></canvas>
+        <div class="marcador-a">
+            <div id="monedas" class="grande">🪙 0</div>
+            <div id="por-segundo" class="chico">0 por segundo · tocá el agua para dar de comer</div>
+        </div>
+        <div id="aviso" class="mensaje-centro" hidden></div>
+    </section>
+
+    <div class="comprar-de">
+        Comprar:
+        <button class="cantidad activa" data-cantidad="1">×1</button>
+        <button class="cantidad" data-cantidad="10">×10</button>
+        <button class="cantidad" data-cantidad="max">Máx</button>
+    </div>
+    <main id="lista" class="lista-a"></main>
+
+    <div id="nuevo" class="hoja-fondo" hidden>
+        <div class="hoja">
+            <h2>🐚 Acuario nuevo</h2>
+            <p>Empezás de cero con una pecera más linda. Cada concha hace que <b>todos los peces den un 10% más</b> para siempre.</p>
+            <p>Conseguirías <strong id="conchas-nuevas" class="grande">0</strong></p>
+            <div class="botones">
+                <button id="cancelar-nuevo" class="accion secundaria" type="button">Ahora no</button>
+                <button id="confirmar-nuevo" class="accion" type="button">Empezar de nuevo</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { exigirSesion } from "../../js/sesion.js";
+        exigirSesion();
+    </script>
+    <script type="module" src="juego.js"></script>
+</body>
+</html>
