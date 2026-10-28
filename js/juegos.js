@@ -13,6 +13,9 @@ const JUEGOS = [
     { categoria: "solo", nombre: "Buscaminas", descripcion: "Destapá todo sin pisar una mina", emoji: "💣", carpeta: "games/buscaminas/" },
     { categoria: "solo", nombre: "Memotest", descripcion: "Encontrá los pares de cartas", emoji: "🃏", carpeta: "games/memotest/" },
     { categoria: "solo", nombre: "Sudoku", descripcion: "Del 1 al 9 sin repetir", emoji: "🔢", carpeta: "games/sudoku/" },
+    { categoria: "solo", nombre: "Serpiente", descripcion: "Comé frutas, crecé y no te choques", emoji: "🐍", carpeta: "games/serpiente/" },
+    { categoria: "solo", nombre: "Rompeladrillos", descripcion: "Rompé todos los ladrillos con la pelota", emoji: "🧱", carpeta: "games/ladrillos/" },
+    { categoria: "solo", nombre: "Corredor espacial", descripcion: "Esquivá y destruí oleadas de naves", emoji: "🚀", carpeta: "games/espacial/" },
 
     { categoria: "multi", nombre: "Pool", descripcion: "Bola 8 contra un amigo o la compu", emoji: "🎱", carpeta: "games/pool/" },
     { categoria: "multi", nombre: "Tiro con arco", descripcion: "Duelo de 5 rondas con viento", emoji: "🏹", carpeta: "games/arco/" },
