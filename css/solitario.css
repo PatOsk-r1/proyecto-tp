@@ -1,0 +1,114 @@
+/* Partes comunes de los juegos solitarios en 2D */
+.info-juego {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    padding: 8px 10px;
+    background: var(--panel);
+    border-bottom: 1px solid var(--borde);
+}
+
+.dato {
+    flex: 1;
+    max-width: 130px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 4px 8px;
+    border-radius: 12px;
+    background: #ffffff12;
+}
+
+.dato span {
+    font-size: 0.7rem;
+    font-weight: 800;
+    color: var(--texto-suave);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.dato strong {
+    font-size: 1.15rem;
+    font-weight: 900;
+    color: var(--acento);
+}
+
+.zona-juego {
+    position: relative;
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 10px;
+    overflow: hidden;
+}
+
+.barra-botones {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    padding: 8px 10px calc(10px + env(safe-area-inset-bottom));
+    background: var(--panel);
+    border-top: 1px solid var(--borde);
+}
+
+.boton-modo {
+    font: inherit;
+    font-weight: 800;
+    font-size: 0.9rem;
+    color: var(--texto);
+    background: #ffffff16;
+    border: 2px solid #ffffff2a;
+    border-radius: 14px;
+    padding: 10px 14px;
+}
+
+.boton-modo.activo {
+    border-color: var(--acento);
+    color: var(--acento);
+    background: color-mix(in srgb, var(--acento) 18%, transparent);
+}
+
+.boton-modo:active {
+    transform: translateY(2px);
+}
+
+.dificultad {
+    display: flex;
+    gap: 6px;
+    pointer-events: auto;
+}
+
+.dificultad button {
+    font: inherit;
+    font-size: 0.85rem;
+    font-weight: 800;
+    color: var(--texto);
+    background: #0008;
+    border: 2px solid #fff3;
+    border-radius: 999px;
+    padding: 6px 12px;
+}
+
+.dificultad button.activa {
+    border-color: var(--acento);
+    color: var(--acento);
+}
+
+.mensaje-centro {
+    background: #0008;
+    backdrop-filter: blur(3px);
+    -webkit-backdrop-filter: blur(3px);
+    z-index: 5;
+}
+
+canvas.lienzo-juego {
+    width: 100%;
+    height: 100%;
+    display: block;
+    touch-action: none;
+}
