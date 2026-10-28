@@ -75,6 +75,11 @@
     min-height: 2.2rem;
 }
 
+.mensaje-mesa.largo {
+    font-size: 1.05rem;
+    line-height: 1.3;
+}
+
 .mensaje-mesa.gano {
     color: var(--acento);
     animation: aparecer 0.35s ease-out;
@@ -123,8 +128,12 @@
 
 @keyframes repartir {
     from {
-        transform: translate(120px, -160px) rotate(25deg);
-        opacity: 0;
+        transform: translate(var(--dx, 120px), var(--dy, -160px)) rotate(35deg) scale(0.7);
+        opacity: 0.4;
+    }
+    70% {
+        transform: translate(0, -6px) rotate(-3deg);
+        opacity: 1;
     }
 }
 
@@ -282,4 +291,136 @@
     font-size: 0.75rem;
     font-weight: 700;
     color: var(--texto-suave);
+}
+
+/* ---------- Zapato, fichas en la mesa y manos ---------- */
+
+.zapato {
+    position: absolute;
+    top: 30px;
+    left: 26px;
+    opacity: 0.9;
+    width: 46px;
+    height: 58px;
+    border-radius: 6px 6px 10px 10px;
+    background: linear-gradient(180deg, #4a2a12, #2a1608);
+    box-shadow: 0 4px 10px #0008, inset 0 2px 0 #ffffff22;
+    transform: rotate(8deg);
+}
+
+.zapato div {
+    position: absolute;
+    left: 6px;
+    right: 6px;
+    top: 6px;
+    height: 34px;
+    border-radius: 4px;
+    background: repeating-linear-gradient(45deg, #b71c1c 0 4px, #8e1414 4px 8px);
+    border: 2px solid #fff;
+}
+
+.pila-fichas {
+    position: relative;
+    height: 34px;
+    width: 60px;
+    margin: 0 auto 4px;
+}
+
+.pila-fichas span {
+    position: absolute;
+    left: 50%;
+    width: 34px;
+    height: 34px;
+    margin-left: -17px;
+    border-radius: 50%;
+    background:
+        radial-gradient(circle, var(--c) 50%, transparent 51%),
+        repeating-conic-gradient(var(--c) 0 20deg, #fff 20deg 40deg);
+    border: 2px solid #0005;
+    box-shadow: 0 2px 0 #0007;
+    animation: caer-ficha 0.3s ease-out;
+}
+
+@keyframes caer-ficha {
+    from {
+        transform: translateY(80px) scale(1.2);
+        opacity: 0;
+    }
+}
+
+.pila-fichas.cobrar span {
+    animation: cobrar 0.6s ease-in forwards;
+}
+
+.pila-fichas.perder span {
+    animation: perder 0.6s ease-in forwards;
+}
+
+@keyframes cobrar {
+    to {
+        transform: translateY(260px) scale(0.6);
+        opacity: 0;
+    }
+}
+
+@keyframes perder {
+    to {
+        transform: translateY(-260px) scale(0.6);
+        opacity: 0;
+    }
+}
+
+.manos {
+    display: flex;
+    justify-content: center;
+    gap: 14px;
+}
+
+.mano {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 6px;
+    border-radius: 14px;
+    border: 2px solid transparent;
+    transition: border-color 0.2s, background 0.2s;
+}
+
+.mano.activa {
+    border-color: #ffd16699;
+    background: #ffd16612;
+}
+
+.mano.terminada:not(.activa) {
+    opacity: 0.75;
+}
+
+.mano .info-mano {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    font-size: 0.75rem;
+    font-weight: 800;
+    color: var(--texto-suave);
+}
+
+.manos.doble .carta {
+    width: 56px;
+    height: 80px;
+    margin-left: -30px;
+}
+
+.manos.doble .carta:first-child {
+    margin-left: 0;
+}
+
+.manos.doble .cara .palo {
+    font-size: 1.7rem;
+}
+
+.total.veintiuno {
+    color: #fff;
+    background: linear-gradient(180deg, #ffd166, #e0a020);
+    box-shadow: 0 0 12px #ffd166;
 }
