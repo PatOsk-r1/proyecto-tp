@@ -21,6 +21,19 @@ body {
     height: 100%;
 }
 
+html {
+    background: var(--fondo-2);
+}
+
+body {
+    min-height: 100%;
+    height: auto;
+}
+
+body.pantalla-3d {
+    height: 100%;
+}
+
 body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     background: linear-gradient(160deg, var(--fondo), var(--fondo-2));
@@ -403,35 +416,143 @@ body {
     padding: 8px 20px 32px;
 }
 
+.lista-juegos li {
+    animation: entrar 0.45s cubic-bezier(0.2, 0.9, 0.3, 1.2) both;
+    animation-delay: var(--retraso, 0ms);
+}
+
+@keyframes entrar {
+    from {
+        opacity: 0;
+        transform: translateY(18px) scale(0.94);
+    }
+}
+
 .tarjeta-juego {
+    position: relative;
     display: flex;
     flex-direction: column;
-    gap: 6px;
     height: 100%;
-    padding: 18px;
     border-radius: var(--radio);
-    background: var(--tarjeta);
+    background: linear-gradient(170deg, #ffffff1f, #ffffff08);
+    border: 1px solid #ffffff1f;
+    box-shadow: 0 8px 20px #0005;
     color: inherit;
     text-decoration: none;
-    transition: transform 0.1s;
+    overflow: hidden;
+    transition: transform 0.15s, box-shadow 0.15s;
 }
 
 .tarjeta-juego:active {
-    transform: scale(0.96);
+    transform: scale(0.95);
+    box-shadow: 0 3px 8px #0005;
 }
 
-.tarjeta-juego .emoji {
-    font-size: 2.4rem;
+/* Brillo que cruza la portada al tocar */
+.tarjeta-juego::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(115deg, transparent 35%, #ffffff40 50%, transparent 65%);
+    transform: translateX(-120%);
+    pointer-events: none;
+}
+
+.tarjeta-juego:active::after,
+.tarjeta-juego:hover::after {
+    transition: transform 0.5s;
+    transform: translateX(120%);
+}
+
+.portada {
+    display: block;
+    width: 100%;
+    aspect-ratio: 16 / 10;
+}
+
+.tarjeta-juego .nuevo {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 0.68rem;
+    font-weight: 900;
+    color: #1b1440;
+    background: var(--acento);
+    box-shadow: 0 2px 8px #0006;
+    animation: latido 1.6s ease-in-out infinite;
+}
+
+@keyframes latido {
+    50% {
+        transform: scale(1.1);
+    }
+}
+
+.tarjeta-juego .textos {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    padding: 10px 12px 12px;
 }
 
 .tarjeta-juego .nombre {
-    font-weight: 700;
-    font-size: 1.1rem;
+    font-weight: 800;
+    font-size: 1rem;
 }
 
 .tarjeta-juego .descripcion {
     color: var(--texto-suave);
-    font-size: 0.85rem;
+    font-size: 0.78rem;
+    line-height: 1.25;
+}
+
+.seguir {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 4px 20px 0;
+    padding: 8px;
+    border-radius: var(--radio);
+    background: linear-gradient(135deg, #ffcc3333, #ff7a1a22);
+    border: 1px solid #ffcc3366;
+    color: inherit;
+    text-decoration: none;
+    animation: entrar 0.4s ease-out both;
+}
+
+.seguir canvas {
+    width: 72px;
+    height: 46px;
+    border-radius: 10px;
+    flex-shrink: 0;
+}
+
+.seguir .texto {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.seguir small {
+    font-size: 0.72rem;
+    font-weight: 800;
+    color: var(--acento);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.seguir .jugar-ya {
+    width: 40px;
+    height: 40px;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    color: #1b1440;
+    background: var(--acento);
+    font-size: 1rem;
+    box-shadow: 0 3px 10px #0006;
 }
 
 /* ---------- Pantalla de un juego ---------- */
@@ -440,16 +561,34 @@ body {
     display: flex;
     align-items: center;
     gap: 12px;
-    padding: 12px 16px;
+    padding: 10px 14px;
+    background: linear-gradient(180deg, #0006, #0000);
+    animation: bajar 0.35s ease-out;
+}
+
+@keyframes bajar {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
 }
 
 .boton-volver {
     color: var(--acento);
     text-decoration: none;
-    font-size: 1rem;
-    padding: 8px 4px;
+    font-size: 0.95rem;
+    font-weight: 800;
+    padding: 6px 12px 6px 10px;
+    border-radius: 999px;
+    background: #ffffff14;
+    border: 1px solid #ffffff22;
+}
+
+.boton-volver:active {
+    transform: scale(0.94);
 }
 
 .barra-juego h1 {
-    font-size: 1.2rem;
+    font-size: 1.15rem;
+    text-shadow: 0 2px 6px #0008;
 }
