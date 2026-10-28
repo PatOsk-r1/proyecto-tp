@@ -28,8 +28,9 @@
 
     <nav class="pestanas" role="tablist">
         <button class="pestana" data-seccion="solo" role="tab">🎮 Solo</button>
-        <button class="pestana" data-seccion="multi" role="tab">👥 Multijugador<span id="pendientes" class="insignia chica" hidden></span></button>
+        <button class="pestana" data-seccion="multi" role="tab">⚔️ Multi<span id="pendientes" class="insignia chica" hidden></span></button>
         <button class="pestana" data-seccion="casino" role="tab">🎰 Casino</button>
+        <button class="pestana" data-seccion="amigos" role="tab">💬 Amigos<span id="sin-leer" class="insignia chica" hidden></span></button>
     </nav>
 
     <main>
@@ -52,6 +53,17 @@
                 <span class="moneda-grande"></span>
                 <div><strong id="fichas-casino">1000</strong><span>fichas para todos los juegos del casino</span></div>
             </div>
+        </section>
+
+        <section id="seccion-amigos" class="seccion" hidden>
+            <a class="tarjeta-multijugador" href="amigos.html">
+                <span class="emoji">➕</span>
+                <span class="texto"><strong>Agregar amigos</strong><span id="detalle-solicitudes">Solicitudes, partidas y ranking</span></span>
+                <span id="solicitudes-amigos" class="insignia" hidden></span>
+            </a>
+            <h2 class="titulo-seccion">Chats</h2>
+            <ul id="lista-chats" class="lista-chats"></ul>
+            <p id="sin-chats" class="sin-chats">Todavía no tenés amigos. Agregalos con su nombre de usuario.</p>
         </section>
 
         <a id="seguir" class="seguir" href="#" hidden>
@@ -103,6 +115,28 @@
                 turnos = lista.filter((p) => p.estado !== "terminada" && p.turno === usuario.uid).length;
                 pintar();
             });
+
+            // Pestaña Amigos: chats con cada amigo
+            const { montarChats } = await import("./js/chats.js");
+            montarChats({
+                lista: document.getElementById("lista-chats"),
+                vacio: document.getElementById("sin-chats"),
+                yo: usuario.uid,
+                miNombre: perfil?.nombre ?? nombre,
+                alCambiar: (sinLeer, pedidos) => {
+                    const insignia = document.getElementById("sin-leer");
+                    insignia.hidden = sinLeer + pedidos === 0;
+                    insignia.textContent = sinLeer + pedidos;
+                    const sol = document.getElementById("solicitudes-amigos");
+                    sol.hidden = pedidos === 0;
+                    sol.textContent = pedidos;
+                    document.getElementById("detalle-solicitudes").textContent = pedidos
+                        ? `${pedidos} solicitud(es) de amistad esperando`
+                        : "Solicitudes, partidas y ranking";
+                },
+            });
+            // Las fichas del casino se actualizan solas (regalos, premios)
+            addEventListener("fichas", () => (document.getElementById("fichas-casino").textContent = fichas().toLocaleString("es-AR")));
         }
     </script>
 </body>
