@@ -75,6 +75,16 @@
         }
         .ficha-d.elegida { outline: 3px solid #ffd23f; outline-offset: 2px; }
         .ficha-d.puede { box-shadow: 0 0 0 3px #7ee08f, 0 6px 8px #0008; }
+        .ficha-d.elegida { animation: elegir 0.9s ease-in-out infinite; }
+        @keyframes elegir { 50% { transform: translateY(-4px) scale(1.06); } }
+        .ficha-d.comida { animation: comida 0.35s ease-in forwards; }
+        @keyframes comida { to { transform: scale(0) rotate(180deg); opacity: 0; } }
+        .ficha-d.corona { animation: corona 0.8s cubic-bezier(0.2, 1.6, 0.4, 1); box-shadow: 0 0 0 3px #ffd23f, 0 0 22px #ffd23f; }
+        @keyframes corona { 0% { transform: scale(0.6) rotate(-20deg); } 60% { transform: scale(1.25) rotate(8deg); } }
+        .ficha-volando { position: fixed; z-index: 10; pointer-events: none; margin: 0; }
+        .flotante-d { position: fixed; z-index: 11; transform: translate(-50%, -50%); font-weight: 900; font-size: 1.3rem; color: #ffd23f; text-shadow: 0 2px 6px #000; pointer-events: none; animation: subir-d 1.1s ease-out forwards; }
+        @keyframes subir-d { from { opacity: 0; transform: translate(-50%, -20%) scale(0.6); } 25% { opacity: 1; transform: translate(-50%, -60%) scale(1.15); } to { opacity: 0; transform: translate(-50%, -180%); } }
+        .chispa-d { position: fixed; z-index: 10; width: 7px; height: 7px; border-radius: 50%; pointer-events: none; }
     </style>
 </head>
 <body class="pantalla-3d tema-damas">
