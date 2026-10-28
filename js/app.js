@@ -1,7 +1,7 @@
 // Página principal: pestañas Solo / Multijugador / Casino con la lista de juegos de cada una
 const lista = document.getElementById("lista-juegos");
 const pestanas = document.querySelectorAll(".pestana");
-const NUEVOS = ["games/granja/", "games/crash/", "games/minas/", "games/acuario/", "games/mayormenor/", "games/keno/", "games/rueda/", "games/magos/", "games/raspadita/", "games/baccarat/", "games/sicbo/", "games/muralla/"];
+const NUEVOS = ["games/magos/", "games/raspadita/", "games/baccarat/", "games/sicbo/", "games/muralla/"];
 
 function leer(clave, porDefecto) {
     try {
@@ -40,7 +40,18 @@ function mostrar(seccion) {
     for (const s of document.querySelectorAll(".seccion")) s.hidden = s.id !== `seccion-${seccion}`;
 
     lista.innerHTML = "";
-    JUEGOS.filter((j) => j.categoria === seccion).forEach((juego, i) => lista.appendChild(tarjeta(juego, i)));
+    let grupoActual = null;
+    JUEGOS.filter((j) => j.categoria === seccion).forEach((juego, i) => {
+        // Subtítulo cada vez que empieza un grupo nuevo
+        if (juego.grupo && juego.grupo !== grupoActual) {
+            grupoActual = juego.grupo;
+            const titulo = document.createElement("li");
+            titulo.className = "grupo-juegos";
+            titulo.textContent = juego.grupo;
+            lista.appendChild(titulo);
+        }
+        lista.appendChild(tarjeta(juego, i));
+    });
 
     // "Seguir jugando" con el último juego abierto de esta pestaña
     const ultimo = JUEGOS.find((j) => j.carpeta === leer("ultimo-juego", "") && j.categoria === seccion);
