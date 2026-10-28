@@ -163,4 +163,7 @@ export const JUEGOS_ONLINE = {
     pool: { nombre: "Pool", emoji: "🎱", carpeta: "games/pool/", reglas: "../games/pool/reglas.js" },
     cuatro: { nombre: "4 en línea", emoji: "🔴", carpeta: "games/cuatro/", reglas: "../games/cuatro/reglas.js" },
     tateti: { nombre: "Ta-te-tí", emoji: "❌", carpeta: "games/tateti/", reglas: "../games/tateti/reglas.js" },
+    damas: { nombre: "Damas", emoji: "⚫", carpeta: "games/damas/", reglas: "../games/damas/reglas.js" },
+    mancala: { nombre: "Mancala", emoji: "🥥", carpeta: "games/mancala/", reglas: "../games/mancala/reglas.js" },
+    naval: { nombre: "Batalla naval", emoji: "🚢", carpeta: "games/naval/", reglas: "../games/naval/reglas.js" },
 };
