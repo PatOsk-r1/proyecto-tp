@@ -546,6 +546,41 @@
             }
             ctx.textBaseline = "alphabetic";
         },
+        crash() {
+            fondo("#07041a", "#2a0b5e");
+            estrellas(40, 11);
+            ctx.strokeStyle = "#7df9ff";
+            ctx.lineWidth = 3;
+            ctx.shadowColor = "#7df9ff";
+            ctx.shadowBlur = 10;
+            ctx.beginPath();
+            ctx.moveTo(W * 0.08, H * 0.9);
+            ctx.quadraticCurveTo(W * 0.55, H * 0.85, W * 0.78, H * 0.25);
+            ctx.stroke();
+            ctx.shadowBlur = 0;
+            ctx.save();
+            ctx.translate(W * 0.8, H * 0.22);
+            ctx.rotate(-1.1);
+            ctx.fillStyle = "#ff7a1a";
+            ctx.beginPath();
+            ctx.moveTo(-10, -4);
+            ctx.lineTo(-24, 0);
+            ctx.lineTo(-10, 4);
+            ctx.fill();
+            ctx.fillStyle = "#e9ecef";
+            ctx.beginPath();
+            ctx.moveTo(14, 0);
+            ctx.quadraticCurveTo(4, -8, -10, -6);
+            ctx.lineTo(-10, 6);
+            ctx.quadraticCurveTo(4, 8, 14, 0);
+            ctx.fill();
+            circulo(3, 0, 3, "#4cc9f0");
+            ctx.restore();
+            ctx.fillStyle = "#7ee08f";
+            ctx.font = "900 22px sans-serif";
+            ctx.textAlign = "left";
+            ctx.fillText("2.47×", W * 0.1, H * 0.3);
+        },
         plinko() {
             fondo("#240046", "#5a189a");
             for (let f = 0; f < 5; f++) for (let c = 0; c <= f + 3; c++) circulo(W / 2 + (c - (f + 3) / 2) * 16, H * 0.14 + f * H * 0.14, 2.6, "#e0aaff");
