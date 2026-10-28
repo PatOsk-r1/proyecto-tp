@@ -164,10 +164,16 @@ const puntero = new THREE.Vector2();
 let meteorito = null;
 let proximoMeteorito = 25;
 function crearMeteorito() {
-    const roca = new THREE.Mesh(new THREE.IcosahedronGeometry(0.42, 0), material(0x8d6e63, { flatShading: true, emissive: 0xff5f00, emissiveIntensity: 0.25 }));
+    // Cruza por lo que se ve en pantalla (según dónde esté la cámara), tardando unos 7 segundos
+    const z = 1.5;
+    const distancia = camera.position.length() - z;
+    const medioAlto = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * distancia;
+    const medioAncho = medioAlto * camera.aspect;
+    const roca = new THREE.Mesh(new THREE.IcosahedronGeometry(Math.max(0.35, medioAncho * 0.12), 0), material(0x8d6e63, { flatShading: true, emissive: 0xff5f00, emissiveIntensity: 0.35 }));
     const lado = Math.random() < 0.5 ? -1 : 1;
-    roca.position.set(lado * 9, (Math.random() - 0.3) * 4, 2 + Math.random() * 1.5);
-    roca.userData = { vel: new THREE.Vector3(-lado * (1.6 + Math.random()), (Math.random() - 0.5) * 0.6, 0), giro: new THREE.Vector3(Math.random(), Math.random(), Math.random()) };
+    roca.position.set(lado * (medioAncho + 0.6), (Math.random() * 0.8 - 0.2) * medioAlto, z);
+    const velocidad = (medioAncho * 2 + 1.2) / 7;
+    roca.userData = { vel: new THREE.Vector3(-lado * velocidad, (Math.random() - 0.5) * velocidad * 0.3, 0), giro: new THREE.Vector3(Math.random(), Math.random(), Math.random()), limite: medioAncho + 1, radio: Math.max(0.9, medioAncho * 0.25) };
     scene.add(roca);
     meteorito = roca;
 }
@@ -276,7 +282,7 @@ alAnimar((dt) => {
         meteorito.rotation.x += d.giro.x * dt * 2;
         meteorito.rotation.y += d.giro.y * dt * 2;
         if (Math.random() < 0.7) particulas.emitir(meteorito.position, 0xff7a1a, 1, { velocidad: 0.3, arriba: 0, tamano: 0.12, gravedad: 0, vida: 0.5, brillo: true });
-        if (Math.abs(meteorito.position.x) > 10) {
+        if (Math.abs(meteorito.position.x) > d.limite) {
             scene.remove(meteorito);
             meteorito = null;
             proximoMeteorito = (40 + Math.random() * 40) / (1 + tec("radar") * 0.5);
@@ -308,7 +314,7 @@ renderer.domElement.addEventListener("pointerdown", (e) => {
         puntero.set(((e.clientX - caja.left) / caja.width) * 2 - 1, -((e.clientY - caja.top) / caja.height) * 2 + 1);
         raycaster.setFromCamera(puntero, camera);
         // Zona de toque generosa: una esfera invisible un poco más grande que la roca
-        const cerca = raycaster.ray.distanceToPoint(meteorito.position) < 0.9;
+        const cerca = raycaster.ray.distanceToPoint(meteorito.position) < meteorito.userData.radio;
         if (cerca) {
             const premio = Math.max(50, porSegundo() * 45) * (1 + tec("radar") * 0.5);
             const cristales = 1 + (Math.random() < 0.3 + tec("radar") * 0.1 ? 1 : 0);
