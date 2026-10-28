@@ -13,54 +13,7 @@
     <link rel="stylesheet" href="../../css/estilos.css">
     <link rel="stylesheet" href="../../css/juegos3d.css">
     <link rel="stylesheet" href="../../css/tablero.css">
-    <style>
-        .tema-naval {
-            --fondo: #021a33;
-            --fondo-2: #064a85;
-            --texto-suave: #bfe3ff;
-            --acento: #ffd23f;
-            --acento-2: #ff9f1c;
-            --panel: #01101fcc;
-        }
-        .titulo-tablero {
-            font-size: 0.85rem;
-            font-weight: 800;
-            color: var(--texto-suave);
-        }
-        .mar {
-            display: grid;
-            grid-template-columns: repeat(8, 1fr);
-            gap: 2px;
-            padding: 4px;
-            border-radius: 12px;
-            background: #0b3d6b;
-            box-shadow: 0 10px 24px #0008, inset 0 0 0 2px #ffffff22;
-        }
-        .mar.grande { width: min(92vw, 43vh, 420px); }
-        .mar.chico { width: min(48vw, 21vh, 220px); }
-        .zona-tablero { gap: 6px; justify-content: space-evenly; }
-        .celda-m {
-            position: relative;
-            aspect-ratio: 1;
-            border: none;
-            border-radius: 4px;
-            padding: 0;
-            font: inherit;
-            font-size: clamp(0.7rem, 3.5vw, 1.2rem);
-            background: linear-gradient(160deg, #1f7fd6, #145fa8);
-            color: #fff;
-        }
-        .mar.chico .celda-m { font-size: clamp(0.5rem, 2vw, 0.75rem); border-radius: 2px; }
-        .mar.apuntable .celda-m:not(.disparada) { cursor: crosshair; }
-        .mar.apuntable .celda-m:not(.disparada):active { background: #ffd23f88; }
-        .celda-m.barco { background: linear-gradient(160deg, #a7b4c2, #6c7a89); }
-        .celda-m.agua::after { content: ""; position: absolute; inset: 38%; border-radius: 50%; background: #ffffffcc; }
-        .celda-m.tocado { background: linear-gradient(160deg, #ff6b35, #c62828); animation: aparecer 0.3s ease-out; }
-        .celda-m.hundido { background: linear-gradient(160deg, #5c0a0a, #2a0505); }
-        .celda-m.ultimo { outline: 2px solid var(--acento); z-index: 1; }
-        .botones-colocar { display: flex; gap: 8px; width: min(92vw, 420px); }
-        .botones-colocar .accion { flex: 1; }
-    </style>
+    <link rel="stylesheet" href="estilo.css">
 </head>
 <body class="pantalla-3d tema-naval tema-casino">
     <header class="barra-juego">
