@@ -218,16 +218,16 @@
 .fichas-apuesta {
     display: flex;
     justify-content: center;
-    gap: 12px;
+    gap: min(10px, 2vw);
 }
 
 .ficha {
-    width: 56px;
-    height: 56px;
+    width: min(52px, 13.5vw);
+    height: min(52px, 13.5vw);
     border-radius: 50%;
     font: inherit;
     font-weight: 900;
-    font-size: 0.95rem;
+    font-size: 0.85rem;
     color: #fff;
     text-shadow: 0 1px 2px #000a;
     background:
