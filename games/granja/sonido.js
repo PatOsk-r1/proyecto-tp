@@ -117,6 +117,10 @@ export const sonidos = {
         nota(E(), { f: 880, t: 0.08, dur: 0.22, vol: 0.18 });
     },
     error: () => nota(E(), { f: 220, hasta: 160, dur: 0.18, vol: 0.15, onda: "square" }),
+    plop: () => {
+        golpeRuido(E(), { dur: 0.09, vol: 0.22, filtro: 500, tipo: "lowpass" });
+        nota(E(), { f: 240, hasta: 90, dur: 0.14, vol: 0.2, onda: "sine" });
+    },
     toque: () => nota(E(), { f: 900, dur: 0.05, vol: 0.08, onda: "sine" }),
     lluvia: (segundos) => {
         if (!ctx) return;
