@@ -117,6 +117,12 @@ export const sonidos = {
         nota(E(), { f: 880, t: 0.08, dur: 0.22, vol: 0.18 });
     },
     error: () => nota(E(), { f: 220, hasta: 160, dur: 0.18, vol: 0.15, onda: "square" }),
+    // Voz de los clientes: "blips" cortitos con el tono de cada uno (como balbuceo de dibujito)
+    hablar: (tono = 260) => {
+        const f = tono * (0.85 + Math.random() * 0.35);
+        nota(E(), { f, hasta: f * (Math.random() < 0.5 ? 1.15 : 0.9), dur: 0.07, vol: 0.07, onda: "square", ataque: 0.005 });
+        nota(E(), { f: f * 2, dur: 0.05, vol: 0.025, onda: "sine", ataque: 0.005 });
+    },
     plop: () => {
         golpeRuido(E(), { dur: 0.09, vol: 0.22, filtro: 500, tipo: "lowpass" });
         nota(E(), { f: 240, hasta: 90, dur: 0.14, vol: 0.2, onda: "sine" });
