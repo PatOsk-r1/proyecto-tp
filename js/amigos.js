@@ -2,9 +2,9 @@
 import { exigirSesion } from "./sesion.js";
 import {
     miPerfil, htmlAvatar, escucharAmistades, enviarSolicitud, aceptarAmistad, borrarAmistad,
-    escucharPartidas, crearPartida, aceptarPartida, quitarPartida, sePuedeBorrar, JUEGOS_ONLINE,
+    escucharPartidas, aceptarPartida, quitarPartida, enCurso, JUEGOS_ONLINE,
     iniciarPresencia, escucharUsuario, enLinea, textoConexion, escucharBilletera, nivelDe, formatear,
-    rutaChatAmigo, escucharChat, sinLeer, panelChat, idAmistad, hojaDesafio, hojaRegalo,
+    rutaChatAmigo, escucharChat, sinLeer, panelChat, idAmistad, hojaDesafio, hojaRegalo, hojaPerfil,
 } from "./multijugador.js";
 import { fichas } from "./fichas.js";
 import { totales as totalesArco } from "../games/arco/reglas.js";
@@ -193,55 +193,20 @@ function abrirChat(otro) {
     });
 }
 
-// Hoja inferior genérica
-function hoja(html) {
-    const fondo = document.createElement("div");
-    fondo.className = "hoja-fondo";
-    fondo.innerHTML = `<div class="hoja">${html}<button class="boton-chico secundario cerrar" type="button">Cerrar</button></div>`;
-    const cerrar = () => fondo.remove();
-    fondo.addEventListener("click", (e) => e.target === fondo && cerrar());
-    fondo.querySelector(".cerrar").addEventListener("click", cerrar);
-    document.body.appendChild(fondo);
-    return { fondo, cerrar };
+// Perfil de un amigo: estadísticas, nivel de cada juego y acciones
+function fichaAmigo(otro) {
+    hojaPerfil(otro.uid, otro.nombre, {
+        acciones: [
+            { texto: "💬 Chat", accion: () => abrirChat(otro) },
+            { texto: "⚔️ Desafiar", accion: () => hojaDesafio(otro, perfil.nombre) },
+            { texto: "🎁 Regalar fichas", accion: () => hojaRegalo(otro, perfil.nombre, (n) => alert(`¡Listo! Le regalaste ${formatear(n)} fichas a ${otro.nombre} 🎁`)) },
+            { texto: "Eliminar", clase: "peligro", accion: () => confirm(`¿Eliminar a ${otro.nombre} de tus amigos?`) && borrarAmistad(otro.amistad) },
+        ],
+    });
 }
 
-// Perfil de un amigo: estadísticas y acciones
-function fichaAmigo(otro) {
-    const b = billeteras[otro.uid];
-    const s = b?.stats ?? {};
-    const porJuego = Object.entries(s.juegos ?? {})
-        .map(([j, r]) => `<li>${JUEGOS_ONLINE[j]?.emoji ?? "🎮"} ${JUEGOS_ONLINE[j]?.nombre ?? j}<span>${r.ganadas ?? 0}G · ${r.perdidas ?? 0}P · ${r.empates ?? 0}E</span></li>`)
-        .join("");
-    const { fondo, cerrar } = hoja(`
-        <div class="ficha-amigo">
-            <div class="avatar-grande">${htmlAvatar(perfiles[otro.uid], escapar(otro.nombre))}</div>
-            <h2>${escapar(otro.nombre)}</h2>
-            <span class="suave">${textoConexion(perfiles[otro.uid])}</span>
-            <div class="numeros-perfil">
-                <div><b>${nivelDe(b?.xp)}</b>Nivel</div><div><b>${s.ganadas ?? 0}</b>Victorias</div>
-                <div><b>${s.perdidas ?? 0}</b>Derrotas</div><div><b>${b ? formatear(b.fichas ?? 0) : "?"}</b>Fichas</div>
-            </div>
-            ${porJuego ? `<ul class="por-juego">${porJuego}</ul>` : ""}
-            <div class="botones-ficha">
-                <button class="boton-chico" data-a="chat">💬 Chat</button>
-                <button class="boton-chico" data-a="desafiar">⚔️ Desafiar</button>
-                <button class="boton-chico" data-a="regalar">🎁 Regalar fichas</button>
-                <button class="boton-chico peligro" data-a="borrar">Eliminar</button>
-            </div>
-        </div>`);
-    const acciones = {
-        chat: () => abrirChat(otro),
-        desafiar: () => hojaDesafio(otro, perfil.nombre),
-        regalar: () => hojaRegalo(otro, perfil.nombre, (n) => alert(`¡Listo! Le regalaste ${formatear(n)} fichas a ${otro.nombre} 🎁`)),
-        borrar: () => confirm(`¿Eliminar a ${otro.nombre} de tus amigos?`) && borrarAmistad(otro.amistad),
-    };
-    for (const btn of fondo.querySelectorAll("[data-a]")) {
-        btn.addEventListener("click", () => {
-            cerrar();
-            acciones[btn.dataset.a]();
-        });
-    }
-}
+// Mi perfil, como lo ven mis amigos
+$("ver-perfil").addEventListener("click", () => perfil && hojaPerfil(usuario.uid, perfil.nombre));
 
 // Ranking de amigos por fichas
 function pintarRanking() {
@@ -267,8 +232,9 @@ function pintarRanking() {
 
 function pintarPartidas(partidas) {
     const yo = usuario.uid;
-    partidas = partidas.filter((p) => p.estado !== "rechazada" || p.creador !== yo);
-    const orden = (p) => (p.estado === "terminada" ? 2 : p.turno === yo ? 0 : 1);
+    // Solo las que siguen en curso (las terminadas no se guardan)
+    partidas = partidas.filter(enCurso);
+    const orden = (p) => (p.turno === yo || (p.estado === "invitada" && p.creador !== yo) ? 0 : 1);
     partidas.sort((a, b) => orden(a) - orden(b) || (b.actualizada?.seconds ?? 0) - (a.actualizada?.seconds ?? 0));
     $("sin-partidas").hidden = partidas.length > 0;
     $("partidas").replaceChildren(
@@ -282,15 +248,7 @@ function pintarPartidas(partidas) {
             const borrar = { texto: "✕", clase: "secundario", accion: () => quitarPartida(p) };
             let detalle;
             let acciones;
-            if (p.estado === "terminada") {
-                const ganador = p.ganador ?? (puntos[yo] > puntos[otro] ? yo : puntos[yo] < puntos[otro] ? otro : "empate");
-                const premio = p.apuesta ? (ganador === yo ? ` +${formatear(p.apuesta * 2)}` : ganador === "empate" ? "" : ` −${formatear(p.apuesta)}`) : "";
-                detalle = `${juego.emoji} ${ganador === yo ? "Ganaste" : ganador === "empate" ? "Empate" : "Perdiste"} ${marcador}${premio ? ` · 🪙${premio}` : ""}`;
-                acciones = [{ texto: "Ver", clase: "secundario", accion: abrir }, ...(sePuedeBorrar(p) ? [borrar] : [])];
-            } else if (p.estado === "rechazada") {
-                detalle = `${juego.emoji} Rechazada`;
-                acciones = [];
-            } else if (p.estado === "invitada" && p.creador !== yo) {
+            if (p.estado === "invitada" && p.creador !== yo) {
                 detalle = `${juego.emoji} ¡Te desafió!${pozo ? ` Apuesta${pozo}` : ""}`;
                 acciones = [
                     { texto: "Aceptar", accion: async () => (await aceptarPartida(p)) && abrir() },
@@ -304,7 +262,7 @@ function pintarPartidas(partidas) {
                     ...(p.estado === "invitada" ? [borrar] : []),
                 ];
             }
-            return item({ nombre: p.nombres[otro] ?? "Amigo", detalle, acciones, destacado: p.estado !== "terminada" && p.turno === yo });
+            return item({ nombre: p.nombres[otro] ?? "Amigo", detalle, acciones, destacado: orden(p) === 0 });
         })
     );
 }
