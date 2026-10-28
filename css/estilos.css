@@ -416,6 +416,26 @@ body {
     padding: 8px 20px 32px;
 }
 
+.lista-juegos .grupo-juegos {
+    grid-column: 1 / -1;
+    margin-top: 6px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.85rem;
+    font-weight: 900;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--acento);
+}
+
+.lista-juegos .grupo-juegos::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(90deg, #ffcc3366, transparent);
+}
+
 .lista-juegos li {
     animation: entrar 0.45s cubic-bezier(0.2, 0.9, 0.3, 1.2) both;
     animation-delay: var(--retraso, 0ms);
