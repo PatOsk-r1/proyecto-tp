@@ -188,7 +188,8 @@
 }
 
 .comprar-l,
-.encargado-l {
+.encargado-l,
+.receta-l {
     font: inherit;
     font-size: 0.75rem;
     font-weight: 900;
@@ -208,8 +209,14 @@
     background: #2f6fd8;
 }
 
+.receta-l {
+    color: #fff;
+    background: linear-gradient(180deg, #9d4edd, #5a189a);
+}
+
 .comprar-l:disabled,
-.encargado-l:disabled {
+.encargado-l:disabled,
+.receta-l:disabled {
     opacity: 0.4;
 }
 
@@ -253,4 +260,54 @@
 .botones-s {
     display: flex;
     gap: 8px;
+}
+
+/* Monedas que vuelan al contador */
+.moneda-vuela {
+    position: fixed;
+    z-index: 25;
+    width: 16px;
+    height: 16px;
+    margin: -8px 0 0 -8px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%, #fff3b0, #ffcc33 45%, #c98a00);
+    box-shadow: 0 0 8px #ffcf6e;
+    pointer-events: none;
+}
+
+/* Medialuna dorada que cruza la pantalla */
+.dorada {
+    position: fixed;
+    left: 0;
+    top: 0;
+    z-index: 20;
+    width: 64px;
+    height: 64px;
+    padding: 6px;
+    border: none;
+    border-radius: 50%;
+    background: radial-gradient(circle, #fff3b0cc, #ffcf6e55 60%, transparent 70%);
+    filter: drop-shadow(0 0 12px #ffd166) saturate(1.6) brightness(1.15);
+    animation: brillar-dorada 0.6s ease-in-out infinite alternate;
+}
+
+.dorada .icono-svg {
+    width: 100%;
+    height: 100%;
+}
+
+@keyframes brillar-dorada {
+    to {
+        filter: drop-shadow(0 0 22px #ffd166) saturate(1.8) brightness(1.35);
+    }
+}
+
+/* Mientras dura el ×7 la vidriera brilla */
+.impulso .vidriera {
+    box-shadow: 0 0 28px #ffd166, 0 8px 18px #0007, inset 0 -4px 10px #0005;
+    animation: latir 0.8s ease-in-out infinite;
+}
+
+.impulso .dinero {
+    color: #ffe08a;
 }
