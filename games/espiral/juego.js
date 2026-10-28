@@ -19,6 +19,22 @@ const SALTO = 7.2;
 const PISOS_PARA_FUEGO = 3;
 
 const estado = cargar(CLAVE, { monedas: 0, nivel: 1, escudo: 0, ganancia: 0 });
+estado.bolas ??= ["clasica"];
+estado.bola ??= "clasica";
+estado.fuegoRapido ??= 0;
+const pisosParaFuego = () => PISOS_PARA_FUEGO - estado.fuegoRapido;
+
+// Estilos de pelota: color, brillo y color de la estela
+const BOLAS = [
+    { id: "clasica", nombre: "Clásica", costo: 0, color: 0xffffff, estela: null },
+    { id: "chicle", nombre: "Chicle", costo: 100, color: 0xff70a6, estela: 0xff70a6 },
+    { id: "hielo", nombre: "Hielo", costo: 200, color: 0xa0e7ff, estela: 0x7df9ff, brillo: 0.4 },
+    { id: "neon", nombre: "Neón", costo: 350, color: 0x39ff14, estela: 0x39ff14, brillo: 0.9 },
+    { id: "oro", nombre: "Oro", costo: 600, color: 0xffd166, estela: 0xffd166, metal: true },
+    { id: "fantasma", nombre: "Fantasma", costo: 900, color: 0xe0e0ff, estela: 0xc8b6ff, opacidad: 0.55, brillo: 0.3 },
+    { id: "arcoiris", nombre: "Arcoíris", costo: 1500, color: 0xffffff, estela: "arcoiris", brillo: 0.5 },
+];
+const bolaActual = () => BOLAS.find((b) => b.id === estado.bola) ?? BOLAS[0];
 
 const multiplicador = () => 1 + estado.ganancia * 0.3;
 const costoEscudo = () => 60 * 3 ** estado.escudo;
@@ -61,6 +77,16 @@ const bola = new THREE.Mesh(
 );
 bola.castShadow = true;
 scene.add(bola);
+function vestirBola() {
+    const b = bolaActual();
+    Object.assign(bola.material, { metalness: b.metal ? 0.85 : 0, roughness: b.metal ? 0.15 : 0.2, transparent: Boolean(b.opacidad), opacity: b.opacidad ?? 1 });
+    bola.material.needsUpdate = true;
+}
+vestirBola();
+
+// Gemas: flotan en algunos huecos y se juntan al caer por ese hueco
+const geoGema = new THREE.OctahedronGeometry(0.22);
+const matGema = material(0x7df9ff, { emissive: 0x00b4d8, emissiveIntensity: 0.8, metalness: 0.3, roughness: 0.1 });
 
 let anillos = [];
 let poste = null;
@@ -107,6 +133,15 @@ function construirNivel() {
             let inicio = Math.floor(Math.random() * SEGMENTOS);
             if (i === 0) inicio = (debajoBola + 4) % SEGMENTOS;
             for (let k = 0; k < largoHueco; k++) tipos[(inicio + k) % SEGMENTOS] = "hueco";
+            if (i > 0 && Math.random() < 0.35) {
+                const a = ((inicio + largoHueco / 2) / SEGMENTOS) * Math.PI * 2;
+                const gema = new THREE.Mesh(geoGema, matGema);
+                const r = (RADIO_INTERNO + RADIO_EXTERNO) / 2;
+                // Las porciones se rotan con rotateX(-90°): el ángulo a en el plano XY queda en XZ con z = -sin(a)
+                gema.position.set(Math.cos(a) * r, 0.55, -Math.sin(a) * r);
+                gema.userData.gema = true;
+                piso.add(gema);
+            }
             const peligros = i === 0 ? 0 : Math.min(5, Math.floor(nivel / 2) + Math.floor(Math.random() * 3));
             for (let p = 0; p < peligros; p++) {
                 const k = Math.floor(Math.random() * SEGMENTOS);
@@ -151,6 +186,17 @@ addEventListener("pointerup", () => (arrastrando = false));
 
 // ---------- Juego ----------
 function romperPiso(piso, conFuego) {
+    const gema = piso.children.find((c) => c.userData.gema);
+    if (gema) {
+        piso.remove(gema);
+        if (!conFuego) {
+            const extra = 5 * multiplicador();
+            partida.ganado += extra;
+            particulas.emitir(bola.position, 0x7df9ff, 18, { velocidad: 3, arriba: 3, tamano: 0.12, brillo: true });
+            const caja = renderer.domElement.getBoundingClientRect();
+            textoFlotante(caja.left + caja.width / 2, caja.top + caja.height * 0.3, `💎 +${formatear(extra)}`, "#7df9ff");
+        }
+    }
     for (const porcion of [...piso.children]) {
         scene.attach(porcion);
         const centro = new THREE.Box3().setFromObject(porcion).getCenter(new THREE.Vector3());
@@ -228,10 +274,14 @@ alAnimar((dt) => {
                 origenRayo.set(0, tope + 0.5, Z_BOLA);
                 raycaster.set(origenRayo, abajo);
                 const toque = raycaster.intersectObjects(piso.children, false)[0];
-                const enFuego = partida.seguidos >= PISOS_PARA_FUEGO;
+                const enFuego = partida.seguidos >= pisosParaFuego();
                 if (!toque) {
                     romperPiso(piso, false);
                     partida.seguidos++;
+                    if (partida.seguidos === pisosParaFuego()) {
+                        const caja = renderer.domElement.getBoundingClientRect();
+                        textoFlotante(caja.left + caja.width / 2, caja.top + caja.height * 0.5, "🔥 ¡EN LLAMAS!", "#ff9f1c");
+                    }
                 } else if (toque.object.userData.tipo === "meta") {
                     rebotar(tope);
                     terminar(true);
@@ -257,9 +307,16 @@ alAnimar((dt) => {
         }
 
         // Fuego: brilla y deja estela
-        const fuego = partida.seguidos >= PISOS_PARA_FUEGO;
-        bola.material.emissiveIntensity += ((fuego ? 1.5 : 0) - bola.material.emissiveIntensity) * Math.min(1, dt * 8);
-        bola.material.color.setHex(fuego ? 0xffa040 : 0xffffff);
+        const fuego = partida.seguidos >= pisosParaFuego();
+        const estilo = bolaActual();
+        bola.material.emissiveIntensity += ((fuego ? 1.5 : estilo.brillo ?? 0) - bola.material.emissiveIntensity) * Math.min(1, dt * 8);
+        const colorBola = estilo.estela === "arcoiris" ? new THREE.Color().setHSL((tiempo * 0.5) % 1, 0.9, 0.6).getHex() : estilo.color;
+        bola.material.color.setHex(fuego ? 0xffa040 : colorBola);
+        bola.material.emissive.setHex(fuego ? 0xff5f00 : colorBola);
+        // Estela del estilo de pelota
+        if (!fuego && estilo.estela && Math.random() < 0.5) {
+            particulas.emitir(bola.position, estilo.estela === "arcoiris" ? colorBola : estilo.estela, 1, { velocidad: 0.2, arriba: 0.3, tamano: 0.12, gravedad: 0, vida: 0.35, brillo: true });
+        }
         if (fuego && Math.random() < 0.6) {
             particulas.emitir(bola.position, 0xff6a00, 1, { velocidad: 0.4, arriba: 1, tamano: 0.16, gravedad: -2, vida: 0.4, brillo: true });
         }
@@ -296,6 +353,10 @@ alAnimar((dt) => {
     sol.target.updateMatrixWorld();
 
     if (!partida) torre.rotation.y += dt * 0.3;
+    for (const piso of anillos) for (const c of piso.children) if (c.userData.gema) {
+        c.rotation.y += dt * 2;
+        c.position.y = 0.55 + Math.sin(tiempo * 3 + piso.position.y) * 0.08;
+    }
 });
 
 // ---------- Mejoras ----------
@@ -319,6 +380,28 @@ function comprar(costo, aplicarMejora) {
 
 const botonEscudo = crearBoton("🛡️ Escudo", () => comprar(costoEscudo(), () => estado.escudo++));
 const botonGanancia = crearBoton("💰 Más monedas", () => comprar(costoGanancia(), () => estado.ganancia++));
+const botonFuego = crearBoton("🔥 Fuego rápido", () => comprar(500, () => (estado.fuegoRapido = 1)));
+const tituloBolas = document.createElement("div");
+tituloBolas.className = "titulo-estilos";
+tituloBolas.textContent = "Pelotas";
+$("mejoras").appendChild(tituloBolas);
+const botonesBola = BOLAS.map((b) => {
+    const hex = `#${b.color.toString(16).padStart(6, "0")}`;
+    const fondo = b.estela === "arcoiris" ? "conic-gradient(#ff006e,#ffbe0b,#8ac926,#3a86ff,#ff006e)" : `radial-gradient(circle at 35% 30%, #fff, ${hex} 60%, #0006)`;
+    const boton = crearBoton(`<span class="muestra" style="background:${fondo}"></span>${b.nombre}`, () => {
+        if (!estado.bolas.includes(b.id)) {
+            if (estado.monedas < b.costo) return;
+            estado.monedas -= b.costo;
+            estado.bolas.push(b.id);
+        }
+        estado.bola = b.id;
+        vestirBola();
+        guardar(CLAVE, estado);
+        vibrar(25);
+        actualizar();
+    });
+    return { boton, b };
+});
 
 function pintarBoton(boton, nivel, detalle, costo, alMaximo = false) {
     boton.querySelector(".nivel").textContent = nivel;
@@ -336,6 +419,16 @@ function actualizar() {
     $("monedas").innerHTML = `${MONEDA}${formatear(estado.monedas)}${escudos}`;
     pintarBoton(botonEscudo, `${estado.escudo}/${MAX_ESCUDO}`, "Te salva de un golpe rojo por partida", costoEscudo(), estado.escudo >= MAX_ESCUDO);
     pintarBoton(botonGanancia, `Nv ${estado.ganancia}`, `×${multiplicador().toFixed(1)} monedas`, costoGanancia());
+    pintarBoton(botonFuego, `${estado.fuegoRapido}/1`, "La pelota se prende con 2 pisos en vez de 3", 500, estado.fuegoRapido >= 1);
+    for (const { boton, b } of botonesBola) {
+        const tiene = estado.bolas.includes(b.id);
+        const puesta = estado.bola === b.id;
+        boton.querySelector(".nivel").textContent = puesta ? "En uso" : "";
+        boton.querySelector(".detalle").textContent = "";
+        boton.querySelector(".precio").innerHTML = puesta ? "✓" : tiene ? "Usar" : `${MONEDA}${formatear(b.costo)}`;
+        boton.disabled = !tiene && estado.monedas < b.costo;
+        boton.classList.toggle("se-puede", puesta);
+    }
 }
 
 $("jugar").addEventListener("click", empezar);
