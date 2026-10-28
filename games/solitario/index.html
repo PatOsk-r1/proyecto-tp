@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="es" class="verificando">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>Solitario · Proyecto TP</title>
+    <meta name="theme-color" content="#0b3d24">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="../../icons/icon-180.png">
+    <link rel="manifest" href="../../manifest.webmanifest">
+
+    <link rel="stylesheet" href="../../css/estilos.css">
+    <link rel="stylesheet" href="../../css/juegos3d.css">
+    <link rel="stylesheet" href="../../css/solitario.css">
+    <link rel="stylesheet" href="estilo.css">
+</head>
+<body class="pantalla-3d tema-casino tema-solitario">
+    <header class="barra-juego">
+        <a class="boton-volver" href="../../">‹ Juegos</a>
+        <h1>Solitario</h1>
+    </header>
+
+    <div class="info-juego">
+        <div class="dato"><span>Movimientos</span><strong id="movimientos">0</strong></div>
+        <div class="dato"><span>Tiempo</span><strong id="tiempo">0:00</strong></div>
+        <div class="dato"><span>Ganados</span><strong id="ganados">0</strong></div>
+    </div>
+
+    <main id="mesa" class="mesa-sol">
+        <div class="fila-arriba">
+            <div id="mazo" class="pila mazo"></div>
+            <div id="descarte" class="pila descarte"></div>
+            <div class="hueco"></div>
+            <div class="pila base" data-base="0"></div>
+            <div class="pila base" data-base="1"></div>
+            <div class="pila base" data-base="2"></div>
+            <div class="pila base" data-base="3"></div>
+        </div>
+        <div id="columnas" class="columnas"></div>
+        <div id="centro" class="mensaje-centro" hidden>
+            <div id="titulo-centro">¡Ganaste!</div>
+            <button id="otra" class="boton-grande" type="button">Otra partida</button>
+        </div>
+    </main>
+
+    <div class="barra-botones">
+        <button id="deshacer" class="boton-modo" type="button">↶ Deshacer</button>
+        <button id="auto" class="boton-modo" type="button" hidden>⚡ Terminar</button>
+        <button id="nueva" class="boton-modo" type="button">↻ Nueva</button>
+    </div>
+
+    <script type="module">
+        import { exigirSesion } from "../../js/sesion.js";
+        exigirSesion();
+    </script>
+    <script type="module" src="juego.js"></script>
+</body>
+</html>
