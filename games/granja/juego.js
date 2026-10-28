@@ -4,6 +4,7 @@ import { crearLienzo, bucle, crearChispas } from "../../js/lienzo2d.js";
 import { sonidos, volumen, cambiarVolumen } from "./sonido.js";
 import { dibujarPersona, frase, GRACIAS, persona } from "./visitas.js";
 import { dibujarAnimal } from "./animales.js";
+import { abrirGarra } from "./garra.js";
 
 const $ = (id) => document.getElementById(id);
 const CLAVE = "granja";
@@ -81,11 +82,41 @@ try {
         }
     } catch {}
 })();
+// Dibujos que no cambian (parcelas, plantas, brillos) se pintan una vez en un lienzo aparte y después
+// solo se copian: es mucho más rápido que volver a dibujar todo con degradados en cada cuadro.
+const sprites = new Map();
+function sprite(clave, w, h, dibujarlo) {
+    let s = sprites.get(clave);
+    if (!s) {
+        const escala = Math.min(devicePixelRatio, 1.5);
+        const c = document.createElement("canvas");
+        c.width = Math.max(1, Math.ceil(w * escala));
+        c.height = Math.max(1, Math.ceil(h * escala));
+        const cx = c.getContext("2d");
+        cx.scale(escala, escala);
+        dibujarlo(cx);
+        s = { c, w, h };
+        sprites.set(clave, s);
+    }
+    return s;
+}
+// Brillo redondo (luciérnagas y faroles): un solo degradado reutilizado
+function brillo(color) {
+    return sprite(`brillo-${color}`, 64, 64, (c) => {
+        const g = c.createRadialGradient(32, 32, 0, 32, 32, 32);
+        g.addColorStop(0, `rgba(${color},1)`);
+        g.addColorStop(0.35, `rgba(${color},0.4)`);
+        g.addColorStop(1, `rgba(${color},0)`);
+        c.fillStyle = g;
+        c.fillRect(0, 0, 64, 64);
+    });
+}
 const lienzo = crearLienzo($("lienzo"), (d) => {
     ancho = d.ancho;
     alto = d.alto;
     fondoCache = null;
-});
+    sprites.clear();
+}, 1.5);
 const vuelos = [];
 const textos = [];
 const rebotes = {}; // parcela → momento en que se plantó o cosechó (para el saltito)
@@ -216,6 +247,9 @@ function sumarXP(n) {
         chispas.emitir(ancho / 2, alto / 3, "#ffd166", 40, 260);
         vibrar([40, 60, 80]);
         sonidos.nivel();
+        // Premio de nivel: un tiro en la garra (se acumulan)
+        estado.garra = (estado.garra ?? 0) + 1;
+        setTimeout(() => avisar(`🕹️ ¡Ganaste un tiro en la garra de premios! Tenés ${estado.garra}`, 2600), 2700);
         if (typeof completarPedidos === "function") completarPedidos();
     }
 }
@@ -380,6 +414,26 @@ function juntarCaca(x, y) {
     }
     return juntadas > 0;
 }
+// Pala: saca lo que está creciendo y devuelve la mitad de lo que costó la semilla
+const SVG_PALA = `<svg viewBox="0 0 48 48" width="44" height="44" aria-hidden="true">
+    <rect x="22" y="4" width="4" height="24" rx="2" fill="#a9713f"/><rect x="17" y="3" width="14" height="5" rx="2.5" fill="#7a4a22"/>
+    <path d="M14 27h20v6c0 6-4.5 11-10 11S14 39 14 33z" fill="#adb5bd"/><path d="M16 29h16v4c0 5-3.6 9-8 9" fill="none" stroke="#e9ecef" stroke-width="2"/></svg>`;
+function sacarConPala(i) {
+    const p = estado.parcelas[i];
+    if (!p || progreso(p) >= 1) return false;
+    const c = cultivo(p.cultivo);
+    const vuelve = Math.floor(c.semilla / 2);
+    estado.parcelas[i] = null;
+    estado.monedas += vuelve;
+    rebotes[i] = performance.now();
+    const r = rectParcela(i);
+    chispas.emitir(r.x + r.w / 2, r.y + r.h / 2, "#6f4518", 14, 120);
+    textos.push({ x: r.x + r.w / 2, y: r.y + 8, t: vuelve ? `Sacado · +${vuelve}` : "Sacado", vida: 1 });
+    sonidos.plop?.();
+    vibrar(15);
+    return true;
+}
+
 // Abonar lo que está creciendo
 function abonar(i) {
     const p = estado.parcelas[i];
@@ -760,27 +814,98 @@ function dibujarPlanta(ctx, id, x, y, tam, prog, tiempo) {
         ctx.beginPath();
         ctx.ellipse(-tam * 0.08, 0, tam * 0.04, tam * 0.16, -0.5, 0, TAU);
         ctx.fill();
-    } else if (id === "tomate" || id === "frutilla" || id === "uva") {
-        const mata = ctx.createRadialGradient(-tam * 0.05, -tam * 0.08, 0, 0, -tam * 0.02, tam * 0.24);
-        mata.addColorStop(0, "#74c69d");
-        mata.addColorStop(1, "#2d6a4f");
-        ctx.fillStyle = mata;
-        for (const [dx, dy, rr] of [[0, -0.04, 0.17], [-0.1, 0.03, 0.12], [0.1, 0.03, 0.12]]) {
+    } else if (id === "tomate") {
+        // Tomatera: tutor de caña, hojas y tomates grandes y redondos con la estrellita verde arriba
+        ctx.strokeStyle = "#c9a26b";
+        ctx.lineWidth = Math.max(2, tam * 0.03);
+        ctx.beginPath();
+        ctx.moveTo(0, tam * 0.22);
+        ctx.lineTo(0, -tam * 0.3);
+        ctx.stroke();
+        ctx.fillStyle = "#2d6a4f";
+        for (const [dx, dy, giro] of [[-0.12, -0.2, 0.6], [0.12, -0.12, -0.6], [-0.13, 0.05, 0.4], [0.13, 0.08, -0.4]]) {
             ctx.beginPath();
-            ctx.arc(dx * tam, dy * tam, rr * tam, 0, TAU);
+            ctx.ellipse(dx * tam, dy * tam, tam * 0.1, tam * 0.045, giro, 0, TAU);
             ctx.fill();
         }
-        const puntos = id === "uva" ? [[-0.08, -0.05], [0, -0.05], [0.08, -0.05], [-0.04, 0.04], [0.04, 0.04], [0, 0.12]] : [[-0.1, -0.08], [0.1, -0.05], [0, 0.08], [-0.12, 0.08], [0.12, 0.1]];
-        for (const [dx, dy] of puntos) {
-            const rf = tam * (id === "uva" ? 0.055 : 0.065);
-            const g = ctx.createRadialGradient(dx * tam - rf * 0.35, dy * tam - rf * 0.35, 0, dx * tam, dy * tam, rf);
-            g.addColorStop(0, "#ffffffdd");
-            g.addColorStop(0.3, c.color);
-            g.addColorStop(0.85, c.color);
-            g.addColorStop(1, "#00000088");
+        for (const [dx, dy, rr] of [[-0.07, -0.08, 0.1], [0.08, 0.02, 0.11], [-0.04, 0.13, 0.085]]) {
+            const rf = rr * tam;
+            const g = ctx.createRadialGradient(dx * tam - rf * 0.4, dy * tam - rf * 0.4, 0, dx * tam, dy * tam, rf);
+            g.addColorStop(0, "#ffb4a2");
+            g.addColorStop(0.35, "#e63946");
+            g.addColorStop(1, "#9d0208");
             ctx.fillStyle = g;
             ctx.beginPath();
-            ctx.arc(dx * tam, dy * tam, tam * (id === "uva" ? 0.055 : 0.065), 0, TAU);
+            ctx.arc(dx * tam, dy * tam, rf, 0, TAU);
+            ctx.fill();
+            // Estrellita de hojas
+            ctx.fillStyle = "#40916c";
+            for (let k = 0; k < 5; k++) {
+                const a = (k / 5) * TAU - Math.PI / 2;
+                ctx.beginPath();
+                ctx.ellipse(dx * tam + Math.cos(a) * rf * 0.3, dy * tam - rf * 0.75 + Math.sin(a) * rf * 0.2, rf * 0.28, rf * 0.1, a, 0, TAU);
+                ctx.fill();
+            }
+        }
+    } else if (id === "frutilla") {
+        // Frutilla: planta bajita de hojas de a tres y frutillas con forma de corazón, puntitos amarillos y coronita
+        ctx.fillStyle = "#40916c";
+        for (const [dx, dy] of [[-0.12, -0.06], [0.12, -0.08], [0, -0.16]]) {
+            for (let k = 0; k < 3; k++) {
+                const a = -Math.PI / 2 + (k - 1) * 0.8;
+                ctx.beginPath();
+                ctx.ellipse(dx * tam + Math.cos(a) * tam * 0.05, dy * tam + Math.sin(a) * tam * 0.05, tam * 0.055, tam * 0.035, a, 0, TAU);
+                ctx.fill();
+            }
+        }
+        for (const [dx, dy, s] of [[-0.09, 0.06, 1], [0.08, 0.09, 1.1], [0, 0.0, 0.85]]) {
+            const fx = dx * tam;
+            const fy = dy * tam;
+            const ft = tam * 0.12 * s;
+            const g = ctx.createLinearGradient(fx, fy - ft * 0.5, fx, fy + ft);
+            g.addColorStop(0, "#ff4d6d");
+            g.addColorStop(1, "#c9184a");
+            ctx.fillStyle = g;
+            ctx.beginPath();
+            ctx.moveTo(fx, fy + ft);
+            ctx.bezierCurveTo(fx - ft * 0.9, fy + ft * 0.2, fx - ft * 0.8, fy - ft * 0.55, fx, fy - ft * 0.4);
+            ctx.bezierCurveTo(fx + ft * 0.8, fy - ft * 0.55, fx + ft * 0.9, fy + ft * 0.2, fx, fy + ft);
+            ctx.fill();
+            ctx.fillStyle = "#ffe066";
+            for (const [sx, sy] of [[-0.3, 0], [0.3, 0], [0, 0.15], [-0.15, 0.45], [0.15, 0.45], [0, -0.15]]) {
+                ctx.beginPath();
+                ctx.ellipse(fx + sx * ft, fy + sy * ft, ft * 0.06, ft * 0.09, 0, 0, TAU);
+                ctx.fill();
+            }
+            ctx.fillStyle = "#2d6a4f";
+            for (let k = 0; k < 4; k++) {
+                ctx.beginPath();
+                ctx.ellipse(fx + (k - 1.5) * ft * 0.22, fy - ft * 0.45, ft * 0.16, ft * 0.07, (k - 1.5) * 0.5, 0, TAU);
+                ctx.fill();
+            }
+        }
+    } else if (id === "uva") {
+        // Parra: hoja grande y racimo de uvas en triángulo
+        ctx.fillStyle = "#40916c";
+        ctx.beginPath();
+        ctx.ellipse(-tam * 0.1, -tam * 0.16, tam * 0.13, tam * 0.09, -0.4, 0, TAU);
+        ctx.ellipse(tam * 0.1, -tam * 0.18, tam * 0.12, tam * 0.08, 0.4, 0, TAU);
+        ctx.fill();
+        ctx.strokeStyle = "#6f4518";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(0, -tam * 0.2);
+        ctx.lineTo(0, -tam * 0.1);
+        ctx.stroke();
+        for (const [dx, dy] of [[-0.09, -0.06], [0, -0.06], [0.09, -0.06], [-0.045, 0.02], [0.045, 0.02], [-0.09, 0.02], [0.09, 0.02], [0, 0.1], [-0.045, 0.1], [0.045, 0.1], [0, 0.18]]) {
+            const rf = tam * 0.05;
+            const g = ctx.createRadialGradient(dx * tam - rf * 0.35, dy * tam - rf * 0.35, 0, dx * tam, dy * tam, rf);
+            g.addColorStop(0, "#e0aaff");
+            g.addColorStop(0.4, c.color);
+            g.addColorStop(1, "#3c096c");
+            ctx.fillStyle = g;
+            ctx.beginPath();
+            ctx.arc(dx * tam, dy * tam, rf, 0, TAU);
             ctx.fill();
         }
     } else if (id === "calabaza") {
@@ -916,7 +1041,7 @@ function dibujarCielo(ctx, m, luz, tiempo, dt) {
 
 // Lo que no se mueve, pintado una sola vez: colinas, granero, pasto, flores y el corral
 function pintarFondo(m) {
-    const escala = Math.min(devicePixelRatio, 2);
+    const escala = Math.min(devicePixelRatio, 1.5);
     const c = document.createElement("canvas");
     c.width = Math.max(1, Math.round(ancho * escala));
     c.height = Math.max(1, Math.round(alto * escala));
@@ -1191,64 +1316,72 @@ function dibujarParcela(ctx, i, r, tiempo) {
     }
     const p = estado.parcelas[i];
     const prog = progreso(p);
-    // Sombra y marco de madera
-    ctx.fillStyle = "#00000033";
-    ctx.beginPath();
-    ctx.roundRect(r.x + 2, r.y + 5, r.w, r.h, radio);
-    ctx.fill();
-    const marco = ctx.createLinearGradient(0, r.y, 0, r.y + r.h);
-    marco.addColorStop(0, "#c08552");
-    marco.addColorStop(1, "#7a4a22");
-    ctx.fillStyle = marco;
-    ctx.beginPath();
-    ctx.roundRect(r.x, r.y, r.w, r.h, radio);
-    ctx.fill();
-    // Tierra: oscura y húmeda si está creciendo
+    // Cantero (sombra, madera, tierra y surcos): se pinta una vez y se copia
     const b = Math.max(4, r.w * 0.08);
     const regada = p && prog < 1;
-    const tierra = ctx.createLinearGradient(0, r.y + b, 0, r.y + r.h - b);
-    tierra.addColorStop(0, regada ? "#5a3a22" : "#8b5e3c");
-    tierra.addColorStop(1, regada ? "#3b2414" : "#6b4423");
-    ctx.fillStyle = tierra;
-    ctx.beginPath();
-    ctx.roundRect(r.x + b, r.y + b, r.w - b * 2, r.h - b * 2, radio * 0.6);
-    ctx.fill();
-    // Surcos
-    for (let k = 1; k <= 3; k++) {
-        const y = r.y + b + ((r.h - b * 2) * k) / 4;
-        ctx.fillStyle = "#00000030";
-        ctx.fillRect(r.x + b + 3, y, r.w - b * 2 - 6, 2);
-        ctx.fillStyle = "#ffffff14";
-        ctx.fillRect(r.x + b + 3, y - 2, r.w - b * 2 - 6, 1.5);
-    }
-    ctx.strokeStyle = "#ffffff30";
-    ctx.lineWidth = 1.5;
-    ctx.beginPath();
-    ctx.moveTo(r.x + radio, r.y + 1.5);
-    ctx.lineTo(r.x + r.w - radio, r.y + 1.5);
-    ctx.stroke();
-    if (!p) return;
-    if (p.abonada) {
-        // Tierra abonada: puntitos oscuros y una hojita en la esquina
-        ctx.fillStyle = "#2b1a0e";
-        const r2 = azar(i + 7);
-        for (let k = 0; k < 10; k++) {
-            ctx.beginPath();
-            ctx.arc(r.x + b + 4 + r2() * (r.w - b * 2 - 8), r.y + b + 4 + r2() * (r.h - b * 2 - 8), 1.6, 0, TAU);
-            ctx.fill();
+    const base = sprite(`parcela-${regada ? "m" : "s"}-${p?.abonada ? "a" : ""}-${Math.round(r.w)}`, r.w + 4, r.h + 6, (c) => {
+        c.fillStyle = "#00000033";
+        c.beginPath();
+        c.roundRect(2, 5, r.w, r.h, radio);
+        c.fill();
+        const marco = c.createLinearGradient(0, 0, 0, r.h);
+        marco.addColorStop(0, "#c08552");
+        marco.addColorStop(1, "#7a4a22");
+        c.fillStyle = marco;
+        c.beginPath();
+        c.roundRect(0, 0, r.w, r.h, radio);
+        c.fill();
+        const tierra = c.createLinearGradient(0, b, 0, r.h - b);
+        tierra.addColorStop(0, regada ? "#5a3a22" : "#8b5e3c");
+        tierra.addColorStop(1, regada ? "#3b2414" : "#6b4423");
+        c.fillStyle = tierra;
+        c.beginPath();
+        c.roundRect(b, b, r.w - b * 2, r.h - b * 2, radio * 0.6);
+        c.fill();
+        for (let k = 1; k <= 3; k++) {
+            const y = b + ((r.h - b * 2) * k) / 4;
+            c.fillStyle = "#00000030";
+            c.fillRect(b + 3, y, r.w - b * 2 - 6, 2);
+            c.fillStyle = "#ffffff14";
+            c.fillRect(b + 3, y - 2, r.w - b * 2 - 6, 1.5);
         }
-        ctx.fillStyle = "#8fd14f";
-        ctx.beginPath();
-        ctx.ellipse(r.x + b + 7, r.y + b + 7, 5, 2.6, -0.7, 0, TAU);
-        ctx.fill();
-    }
-    // Saltito al plantar o cosechar
+        c.strokeStyle = "#ffffff30";
+        c.lineWidth = 1.5;
+        c.beginPath();
+        c.moveTo(radio, 1.5);
+        c.lineTo(r.w - radio, 1.5);
+        c.stroke();
+        if (p?.abonada) {
+            // Tierra abonada: puntitos oscuros y una hojita en la esquina
+            c.fillStyle = "#2b1a0e";
+            const r2 = azar(7);
+            for (let k = 0; k < 10; k++) {
+                c.beginPath();
+                c.arc(b + 4 + r2() * (r.w - b * 2 - 8), b + 4 + r2() * (r.h - b * 2 - 8), 1.6, 0, TAU);
+                c.fill();
+            }
+            c.fillStyle = "#8fd14f";
+            c.beginPath();
+            c.ellipse(b + 7, b + 7, 5, 2.6, -0.7, 0, TAU);
+            c.fill();
+        }
+    });
+    ctx.drawImage(base.c, r.x, r.y, base.w, base.h);
+    if (!p) return;
+    // La planta según su etapa (también guardada), con un vaivén suave y el saltito al plantar o cosechar
+    const etapa = prog < 0.2 ? 0 : prog < 1 ? 1 + Math.min(5, Math.floor(prog * 6)) : 9;
+    const lado = r.w * 1.4;
+    const planta = sprite(`planta-${p.cultivo}-${etapa}-${Math.round(r.w)}`, lado, lado, (c) => {
+        const progEtapa = etapa === 0 ? 0.1 : etapa === 9 ? 1 : Math.min(0.99, etapa / 6);
+        dibujarPlanta(c, p.cultivo, lado / 2, lado / 2, r.w, progEtapa, -lado / 4);
+    });
     const desde = (performance.now() - (rebotes[i] ?? -1e9)) / 1000;
     const salto = desde < 0.45 ? 1 + Math.sin(desde * 14) * 0.18 * (1 - desde / 0.45) : 1;
     ctx.save();
-    ctx.translate(r.x + r.w / 2, r.y + r.h * 0.62);
+    ctx.translate(r.x + r.w / 2, r.y + r.h * 0.62 + r.w * 0.2);
+    ctx.rotate(etapa ? Math.sin(tiempo * 2 + i) * 0.05 : 0);
     ctx.scale(salto, salto);
-    dibujarPlanta(ctx, p.cultivo, 0, 0, r.w, prog, tiempo + i);
+    ctx.drawImage(planta.c, -lado / 2, -lado / 2 - r.w * 0.2, lado, lado);
     ctx.restore();
     if (prog < 1) {
         // Mini indicador: qué está creciendo (dibujito con anillo de progreso) y cuánto falta
@@ -1276,7 +1409,8 @@ function dibujarParcela(ctx, i, r, tiempo) {
         ctx.beginPath();
         ctx.arc(ix, iy, rr - 1.5, 0, TAU);
         ctx.clip();
-        iconoProducto(ctx, p.cultivo, ix, iy + rr * 0.15, rr * 1.15);
+        const ico = sprite(`icono-${p.cultivo}-${Math.round(rr)}`, rr * 2, rr * 2, (c) => iconoProducto(c, p.cultivo, rr, rr * 1.15, rr * 1.15));
+        ctx.drawImage(ico.c, ix - rr, iy - rr, rr * 2, rr * 2);
         ctx.restore();
         // Tiempo que falta
         const seg = Math.ceil(((1 - prog) * tiempoCultivo(cultivo(p.cultivo))) / 1000);
@@ -1446,15 +1580,13 @@ function dibujar(dt) {
         if (prendido > 0) {
             // Luz cálida de cada farol que ilumina alrededor
             ctx.globalCompositeOperation = "lighter";
+            const luzFarol = brillo("255,170,80");
+            ctx.globalAlpha = 0.42 * prendido;
             for (const l of luces) {
                 const radio = 62 * l.titila;
-                const g = ctx.createRadialGradient(l.x, l.y, 0, l.x, l.y, radio);
-                g.addColorStop(0, `rgba(255, 190, 90, ${0.42 * prendido})`);
-                g.addColorStop(0.35, `rgba(255, 150, 60, ${0.16 * prendido})`);
-                g.addColorStop(1, "rgba(255, 140, 50, 0)");
-                ctx.fillStyle = g;
-                ctx.fillRect(l.x - radio, l.y - radio, radio * 2, radio * 2);
+                ctx.drawImage(luzFarol.c, l.x - radio, l.y - radio, radio * 2, radio * 2);
             }
+            ctx.globalAlpha = 1;
             ctx.globalCompositeOperation = "source-over";
             // El vidrio del farol brilla
             for (const l of luces) {
@@ -1470,12 +1602,8 @@ function dibujar(dt) {
             // Vuelan despacio dando vueltas
             const x = (f.x + Math.sin(f.fase * 0.35 * f.v) * 0.08 + Math.sin(f.fase * 1.7) * 0.01) * ancho;
             const y = m.cielo + (alto - m.cielo) * (f.y + Math.cos(f.fase * 0.45 * f.v) * 0.05);
-            const brillo = (Math.sin(f.fase * 3) + 1) / 2;
-            const g = ctx.createRadialGradient(x, y, 0, x, y, 8);
-            g.addColorStop(0, `rgba(230,255,140,${brillo})`);
-            g.addColorStop(1, "rgba(230,255,140,0)");
-            ctx.fillStyle = g;
-            ctx.fillRect(x - 8, y - 8, 16, 16);
+            ctx.globalAlpha = (1 - luz) * (Math.sin(f.fase * 3) + 1) / 2;
+            ctx.drawImage(brillo("230,255,140").c, x - 9, y - 9, 18, 18);
         }
         ctx.globalAlpha = 1;
     }
@@ -1498,9 +1626,12 @@ function dibujar(dt) {
 }
 
 let acumulado = 0;
+let cuadroVisita = false;
 bucle((dt) => {
     avanzarLluvia(dt);
-    if (pantallaGrande.matches) animarVisita(dt);
+    // La persona se dibuja a la mitad de cuadros (alcanza para que se vea fluida)
+    cuadroVisita = !cuadroVisita;
+    if (pantallaGrande.matches && cuadroVisita) animarVisita(dt * 2);
     // Aviso cuando anochece o amanece
     const luzAhora = luzDelDia();
     if (luzAnterior >= 0.5 && luzAhora < 0.5) avisar("🌙 Anochece: se prenden los faroles", 2600);
@@ -1557,6 +1688,8 @@ $("lienzo").addEventListener("pointermove", (e) => {
         refrescar();
     } else if (arrastre.modo === "abonar") {
         if (abonar(i)) refrescar();
+    } else if (arrastre.modo === "pala") {
+        if (sacarConPala(i)) refrescar();
     } else if (arrastre.modo === "plantar" && !p) {
         const c = cultivo(estado.elegida);
         if (c && plantar(i, c.id)) {
@@ -1586,9 +1719,10 @@ $("lienzo").addEventListener("pointerdown", (e) => {
         if (x < r.x || x > r.x + r.w || y < r.y || y > r.y + r.h) continue;
         const p0 = estado.parcelas[i];
         const conAbono = estado.elegida === "abono";
+        const conPala = estado.elegida === "pala";
         if (i < estado.lotes) {
             arrastre = {
-                modo: !p0 ? (conAbono ? null : "plantar") : progreso(p0) >= 1 ? "cosechar" : conAbono ? "abonar" : null,
+                modo: !p0 ? (conAbono || conPala ? null : "plantar") : progreso(p0) >= 1 ? "cosechar" : conAbono ? "abonar" : conPala ? "pala" : null,
                 vistas: new Set([i]),
             };
         }
@@ -1608,6 +1742,14 @@ $("lienzo").addEventListener("pointerdown", (e) => {
             return;
         }
         const p = estado.parcelas[i];
+        if (conPala) {
+            if (p && progreso(p) < 1 && sacarConPala(i)) refrescar();
+            else if (p) {
+                cosechar(i);
+                refrescar();
+            } else avisar("La pala saca lo que está creciendo 🌱");
+            return;
+        }
         if (p && conAbono && progreso(p) < 1) {
             if (p.abonada) avisar("Esta parcela ya tiene abono");
             else if (abonar(i)) refrescar();
@@ -1751,7 +1893,10 @@ function pintarPanel() {
         const abono = `<button class="semilla-c abono-c${estado.elegida === "abono" ? " elegida" : ""}" data-semilla="abono" ${estado.abono > 0 || estado.elegida === "abono" ? "" : "disabled"}>
             <span class="bolsa-abono">🧺</span><span class="nombre-s">Abono ×${estado.abono}</span>
             <small>💩 ${estado.estiercol}/${CACAS_POR_BOLSA} para otra</small><span class="vende-s">más rápido</span></button>`;
-        html = `<div class="semillas">${abono}${CULTIVOS.map((c) => {
+        const pala = `<button class="semilla-c pala-c${estado.elegida === "pala" ? " elegida" : ""}" data-semilla="pala">
+            <span class="bolsa-abono">${SVG_PALA}</span><span class="nombre-s">Pala</span>
+            <small>Saca lo que crece</small><span class="vende-s">devuelve ½</span></button>`;
+        html = `<div class="semillas">${pala}${abono}${CULTIVOS.map((c) => {
             const bloqueado = c.nivel > estado.nivel;
             return `<button class="semilla-c${estado.elegida === c.id ? " elegida" : ""}" data-semilla="${c.id}" ${bloqueado ? "disabled" : ""}>
                 ${canvasProducto(c.id)}<span class="nombre-s">${c.nombre}</span><small>${bloqueado ? `🔒 Nivel ${c.nivel}` : `${MONEDA_G}${c.semilla} · ⏱ ${c.tiempo >= 60 ? c.tiempo / 60 + " min" : c.tiempo + " s"}`}</small>
@@ -1810,6 +1955,12 @@ function alTocarPanel(e) {
         estado.monedas += p.premio;
         sumarXP(p.xp);
         estado.pedidos[Number(d.entregar)] = nuevoPedido();
+        // Cada 6 pedidos entregados, un tiro de regalo en la garra
+        estado.entregados = (estado.entregados ?? 0) + 1;
+        if (estado.entregados % 6 === 0) {
+            estado.garra = (estado.garra ?? 0) + 1;
+            setTimeout(() => avisar("🕹️ ¡6 pedidos entregados! +1 tiro en la garra", 2400), 1700);
+        }
         // Quien recibió el pedido da las gracias, y después aparece el que viene
         visita.k = Number(d.entregar);
         hablar(p.quien, GRACIAS[Math.floor(Math.random() * GRACIAS.length)], true);
@@ -1876,6 +2027,8 @@ function pintarDatos() {
     $("xp").style.width = `${(estado.xp / xpParaNivel(estado.nivel)) * 100}%`;
     $("granero").textContent = enGranero();
     $("pedidos-listos").hidden = !estado.pedidos.some(sePuede);
+    $("tiros-garra").textContent = estado.garra ?? 0;
+    $("boton-garra").classList.toggle("hay", (estado.garra ?? 0) > 0);
 }
 
 function refrescar() {
@@ -1883,6 +2036,53 @@ function refrescar() {
     pintarDatos();
     pintarPanel();
 }
+
+// ---------- Garra de premios ----------
+function premioGarra(p) {
+    let texto = p.nombre;
+    if (p.id === "monedas" || p.id === "huevo") {
+        const n = Math.round((p.id === "huevo" ? 250 : 40 + Math.random() * 60) * Math.max(1, estado.nivel));
+        estado.monedas += n;
+        texto = `${formatear(n)} monedas`;
+    } else if (p.id === "abono") {
+        estado.abono += 2;
+        texto = "2 bolsas de abono";
+    } else if (p.id === "estrella") {
+        const xp = Math.round(xpParaNivel(estado.nivel) * 0.35);
+        sumarXP(xp);
+        texto = `${xp} de experiencia`;
+    } else if (p.id === "nube") {
+        esperaLluvia = 0;
+        lluvia = 0;
+        hacerLlover(null);
+        texto = "¡Lluvia mágica!";
+    } else if (p.id === "trebol") {
+        // Todo lo que está creciendo queda listo
+        let n = 0;
+        for (const parcela of estado.parcelas) {
+            if (parcela && progreso(parcela) < 1) {
+                parcela.desde = 0;
+                n++;
+            }
+        }
+        texto = n ? `¡${n} cultivo${n > 1 ? "s" : ""} listo${n > 1 ? "s" : ""} ya!` : "Trébol de la suerte (+monedas)";
+        if (!n) estado.monedas += 100 * estado.nivel;
+    }
+    refrescar();
+    return texto;
+}
+$("boton-garra").addEventListener("click", () => {
+    sonidos.toque();
+    abrirGarra({
+        tiros: () => estado.garra ?? 0,
+        usarTiro: () => {
+            estado.garra = Math.max(0, (estado.garra ?? 0) - 1);
+            refrescar();
+        },
+        ganar: premioGarra,
+        sonidos,
+    });
+});
 
 // ---------- Ajustes: volumen de la música y de los sonidos ----------
 function pintarVolumen() {
