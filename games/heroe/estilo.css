@@ -1,0 +1,266 @@
+.tema-heroe {
+    --fondo: #120a24;
+    --fondo-2: #2d1b5a;
+    --texto-suave: #d9cff5;
+    --acento: #ffd166;
+    --acento-2: #ef8f2f;
+    --panel: #0d0720dd;
+}
+
+.boton-almas {
+    margin-left: auto;
+    font: inherit;
+    font-weight: 900;
+    color: #fff;
+    background: linear-gradient(180deg, #9b5de5, #5a189a);
+    border: none;
+    border-radius: 999px;
+    padding: 8px 14px;
+    box-shadow: 0 3px 0 #0007;
+}
+
+.boton-almas.listo {
+    animation: latir 0.9s ease-in-out infinite;
+    box-shadow: 0 0 16px #c77dff;
+}
+
+/* ---------- Escena de pelea ---------- */
+
+.escena {
+    position: relative;
+    height: 38vh;
+    min-height: 220px;
+    flex: 0 0 auto;
+}
+
+.habilidades {
+    position: absolute;
+    left: 8px;
+    bottom: 8px;
+    display: flex;
+    gap: 6px;
+}
+
+.habilidad {
+    position: relative;
+    width: 52px;
+    height: 52px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font: inherit;
+    font-size: 1.2rem;
+    color: #fff;
+    background: #000a;
+    border: 2px solid #ffffff44;
+    border-radius: 14px;
+    overflow: hidden;
+}
+
+.habilidad small {
+    font-size: 0.55rem;
+    font-weight: 800;
+}
+
+.habilidad i {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 0;
+    background: #000b;
+    pointer-events: none;
+}
+
+.habilidad.activa {
+    border-color: var(--acento);
+    box-shadow: 0 0 12px var(--acento);
+}
+
+.habilidad:disabled {
+    color: #fff8;
+}
+
+.avanzar {
+    position: absolute;
+    right: 8px;
+    bottom: 8px;
+    font: inherit;
+    font-weight: 900;
+    font-size: 0.8rem;
+    color: #1b1035;
+    background: var(--acento);
+    border: none;
+    border-radius: 999px;
+    padding: 8px 12px;
+}
+
+/* ---------- Pestañas y lista ---------- */
+
+.pestanas {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 10px;
+    background: var(--panel);
+    border-top: 1px solid var(--borde);
+}
+
+.pestana {
+    font: inherit;
+    font-weight: 800;
+    font-size: 0.85rem;
+    color: var(--texto-suave);
+    background: none;
+    border: none;
+    border-bottom: 3px solid transparent;
+    padding: 4px 6px;
+}
+
+.pestana.activa {
+    color: #fff;
+    border-color: var(--acento);
+}
+
+.comprar-de {
+    margin-left: auto;
+    display: flex;
+    gap: 4px;
+}
+
+.cantidad {
+    font: inherit;
+    font-weight: 800;
+    font-size: 0.75rem;
+    color: var(--texto);
+    background: #0005;
+    border: 2px solid #ffffff30;
+    border-radius: 999px;
+    padding: 3px 8px;
+}
+
+.cantidad.activa {
+    border-color: var(--acento);
+    color: var(--acento);
+}
+
+.lista {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 8px 10px calc(16px + env(safe-area-inset-bottom));
+}
+
+.fila {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    border-radius: 14px;
+    background: linear-gradient(160deg, #ffffff1a, #ffffff06);
+    border: 1px solid #ffffff22;
+}
+
+.fila.bloqueada {
+    opacity: 0.5;
+}
+
+.fila canvas {
+    width: 46px;
+    height: 46px;
+    flex: 0 0 46px;
+    border-radius: 12px;
+    background: radial-gradient(circle at 50% 60%, #ffffff22, #0004);
+}
+
+.fila .txt {
+    flex: 1;
+    min-width: 0;
+}
+
+.fila .txt strong {
+    display: block;
+    font-size: 0.9rem;
+}
+
+.fila .txt strong em {
+    font-style: normal;
+    color: var(--acento);
+    font-size: 0.75rem;
+}
+
+.fila .txt span {
+    display: block;
+    font-size: 0.72rem;
+    color: var(--texto-suave);
+}
+
+.fila button {
+    font: inherit;
+    font-size: 0.78rem;
+    font-weight: 900;
+    color: #1b1035;
+    background: linear-gradient(180deg, #ffe08a, #f0a020);
+    border: none;
+    border-radius: 10px;
+    padding: 8px 10px;
+    white-space: nowrap;
+    min-width: 84px;
+}
+
+.fila button.alma {
+    color: #fff;
+    background: linear-gradient(180deg, #9b5de5, #5a189a);
+}
+
+.fila button:disabled {
+    opacity: 0.4;
+}
+
+/* ---------- Renacer ---------- */
+
+.hoja-fondo {
+    position: fixed;
+    inset: 0;
+    z-index: 30;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    background: #000a;
+}
+
+.hoja {
+    max-width: 420px;
+    padding: 20px;
+    border-radius: 20px;
+    background: #1b1035;
+    border: 2px solid #9b5de5;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.grande-s {
+    font-size: 1.2rem;
+}
+
+.grande-s strong {
+    font-size: 2rem;
+    color: #c77dff;
+}
+
+.chico-s {
+    font-size: 0.8rem;
+    color: var(--texto-suave);
+}
+
+.botones-s {
+    display: flex;
+    gap: 8px;
+}
