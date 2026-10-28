@@ -1,7 +1,7 @@
 // Página principal: pestañas Solo / Multijugador / Casino con la lista de juegos de cada una
 const lista = document.getElementById("lista-juegos");
 const pestanas = document.querySelectorAll(".pestana");
-const NUEVOS = ["games/baccarat/", "games/sicbo/", "games/muralla/", "games/ciudad/", "games/bingo/"];
+const NUEVOS = ["games/videopoker/", "games/granja/", "games/bingo/"];
 
 function leer(clave, porDefecto) {
     try {
@@ -16,14 +16,27 @@ function escribir(clave, valor) {
     } catch {}
 }
 
+// Nivel de cada juego (lo guarda js/experiencia.js con lo que viene de la nube)
+function nivelJuego(clave) {
+    let xp = 0;
+    try {
+        const guardada = JSON.parse(leer("xp-juegos", "{}"));
+        const pendiente = JSON.parse(leer("xp-pendiente", "{}"));
+        xp = (guardada[clave] ?? 0) + (pendiente[clave] ?? 0);
+    } catch {}
+    return xp > 0 ? Math.floor(Math.sqrt(xp / 40)) + 1 : 0;
+}
+
 function tarjeta(juego, indice) {
     const item = document.createElement("li");
     item.style.setProperty("--retraso", `${indice * 45}ms`);
     const clave = juego.carpeta.split("/")[1];
+    const nivel = nivelJuego(clave);
     item.innerHTML = `
         <a class="tarjeta-juego" href="${juego.carpeta}">
             <canvas class="portada"></canvas>
             ${NUEVOS.includes(juego.carpeta) ? '<span class="nuevo">Nuevo</span>' : ""}
+            ${nivel ? `<span class="nivel-juego">Nv ${nivel}</span>` : ""}
             <span class="textos">
                 <span class="nombre">${juego.nombre}</span>
                 <span class="descripcion">${juego.descripcion}</span>
@@ -66,6 +79,21 @@ function mostrar(seccion) {
 
 for (const p of pestanas) p.addEventListener("click", () => mostrar(p.dataset.seccion));
 mostrar(leer("pestana", "solo"));
+
+// Cuando llegan los niveles de la nube se actualizan las insignias
+addEventListener("experiencia", () => {
+    for (const a of lista.querySelectorAll(".tarjeta-juego")) {
+        const nivel = nivelJuego(a.getAttribute("href").split("/")[1]);
+        let insignia = a.querySelector(".nivel-juego");
+        if (!nivel) continue;
+        if (!insignia) {
+            insignia = document.createElement("span");
+            insignia.className = "nivel-juego";
+            a.appendChild(insignia);
+        }
+        insignia.textContent = `Nv ${nivel}`;
+    }
+});
 
 // Registra el service worker para que funcione sin internet
 if ("serviceWorker" in navigator) {
