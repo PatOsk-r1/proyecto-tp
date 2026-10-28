@@ -756,6 +756,23 @@
             ctx.fillText("★ ★ ★", W * 0.06, H * 0.26);
             ctx.restore();
         },
+        baccarat() {
+            fondo("#0b6b3a", "#063d21");
+            ctx.strokeStyle = "#ffd16688";
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.ellipse(W / 2, H * 1.1, W * 0.6, H * 0.75, 0, Math.PI, 0);
+            ctx.stroke();
+            naipe(W * 0.3, H * 0.45, 30, -0.15, "♥", "9", true);
+            naipe(W * 0.45, H * 0.48, 30, 0.05, "♠", "K", false);
+            naipe(W * 0.72, H * 0.45, 30, 0.12, "♦", "8", true);
+            ctx.fillStyle = "#7df9ff";
+            ctx.font = "900 11px sans-serif";
+            ctx.textAlign = "center";
+            ctx.fillText("JUGADOR", W * 0.37, H * 0.92);
+            ctx.fillStyle = "#ff8fa3";
+            ctx.fillText("BANCA", W * 0.72, H * 0.92);
+        },
         plinko() {
             fondo("#240046", "#5a189a");
             for (let f = 0; f < 5; f++) for (let c = 0; c <= f + 3; c++) circulo(W / 2 + (c - (f + 3) / 2) * 16, H * 0.14 + f * H * 0.14, 2.6, "#e0aaff");
