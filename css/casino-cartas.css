@@ -1,0 +1,95 @@
+/* Cartas y mesa compartidas por los juegos de casino nuevos */
+.mesa-casino {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-evenly;
+    gap: 10px;
+    margin: 0 10px;
+    padding: 12px;
+    border-radius: 24px;
+    background: radial-gradient(ellipse at 50% 35%, #1c8a4e, #0e5a31 60%, #08401f);
+    border: 6px solid #6b3f1d;
+    box-shadow: inset 0 0 40px #0008;
+    overflow: hidden;
+}
+
+.naipe {
+    position: relative;
+    width: var(--w, 90px);
+    aspect-ratio: 0.7;
+    border-radius: 10px;
+    background: linear-gradient(160deg, #fff, #efeae0);
+    color: #1a1a1a;
+    box-shadow: 0 6px 14px #0008;
+    font-weight: 900;
+    animation: dar-vuelta 0.35s ease-out;
+}
+
+.naipe.roja {
+    color: #d32f2f;
+}
+
+.naipe .v {
+    position: absolute;
+    top: 6%;
+    left: 9%;
+    font-size: calc(var(--w, 90px) * 0.24);
+    line-height: 1;
+    text-align: center;
+}
+
+.naipe .c {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: calc(var(--w, 90px) * 0.46);
+}
+
+.naipe.dorso {
+    background:
+        radial-gradient(circle, #ffd166 0 10%, transparent 11%),
+        repeating-linear-gradient(45deg, #b71c1c 0 6px, #8e1414 6px 12px);
+    border: 4px solid #fff;
+}
+
+.naipe.dorso > * {
+    display: none;
+}
+
+@keyframes dar-vuelta {
+    from {
+        transform: rotateY(90deg) translateY(-20px);
+    }
+}
+
+.mensaje-casino {
+    min-height: 1.5em;
+    font-size: 1.2rem;
+    font-weight: 900;
+    text-align: center;
+    text-shadow: 0 2px 6px #000a;
+}
+
+.mensaje-casino.gano {
+    color: var(--acento);
+    animation: aparecer 0.35s ease-out;
+}
+
+.mensaje-casino.perdio {
+    color: #ff8a80;
+}
+
+.fila-botones {
+    display: flex;
+    gap: 8px;
+    width: 100%;
+}
+
+.fila-botones .accion {
+    flex: 1;
+}
