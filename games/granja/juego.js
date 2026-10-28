@@ -2,7 +2,8 @@
 import { formatear, cargar, guardar, vibrar } from "../../js/comun3d.js";
 import { crearLienzo, bucle, crearChispas } from "../../js/lienzo2d.js";
 import { sonidos, volumen, cambiarVolumen } from "./sonido.js";
-import { dibujarPersona, frase, GRACIAS } from "./visitas.js";
+import { dibujarPersona, frase, GRACIAS, persona } from "./visitas.js";
+import { dibujarAnimal } from "./animales.js";
 
 const $ = (id) => document.getElementById(id);
 const CLAVE = "granja";
@@ -215,6 +216,7 @@ function sumarXP(n) {
         chispas.emitir(ancho / 2, alto / 3, "#ffd166", 40, 260);
         vibrar([40, 60, 80]);
         sonidos.nivel();
+        if (typeof completarPedidos === "function") completarPedidos();
     }
 }
 
@@ -265,19 +267,31 @@ function recoger(k) {
 }
 
 // Pedidos: piden cosas que ya podés producir y pagan más que el mercado
+// Según el nivel piden más cosas distintas y más cantidad (y pagan mejor por las combinaciones grandes)
+const tiposPorPedido = () => Math.min(5, 1 + Math.floor(estado.nivel / 3)); // nivel 1: 1 · 3: 2 · 6: 3 · 9: 4 · 12+: 5
+const pedidosALaVez = () => (estado.nivel >= 12 ? 5 : estado.nivel >= 6 ? 4 : 3);
 function nuevoPedido() {
     const disponibles = [...CULTIVOS.filter((c) => c.nivel <= estado.nivel).map((c) => c.id), ...ANIMALES.filter((a) => estado.animales.some((x) => x.tipo === a.id)).map((a) => a.producto)];
     const items = {};
-    const cuantos = 1 + Math.floor(Math.random() * Math.min(3, disponibles.length));
-    for (let k = 0; k < cuantos; k++) {
-        const id = disponibles[Math.floor(Math.random() * disponibles.length)];
-        items[id] = (items[id] ?? 0) + 1 + Math.floor(Math.random() * Math.max(2, 7 - PRODUCTOS[id].precio / 40));
+    // Cuántas cosas distintas: entre la mitad y el máximo de su nivel
+    const maximo = Math.min(tiposPorPedido(), disponibles.length);
+    const cuantos = Math.max(1, Math.ceil(maximo / 2) + Math.floor(Math.random() * (maximo - Math.ceil(maximo / 2) + 1)));
+    const mezcla = [...disponibles].sort(() => Math.random() - 0.5).slice(0, cuantos);
+    const multiplicador = 1 + estado.nivel * 0.12;
+    for (const id of mezcla) {
+        const base = 1 + Math.floor(Math.random() * Math.max(2, 7 - PRODUCTOS[id].precio / 40));
+        items[id] = Math.max(1, Math.round(base * multiplicador * (0.7 + Math.random() * 0.5)));
     }
     const valor = Object.entries(items).reduce((t, [id, n]) => t + PRODUCTOS[id].precio * n, 0);
+    const extraCombinacion = 1.5 + (Object.keys(items).length - 1) * 0.12;
     const nombres = ["Doña Rosa", "El panadero", "La escuela", "Don Tito", "El restaurante", "La feria", "Abuela Marta"];
-    return { quien: nombres[Math.floor(Math.random() * nombres.length)], items, premio: Math.round(valor * 1.6), xp: Math.round(valor / 8) + 2 };
+    return { quien: nombres[Math.floor(Math.random() * nombres.length)], items, premio: Math.round(valor * extraCombinacion), xp: Math.round(valor / 8) + 2 * Object.keys(items).length };
 }
-while (estado.pedidos.length < 3) estado.pedidos.push(nuevoPedido());
+// Al subir de nivel aparecen más pedidos a la vez
+function completarPedidos() {
+    while (estado.pedidos.length < pedidosALaVez()) estado.pedidos.push(nuevoPedido());
+}
+completarPedidos();
 const sePuede = (p) => Object.entries(p.items).every(([id, n]) => (estado.granero[id] ?? 0) >= n);
 
 // ---------- Caca y abono ----------
@@ -386,6 +400,243 @@ function abonar(i) {
     sonidos.plantar();
     vibrar(15);
     return true;
+}
+
+// ---------- Vida de los animales: ir al comedero, comer, tomar agua, hacer caca y producir ----------
+// Comedero a la izquierda y bebedero a la derecha, abajo del corral (posiciones como las de los animales: 0 a 1)
+const COMEDERO = { x: 0.1, y: 0.92 };
+const BEBEDERO = { x: 0.9, y: 0.92 };
+let comida = 1; // cuánto pasto queda en el comedero (se vuelve a llenar solo)
+let ondas = -10; // cuándo tomó agua alguien (para las ondas)
+const pxCorral = (x, y, m = medidas()) => ({ x: 20 + x * (ancho - 40), y: m.corralY + 30 + y * (m.corral - 50) });
+const suave = (t) => t * t * (3 - 2 * t);
+
+// Mueve al animal según lo que esté haciendo y devuelve la pose para dibujarlo
+function actualizarAnimal(a, mov, datos, dt, duermen, pos, tam) {
+    // Cada uno con su horario (así no les da hambre a todos juntos)
+    a.caca ??= Date.now() - Math.random() * intervaloCaca(datos) * 0.7;
+    const listo = Date.now() - a.desde >= tiempoAnimal(datos);
+    // Recién terminó de producir: animación de poner el huevo, dar leche…
+    if (mov.listoAntes === false && listo && !mov.anim) {
+        mov.anim = { tipo: "producir", t: 0, dur: 1.5 };
+        mov.objetivo = null;
+        sonidos[a.tipo]?.();
+    }
+    mov.listoAntes = listo;
+    if (!mov.anim && !mov.objetivo && !duermen) {
+        // Al comedero van de a uno: si hay otro comiendo (o yendo), espera su turno
+        const ocupado = andar.some((o) => o && o !== mov && (o.objetivo?.luego === "comer" || o.anim?.tipo === "comer"));
+        if (Date.now() - a.caca > intervaloCaca(datos) && !ocupado) {
+            // Tiene hambre: va al comedero (se para a la derecha, mirando hacia él)
+            mov.objetivo = { x: COMEDERO.x + 0.09 + Math.random() * 0.03, y: COMEDERO.y - Math.random() * 0.12, luego: "comer", mira: -1 };
+        } else if (Math.random() < dt * 0.015) {
+            const tomando = andar.some((o) => o && o !== mov && (o.objetivo?.luego === "beber" || o.anim?.tipo === "beber"));
+            if (!tomando) mov.objetivo = { x: BEBEDERO.x - 0.09 - Math.random() * 0.03, y: BEBEDERO.y - Math.random() * 0.12, luego: "beber", mira: 1 };
+        }
+    }
+    if (duermen && !mov.anim) mov.objetivo = null;
+    const pose = {};
+    if (mov.anim) {
+        const an = mov.anim;
+        an.t += dt;
+        const p = Math.min(1, an.t / an.dur);
+        if (an.tipo === "comer") {
+            const entra = suave(Math.min(1, an.t / 0.3));
+            pose.cabeza = a.tipo === "gallina" ? entra * Math.abs(Math.sin(an.t * 9)) : entra * (0.85 + Math.sin(an.t * 7) * 0.12);
+            pose.masticar = Math.abs(Math.sin(an.t * 16));
+            if (p >= 1) pose.cabeza = 0;
+            // Pedacitos de pasto
+            if (Math.random() < dt * 6) {
+                const m = medidas();
+                const c = pxCorral(COMEDERO.x, COMEDERO.y, m);
+                chispas.emitir(c.x + (Math.random() - 0.5) * 14, c.y + tam * 0.25, Math.random() < 0.5 ? "#8fd14f" : "#e9c46a", 2, 50);
+            }
+            comida = Math.max(0, comida - dt * 0.05);
+        } else if (an.tipo === "beber") {
+            pose.cabeza = suave(Math.min(1, an.t / 0.3)) * (p > 0.85 ? (1 - p) / 0.15 : 1);
+            pose.masticar = Math.abs(Math.sin(an.t * 10)) * 0.5;
+            ondas = performance.now() / 1000;
+        } else if (an.tipo === "cagar") {
+            // Se agacha, levanta la cola, cierra los ojos… ¡y plop!
+            pose.aplastar = Math.sin(p * Math.PI) * 0.75;
+            pose.cola = p < 0.85 ? Math.min(1, p * 4) : 0;
+            pose.ojos = p > 0.25 && p < 0.7 ? "cerrados" : p >= 0.7 ? "felices" : undefined;
+            if (p > 0.6 && !an.hecho) {
+                an.hecho = true;
+                a.caca = Date.now();
+                hacerCaca(mov);
+            }
+        } else if (an.tipo === "producir") {
+            if (a.tipo === "gallina") {
+                pose.aleteo = p < 0.75 ? 1 : 0;
+                pose.aplastar = Math.sin(p * Math.PI * 3) * 0.35;
+                pose.ojos = p > 0.6 ? "felices" : undefined;
+                if (p > 0.6 && !an.hecho) {
+                    an.hecho = true;
+                    chispas.emitir(pos.x - tam * 0.1, pos.y + tam * 0.3, "#fff5e1", 8, 90);
+                }
+            } else if (a.tipo === "cerdo") {
+                // Escarba buscando la trufa
+                pose.cabeza = 0.5 + Math.abs(Math.sin(an.t * 14)) * 0.5;
+                if (Math.random() < dt * 14) chispas.emitir(pos.x + tam * 0.45 * (mov.vx >= 0 ? 1 : -1), pos.y + tam * 0.35, "#6f4518", 2, 80);
+            } else {
+                // Vaca y oveja: se estiran contentas y largan algo (leche o lana)
+                pose.aplastar = -Math.sin(p * Math.PI) * 0.5;
+                pose.ojos = "felices";
+                if (p > 0.5 && !an.hecho) {
+                    an.hecho = true;
+                    chispas.emitir(pos.x, pos.y - tam * 0.2, a.tipo === "oveja" ? "#ffffff" : "#e8f4ff", 12, 110);
+                }
+            }
+        }
+        if (p >= 1) {
+            const venia = an.tipo;
+            mov.anim = null;
+            if (venia === "producir") mov.burbuja = performance.now();
+            if (venia === "comer") {
+                // Después de comer se aleja un poco y al rato hace caca
+                mov.vx = (Math.random() * 0.04 + 0.03);
+                mov.caca = 1.4 + Math.random() * 1.2;
+            }
+        }
+    } else if (mov.objetivo) {
+        // Camina hacia el comedero o el bebedero
+        const o = mov.objetivo;
+        const dx = o.x - mov.x;
+        const dy = o.y - mov.y;
+        const dist = Math.hypot(dx, dy);
+        const vel = 0.11;
+        if (dist < 0.012) {
+            mov.vx = o.mira * 0.0001;
+            mov.anim = { tipo: o.luego, t: 0, dur: o.luego === "comer" ? 3.2 : 2.2 };
+            mov.objetivo = null;
+        } else {
+            mov.x += (dx / dist) * vel * dt;
+            mov.y += (dy / dist) * vel * dt;
+            mov.vx = Math.sign(dx || 1) * vel;
+            mov.fase += dt * 1.4;
+        }
+    } else if (!duermen) {
+        mov.x += mov.vx * dt;
+        if (mov.x < 0.05 || mov.x > 0.95) mov.vx *= -1;
+        mov.x = Math.max(0.04, Math.min(0.96, mov.x));
+        if (Math.random() < dt * 0.3) mov.vx = (Math.random() - 0.5) * 0.08;
+        mov.fase += dt * (Math.abs(mov.vx) > 0.01 ? 1 : 0.2);
+        if (mov.caca) {
+            mov.caca -= dt;
+            if (mov.caca <= 0) {
+                mov.caca = 0;
+                mov.vx *= 0.0001;
+                mov.anim = { tipo: "cagar", t: 0, dur: 1.5 };
+            }
+        }
+    }
+    return pose;
+}
+
+// Comedero de madera con pasto y bebedero con agua que se mueve
+function dibujarEstablo(ctx, m, tiempo, dt) {
+    comida = Math.min(1, comida + dt * 0.01);
+    const tam = Math.min(46, m.corral * 0.5);
+    const madera = (x, y, w, h, r = 3) => {
+        const g = ctx.createLinearGradient(x, y, x, y + h);
+        g.addColorStop(0, "#b07a45");
+        g.addColorStop(1, "#6f4518");
+        ctx.fillStyle = g;
+        ctx.beginPath();
+        ctx.roundRect(x, y, w, h, r);
+        ctx.fill();
+    };
+    // --- Comedero ---
+    const c = pxCorral(COMEDERO.x, COMEDERO.y, m);
+    const cw = Math.min(54, ancho * 0.14);
+    const cy = c.y + tam * 0.22;
+    const cx = c.x - cw / 2;
+    ctx.fillStyle = "#0003";
+    ctx.beginPath();
+    ctx.ellipse(c.x, cy + 16, cw * 0.6, 4, 0, 0, TAU);
+    ctx.fill();
+    madera(cx + 3, cy + 8, 4, 9, 1);
+    madera(cx + cw - 7, cy + 8, 4, 9, 1);
+    // Batea en forma de V
+    ctx.fillStyle = "#5c3a1e";
+    ctx.beginPath();
+    ctx.moveTo(cx, cy - 2);
+    ctx.lineTo(cx + cw, cy - 2);
+    ctx.lineTo(cx + cw - 6, cy + 11);
+    ctx.lineTo(cx + 6, cy + 11);
+    ctx.closePath();
+    ctx.fill();
+    // Pasto adentro (baja cuando comen)
+    const alto = 3 + comida * 8;
+    for (let k = 0; k < 14; k++) {
+        const hx = cx + 4 + (k / 13) * (cw - 8);
+        const hh = alto * (0.7 + ((k * 37) % 10) / 30);
+        ctx.strokeStyle = k % 3 ? "#e9c46a" : "#8fd14f";
+        ctx.lineWidth = 1.6;
+        ctx.beginPath();
+        ctx.moveTo(hx, cy + 2);
+        ctx.quadraticCurveTo(hx + ((k % 2) - 0.5) * 4, cy + 2 - hh * 0.6, hx + ((k % 3) - 1) * 3, cy + 2 - hh);
+        ctx.stroke();
+    }
+    madera(cx - 2, cy - 4, cw + 4, 4, 2);
+    madera(cx + 4, cy + 8, cw - 8, 3, 1);
+    ctx.fillStyle = "#c58d55";
+    ctx.fillRect(cx - 2, cy - 4, cw + 4, 1.2);
+
+    // --- Bebedero ---
+    const b = pxCorral(BEBEDERO.x, BEBEDERO.y, m);
+    const bw = Math.min(58, ancho * 0.15);
+    const by = b.y + tam * 0.24;
+    const bx = b.x - bw / 2;
+    ctx.fillStyle = "#0003";
+    ctx.beginPath();
+    ctx.ellipse(b.x, by + 14, bw * 0.6, 4, 0, 0, TAU);
+    ctx.fill();
+    madera(bx, by - 2, bw, 14, 5);
+    // Agua con brillo que se mueve
+    const ax = bx + 3;
+    const aw = bw - 6;
+    const agua = ctx.createLinearGradient(0, by, 0, by + 7);
+    agua.addColorStop(0, "#8ee3ff");
+    agua.addColorStop(1, "#2a9fd6");
+    ctx.fillStyle = agua;
+    ctx.beginPath();
+    ctx.roundRect(ax, by, aw, 7, 3);
+    ctx.fill();
+    ctx.save();
+    ctx.beginPath();
+    ctx.roundRect(ax, by, aw, 7, 3);
+    ctx.clip();
+    ctx.strokeStyle = "#ffffffaa";
+    ctx.lineWidth = 1.2;
+    for (let k = 0; k < 3; k++) {
+        const fx = ax + ((tiempo * 12 + k * aw / 3) % aw);
+        ctx.beginPath();
+        ctx.moveTo(fx - 5, by + 2 + k * 1.5);
+        ctx.quadraticCurveTo(fx, by + 1 + k * 1.5, fx + 5, by + 2 + k * 1.5);
+        ctx.stroke();
+    }
+    // Ondas cuando un animal toma agua
+    const desde = tiempo - ondas;
+    if (desde >= 0 && desde < 1.2) {
+        for (let k = 0; k < 2; k++) {
+            const r = ((desde + k * 0.4) % 1.2) * 14;
+            ctx.strokeStyle = `rgba(255,255,255,${0.7 - r / 20})`;
+            ctx.beginPath();
+            ctx.ellipse(ax + 8, by + 3.5, r, r * 0.3, 0, 0, TAU);
+            ctx.stroke();
+        }
+    }
+    ctx.restore();
+    // Borde de madera con brillo
+    ctx.strokeStyle = "#4a2e17";
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.roundRect(bx, by - 2, bw, 14, 5);
+    ctx.stroke();
+    ctx.fillStyle = "#c58d55";
+    ctx.fillRect(bx + 4, by - 2, bw - 8, 1.2);
 }
 
 // ---------- Corral ----------
@@ -553,80 +804,6 @@ function dibujarPlanta(ctx, id, x, y, tam, prog, tiempo) {
     ctx.beginPath();
     ctx.arc(x + tam * 0.22, y - tam * 0.3 - t * 6, 2.5, 0, TAU);
     ctx.fill();
-}
-
-function dibujarAnimal(ctx, tipo, x, y, tam, fase, mira = 1) {
-    const salto = Math.abs(Math.sin(fase * 4)) * 2;
-    ctx.save();
-    ctx.translate(x, y - salto);
-    ctx.scale(mira, 1);
-    ctx.fillStyle = "#0003";
-    ctx.beginPath();
-    ctx.ellipse(0, tam * 0.45 + salto, tam * 0.4, tam * 0.1, 0, 0, TAU);
-    ctx.fill();
-    if (tipo === "gallina") {
-        ctx.fillStyle = "#fff";
-        ctx.beginPath();
-        ctx.ellipse(0, 0, tam * 0.3, tam * 0.25, 0, 0, TAU);
-        ctx.arc(tam * 0.2, -tam * 0.22, tam * 0.15, 0, TAU);
-        ctx.fill();
-        ctx.fillStyle = "#e63946";
-        ctx.beginPath();
-        ctx.arc(tam * 0.22, -tam * 0.38, tam * 0.06, 0, TAU);
-        ctx.fill();
-        ctx.fillStyle = "#ffb703";
-        ctx.beginPath();
-        ctx.moveTo(tam * 0.33, -tam * 0.24);
-        ctx.lineTo(tam * 0.45, -tam * 0.2);
-        ctx.lineTo(tam * 0.33, -tam * 0.16);
-        ctx.fill();
-        ctx.fillRect(-tam * 0.08, tam * 0.22, 2, tam * 0.15);
-        ctx.fillRect(tam * 0.06, tam * 0.22, 2, tam * 0.15);
-    } else {
-        const cuerpo = { vaca: "#fff", oveja: "#f1f1f1", cerdo: "#ffafcc" }[tipo];
-        ctx.fillStyle = "#333";
-        for (const dx of [-0.25, -0.1, 0.12, 0.27]) ctx.fillRect(dx * tam, tam * 0.15, tam * 0.07, tam * 0.28);
-        ctx.fillStyle = cuerpo;
-        if (tipo === "oveja") {
-            for (const [dx, dy] of [[-0.2, 0], [0, -0.08], [0.18, 0], [-0.1, 0.1], [0.1, 0.1], [0, 0.04]]) {
-                ctx.beginPath();
-                ctx.arc(dx * tam, dy * tam, tam * 0.17, 0, TAU);
-                ctx.fill();
-            }
-            ctx.fillStyle = "#333";
-            ctx.beginPath();
-            ctx.ellipse(tam * 0.38, -tam * 0.08, tam * 0.11, tam * 0.13, 0, 0, TAU);
-            ctx.fill();
-        } else {
-            ctx.beginPath();
-            ctx.ellipse(0, 0, tam * 0.38, tam * 0.24, 0, 0, TAU);
-            ctx.fill();
-            ctx.beginPath();
-            ctx.ellipse(tam * 0.38, -tam * 0.1, tam * 0.15, tam * 0.13, 0, 0, TAU);
-            ctx.fill();
-            if (tipo === "vaca") {
-                ctx.fillStyle = "#222";
-                ctx.beginPath();
-                ctx.ellipse(-tam * 0.12, -tam * 0.05, tam * 0.1, tam * 0.08, 0.3, 0, TAU);
-                ctx.ellipse(tam * 0.12, tam * 0.07, tam * 0.08, tam * 0.06, 0, 0, TAU);
-                ctx.fill();
-                ctx.fillStyle = "#ffafcc";
-                ctx.beginPath();
-                ctx.ellipse(tam * 0.48, -tam * 0.04, tam * 0.07, tam * 0.06, 0, 0, TAU);
-                ctx.fill();
-            } else {
-                ctx.fillStyle = "#ff8fab";
-                ctx.beginPath();
-                ctx.ellipse(tam * 0.5, -tam * 0.08, tam * 0.06, tam * 0.07, 0, 0, TAU);
-                ctx.fill();
-            }
-        }
-        ctx.fillStyle = "#000";
-        ctx.beginPath();
-        ctx.arc(tam * 0.4, -tam * 0.14, 1.8, 0, TAU);
-        ctx.fill();
-    }
-    ctx.restore();
 }
 
 function iconoProducto(ctx, id, x, y, tam) {
@@ -911,31 +1088,6 @@ function pintarFondo(m) {
         ctx.ellipse(r() * ancho, cy + 24 + r() * (m.corral - 30), 6 + r() * 6, 2 + r() * 2, 0, 0, TAU);
         ctx.fill();
     }
-    const bx = ancho - 58;
-    const by = alto - 22;
-    ctx.fillStyle = "#5c3a1e";
-    ctx.beginPath();
-    ctx.roundRect(bx, by, 44, 12, 4);
-    ctx.fill();
-    ctx.fillStyle = "#48cae4";
-    ctx.fillRect(bx + 3, by + 2, 38, 4);
-    const fx = 14;
-    const fy = alto - 30;
-    const fardo = ctx.createLinearGradient(fx, fy, fx, fy + 20);
-    fardo.addColorStop(0, "#f4d58d");
-    fardo.addColorStop(1, "#d4a24c");
-    ctx.fillStyle = fardo;
-    ctx.beginPath();
-    ctx.roundRect(fx, fy, 34, 20, 4);
-    ctx.fill();
-    ctx.strokeStyle = "#a1782f";
-    ctx.lineWidth = 1.5;
-    ctx.beginPath();
-    ctx.moveTo(fx + 11, fy);
-    ctx.lineTo(fx + 11, fy + 20);
-    ctx.moveTo(fx + 23, fy);
-    ctx.lineTo(fx + 23, fy + 20);
-    ctx.stroke();
     // Cerca
     const madera = (x, y, w, h) => {
         const g = ctx.createLinearGradient(x, y, x, y + h);
@@ -1099,18 +1251,47 @@ function dibujarParcela(ctx, i, r, tiempo) {
     dibujarPlanta(ctx, p.cultivo, 0, 0, r.w, prog, tiempo + i);
     ctx.restore();
     if (prog < 1) {
-        // Barra de crecimiento abajo
-        const bw = r.w * 0.62;
-        const bx = r.x + (r.w - bw) / 2;
-        const by = r.y + r.h - b - 7;
-        ctx.fillStyle = "#0007";
+        // Mini indicador: qué está creciendo (dibujito con anillo de progreso) y cuánto falta
+        const rr = Math.max(8, Math.min(12, r.w * 0.12));
+        const ix = r.x + r.w - rr - 2;
+        const iy = r.y + rr + 2;
+        ctx.fillStyle = "#00000040";
         ctx.beginPath();
-        ctx.roundRect(bx, by, bw, 5, 3);
+        ctx.arc(ix + 1, iy + 1.5, rr + 2, 0, TAU);
         ctx.fill();
-        ctx.fillStyle = "#95d5b2";
+        ctx.fillStyle = "#fff4dc";
         ctx.beginPath();
-        ctx.roundRect(bx, by, Math.max(5, bw * prog), 5, 3);
+        ctx.arc(ix, iy, rr + 1.5, 0, TAU);
         ctx.fill();
+        ctx.lineWidth = 2.5;
+        ctx.strokeStyle = "#d9c39a";
+        ctx.beginPath();
+        ctx.arc(ix, iy, rr, 0, TAU);
+        ctx.stroke();
+        ctx.strokeStyle = p.abonada ? "#2f9e44" : "#5cb85c";
+        ctx.beginPath();
+        ctx.arc(ix, iy, rr, -Math.PI / 2, -Math.PI / 2 + prog * TAU);
+        ctx.stroke();
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(ix, iy, rr - 1.5, 0, TAU);
+        ctx.clip();
+        iconoProducto(ctx, p.cultivo, ix, iy + rr * 0.15, rr * 1.15);
+        ctx.restore();
+        // Tiempo que falta
+        const seg = Math.ceil(((1 - prog) * tiempoCultivo(cultivo(p.cultivo))) / 1000);
+        const texto = seg >= 60 ? `${Math.floor(seg / 60)}:${String(seg % 60).padStart(2, "0")}` : `${seg}s`;
+        ctx.font = `900 ${Math.max(8, Math.min(11, r.w * 0.12))}px system-ui, sans-serif`;
+        const tw = ctx.measureText(texto).width + 8;
+        const ty = r.y + r.h - b - 9;
+        ctx.fillStyle = "#000000a0";
+        ctx.beginPath();
+        ctx.roundRect(r.x + r.w / 2 - tw / 2, ty - 5, tw, 11, 5);
+        ctx.fill();
+        ctx.fillStyle = "#fff";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(texto, r.x + r.w / 2, ty + 0.5);
     } else {
         ctx.strokeStyle = `rgba(255,209,102,${0.55 + Math.sin(tiempo * 5) * 0.3})`;
         ctx.lineWidth = 3;
@@ -1149,6 +1330,7 @@ function dibujar(dt) {
         ctx.fillText(estado.nivel >= 2 ? "Comprá animales en la pestaña 🐔" : "Los animales se destraban en el nivel 2", ancho / 2, m.corralY + m.corral / 2 + 8);
     }
     const tam = Math.min(46, m.corral * 0.5);
+    dibujarEstablo(ctx, m, tiempo, dt);
     // Caca en el piso del corral (se junta tocándola)
     for (const c of estado.caca ?? []) dibujarCaca(ctx, posCaca(c, m), tiempo, c);
     const duermen = luz < 0.25;
@@ -1156,34 +1338,14 @@ function dibujar(dt) {
     for (const { a, k, pos } of orden) {
         const mov = andar[k];
         const datos = animal(a.tipo);
-        // Cada tanto tiene hambre: se para a comer pasto y después hace caca
-        a.caca ??= Date.now();
-        if (!mov.come && !duermen && Date.now() - a.caca > intervaloCaca(datos)) mov.come = 2.6;
-        if (mov.come) {
-            mov.come = Math.max(0, mov.come - dt);
-            if (!mov.come) {
-                a.caca = Date.now();
-                hacerCaca(mov);
-            }
-        } else if (!duermen) {
-            mov.x += mov.vx * dt;
-            if (mov.x < 0.05 || mov.x > 0.95) mov.vx *= -1;
-            if (Math.random() < dt * 0.3) mov.vx = (Math.random() - 0.5) * 0.08;
-            mov.fase += dt * (Math.abs(mov.vx) > 0.01 ? 1 : 0.2);
-        }
+        const pose = actualizarAnimal(a, mov, datos, dt, duermen, pos, tam);
         const mira = mov.vx >= 0 ? 1 : -1;
-        if (mov.come) {
-            // Pastito adelante y la cabeza subiendo y bajando
-            ctx.fillStyle = "#3f9a2a";
-            for (let g = 0; g < 4; g++) ctx.fillRect(pos.x + mira * tam * (0.35 + g * 0.06), pos.y + tam * 0.3 - (g % 2) * 3, 2, 6 + (g % 2) * 3);
-            ctx.save();
-            ctx.translate(0, Math.abs(Math.sin(tiempo * 10)) * 2.5);
-            dibujarAnimal(ctx, a.tipo, pos.x, pos.y, tam, 0, mira);
-            ctx.restore();
+        if (mov.anim?.tipo === "comer" || mov.anim?.tipo === "beber") {
+            dibujarAnimal(ctx, a.tipo, pos.x, pos.y, tam, 0, mira, pose);
         } else {
-            dibujarAnimal(ctx, a.tipo, pos.x, pos.y, tam, mov.fase, mira);
+            dibujarAnimal(ctx, a.tipo, pos.x, pos.y, tam, mov.fase, mira, pose);
         }
-        if (duermen) {
+        if (duermen && !mov.anim) {
             // Zzz
             for (let z = 0; z < 3; z++) {
                 const t = (tiempo * 0.6 + z / 3 + k * 0.2) % 1;
@@ -1194,14 +1356,28 @@ function dibujar(dt) {
             }
             ctx.globalAlpha = 1;
         }
+        // Burbuja con lo que produjo (aparece después de la animación)
         const listo = Date.now() - a.desde >= tiempoAnimal(datos);
-        if (listo) {
-            const by = pos.y - tam * 0.7 + Math.sin(tiempo * 4 + k) * 3;
+        if (listo && mov.anim?.tipo !== "producir") {
+            const aparece = Math.min(1, (performance.now() - (mov.burbuja ?? 0)) / 350);
+            const escala = aparece < 1 ? 0.4 + Math.sin(aparece * Math.PI * 0.75) * 0.75 : 1;
+            const by = pos.y - tam * 0.72 + Math.sin(tiempo * 4 + k) * 3;
+            ctx.save();
+            ctx.translate(pos.x, by);
+            ctx.scale(escala, escala);
+            ctx.fillStyle = "#0003";
+            ctx.beginPath();
+            ctx.arc(1, 2, 14, 0, TAU);
+            ctx.fill();
             ctx.fillStyle = "#fff";
             ctx.beginPath();
-            ctx.arc(pos.x, by, 13, 0, TAU);
+            ctx.arc(0, 0, 14, 0, TAU);
+            ctx.moveTo(-4, 12);
+            ctx.lineTo(0, 19);
+            ctx.lineTo(4, 12);
             ctx.fill();
-            iconoProducto(ctx, datos.producto, pos.x, by, 22);
+            iconoProducto(ctx, datos.producto, 0, 0, 22);
+            ctx.restore();
         }
     }
 
@@ -1524,8 +1700,14 @@ function animarVisita(dt) {
     if (visita.k < 0) elegirVisita(0);
     visita.tiempo += dt;
     if (visita.mostrado < visita.texto.length) {
+        const antes = Math.floor(visita.mostrado);
         visita.mostrado = Math.min(visita.texto.length, visita.mostrado + dt * 40);
-        $("visita-texto").textContent = visita.texto.slice(0, Math.floor(visita.mostrado));
+        const ahora = Math.floor(visita.mostrado);
+        $("visita-texto").textContent = visita.texto.slice(0, ahora);
+        // Ruidito de diálogo: un "blip" cada 3 letras (no en los espacios)
+        for (let i = antes + 1; i <= ahora; i++) {
+            if (i % 3 === 0 && /[a-záéíóúñ¡¿!?0-9]/i.test(visita.texto[i - 1] ?? "")) sonidos.hablar(persona(visita.quien).voz);
+        }
     } else if (visita.tiempo > visita.texto.length / 40 + (visita.gracias ? 2.5 : ESPERA_VISITA)) {
         elegirVisita(visita.gracias ? visita.k : (visita.k + 1) % estado.pedidos.length);
     }
