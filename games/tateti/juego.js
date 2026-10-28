@@ -195,7 +195,7 @@ if (idPartida) {
                 jugadores = [...p.jugadores];
                 numeroDe = { [p.creador]: 1, [p.jugadores.find((j) => j !== p.creador)]: 2 };
                 nombres = { ...p.nombres, [yo]: "Vos" };
-                if (p.estado === "invitada" && p.creador !== yo) online.actualizarPartida(idPartida, { estado: "jugando" });
+                if (p.estado === "invitada" && p.creador !== yo) online.aceptarPartida(p);
             }
             partida = p;
             ultimaPintada = p.ultimo ?? -1;
