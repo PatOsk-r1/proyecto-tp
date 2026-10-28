@@ -354,6 +354,13 @@
     font-weight: 800;
 }
 
+.mejora .titulo .icono-svg {
+    width: 26px;
+    height: 26px;
+    flex-shrink: 0;
+    filter: drop-shadow(0 2px 2px #0007);
+}
+
 .mejora .detalle {
     color: var(--texto-suave);
     font-size: 0.8rem;
@@ -450,6 +457,12 @@
         transform: translate(-50%, -170%) scale(1);
         opacity: 0;
     }
+}
+
+.etiqueta-3d .icono-svg {
+    width: 16px;
+    height: 16px;
+    vertical-align: -3px;
 }
 
 /* Cartel que sigue a un objeto 3D */
