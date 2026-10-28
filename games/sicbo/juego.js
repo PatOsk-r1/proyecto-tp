@@ -1,6 +1,6 @@
 // Sic Bo: tres dados. Se pueden poner fichas en varias apuestas a la vez (pagos clásicos de casino).
 import { formatear, textoFlotante, vibrar } from "../../js/comun3d.js";
-import { fichas, cambiarFichas } from "../../js/fichas.js";
+import { fichas, cambiarFichas, LIMITE_APUESTA } from "../../js/fichas.js";
 import { selectorApuesta, pintarSaldo, conectarRecarga } from "../../js/casino.js";
 
 const $ = (id) => document.getElementById(id);
@@ -57,13 +57,13 @@ function armarPano() {
 }
 
 const total = () => Object.values(apuestas).reduce((t, v) => t + v, 0);
-const colorFicha = (m) => (m >= 500 ? "#212121" : m >= 100 ? "#1e88e5" : m >= 50 ? "#e53935" : "#2a9d8f");
+const colorFicha = (m) => (m >= 1e6 ? "#f9a825" : m >= 1e4 ? "#8e24aa" : m >= 500 ? "#212121" : m >= 100 ? "#1e88e5" : m >= 50 ? "#e53935" : "#2a9d8f");
 
 $("pano").addEventListener("click", (e) => {
     const b = e.target.closest(".casilla-s");
     if (!b || tirando) return;
     const valor = apuesta();
-    if (fichas() - total() < valor) return vibrar(40);
+    if (fichas() - total() < valor || total() + valor > LIMITE_APUESTA) return vibrar(40);
     limpiarResaltado();
     apuestas[b.dataset.k] = (apuestas[b.dataset.k] ?? 0) + valor;
     vibrar(8);
