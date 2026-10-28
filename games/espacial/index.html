@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="es" class="verificando">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>Corredor espacial · Proyecto TP</title>
+    <meta name="theme-color" content="#03001c">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="../../icons/icon-180.png">
+    <link rel="manifest" href="../../manifest.webmanifest">
+
+    <link rel="stylesheet" href="../../css/estilos.css">
+    <link rel="stylesheet" href="../../css/juegos3d.css">
+    <link rel="stylesheet" href="../../css/solitario.css">
+    <style>
+        .zona-juego { padding: 0; }
+        .tema-espacio .boton-grande { color: #02010a; }
+    </style>
+</head>
+<body class="pantalla-3d tema-espacio">
+    <header class="barra-juego">
+        <a class="boton-volver" href="../../">‹ Juegos</a>
+        <h1>Corredor espacial</h1>
+    </header>
+
+    <div class="info-juego">
+        <div class="dato"><span>Puntos</span><strong id="puntos">0</strong></div>
+        <div class="dato"><span>Vidas</span><strong id="vidas">3</strong></div>
+        <div class="dato"><span>Récord</span><strong id="record">0</strong></div>
+    </div>
+
+    <main class="zona-juego">
+        <canvas id="lienzo" class="lienzo-juego"></canvas>
+        <div id="centro" class="mensaje-centro">
+            <div id="titulo-centro">Corredor espacial<div class="chico">Mové la nave con el dedo; dispara sola. Esquivá y destruí todo lo que puedas.</div></div>
+            <button id="jugar" class="boton-grande" type="button">Despegar</button>
+        </div>
+    </main>
+
+    <script type="module">
+        import { exigirSesion } from "../../js/sesion.js";
+        exigirSesion();
+    </script>
+    <script type="module" src="juego.js"></script>
+</body>
+</html>
