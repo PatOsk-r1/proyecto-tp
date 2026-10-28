@@ -29,9 +29,21 @@
     white-space: nowrap;
 }
 
+.marcador-turnos .jugador-t {
+    transition: border-color 0.25s, background 0.25s, transform 0.25s;
+}
+
 .marcador-turnos .jugador-t.turno {
     border-color: var(--acento);
-    box-shadow: 0 0 12px color-mix(in srgb, var(--acento) 40%, transparent);
+    background: color-mix(in srgb, var(--acento) 14%, #ffffff10);
+    transform: scale(1.03);
+    animation: pulso-turno 1.6s ease-in-out infinite;
+}
+
+@keyframes pulso-turno {
+    50% {
+        box-shadow: 0 0 16px color-mix(in srgb, var(--acento) 55%, transparent);
+    }
 }
 
 .marcador-turnos .puntos-t {
@@ -58,6 +70,10 @@
     gap: 10px;
     padding: 10px;
     overflow: hidden;
+}
+
+.aviso-t:not(:empty) {
+    animation: aparecer 0.3s ease-out;
 }
 
 .aviso-t {
