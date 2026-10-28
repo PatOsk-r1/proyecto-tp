@@ -1,6 +1,7 @@
 // Panadería: tocá el horno para hornear, comprá más hornos y contratá encargados que hornean solos.
 // Con la plata ganada podés abrir sucursales nuevas: empezás de cero pero todo rinde más.
 import { formatear, cargar, guardar, textoFlotante, vibrar } from "../../js/comun3d.js";
+import { icono } from "../../js/iconos.js";
 
 const $ = (id) => document.getElementById(id);
 const CLAVE = "panaderia";
@@ -9,13 +10,13 @@ const HITOS = [25, 50, 100, 200, 300, 400]; // en cada uno se hornea el doble de
 const MAX_HORAS_AUSENTE = 4;
 
 const LINEAS = [
-    { id: "pan", nombre: "Pan", emoji: "🍞", costo: 4, tiempo: 0.8, gana: 1, encargado: 400 },
-    { id: "medialunas", nombre: "Medialunas", emoji: "🥐", costo: 60, tiempo: 3, gana: 60, encargado: 6000 },
-    { id: "galletitas", nombre: "Galletitas", emoji: "🍪", costo: 720, tiempo: 6, gana: 540, encargado: 80000 },
-    { id: "donas", nombre: "Donas", emoji: "🍩", costo: 8640, tiempo: 12, gana: 4320, encargado: 1e6 },
-    { id: "tortas", nombre: "Tortas", emoji: "🎂", costo: 103680, tiempo: 24, gana: 51840, encargado: 1.2e7 },
-    { id: "bombones", nombre: "Bombones", emoji: "🍫", costo: 1.24e6, tiempo: 96, gana: 622080, encargado: 1e8 },
-    { id: "pasteleria", nombre: "Pastelería fina", emoji: "🍰", costo: 1.49e7, tiempo: 384, gana: 7.46e6, encargado: 1e9 },
+    { id: "pan", nombre: "Pan", icono: "pan", costo: 4, tiempo: 0.8, gana: 1, encargado: 400 },
+    { id: "medialunas", nombre: "Medialunas", icono: "medialuna", costo: 60, tiempo: 3, gana: 60, encargado: 6000 },
+    { id: "galletitas", nombre: "Galletitas", icono: "galletita", costo: 720, tiempo: 6, gana: 540, encargado: 80000 },
+    { id: "donas", nombre: "Donas", icono: "dona", costo: 8640, tiempo: 12, gana: 4320, encargado: 1e6 },
+    { id: "tortas", nombre: "Tortas", icono: "torta", costo: 103680, tiempo: 24, gana: 51840, encargado: 1.2e7 },
+    { id: "bombones", nombre: "Bombones", icono: "bombon", costo: 1.24e6, tiempo: 96, gana: 622080, encargado: 1e8 },
+    { id: "pasteleria", nombre: "Pastelería fina", icono: "pastel", costo: 1.49e7, tiempo: 384, gana: 7.46e6, encargado: 1e9 },
 ];
 
 const estado = cargar(CLAVE, { dinero: 0, total: 0, estrellas: 0, lineas: {}, ultimaVez: Date.now() });
@@ -51,7 +52,7 @@ const tarjetas = LINEAS.map((l) => {
     const el = document.createElement("div");
     el.className = "linea";
     el.innerHTML = `
-        <button class="horno"><span>${l.emoji}</span><span class="nivel-h"></span></button>
+        <button class="horno">${icono(l.icono)}<span class="nivel-h"></span></button>
         <div class="info-l"><strong>${l.nombre}</strong><span class="detalle-l"></span></div>
         <div class="botones-l">
             <button class="comprar-l"></button>
@@ -63,7 +64,7 @@ const tarjetas = LINEAS.map((l) => {
         if (d.nivel === 0 || d.encargado || d.progreso > 0) return;
         d.progreso = 0.0001;
         vibrar(10);
-        textoFlotante(e.clientX, e.clientY, "🔥", "#ffcf6e");
+        textoFlotante(e.clientX, e.clientY, "¡Al horno!", "#ffcf6e");
     });
     el.querySelector(".comprar-l").addEventListener("click", () => {
         const n = cuantasComprar(l);
@@ -72,7 +73,7 @@ const tarjetas = LINEAS.map((l) => {
         estado.dinero -= costo;
         const antes = proximoHito(l);
         datos(l).nivel += n;
-        if (antes && datos(l).nivel >= antes) avisar(`${l.emoji} ¡${l.nombre} ahora hornea el doble de rápido!`);
+        if (antes && datos(l).nivel >= antes) avisar(`¡${l.nombre} ahora se hornea el doble de rápido!`);
         vibrar(20);
         actualizar();
     });
@@ -81,7 +82,7 @@ const tarjetas = LINEAS.map((l) => {
         estado.dinero -= l.encargado;
         datos(l).encargado = true;
         datos(l).progreso ||= 0.0001;
-        avisar(`👩‍🍳 Contrataste un encargado de ${l.nombre}`);
+        avisar(`Contrataste un encargado de ${l.nombre}`);
         vibrar(30);
         actualizar();
     });
@@ -115,7 +116,7 @@ function actualizar() {
         comprar.disabled = estado.dinero < costo;
         const enc = el.querySelector(".encargado-l");
         enc.hidden = d.encargado || d.nivel === 0;
-        enc.textContent = `👩‍🍳 Encargado $${formatear(l.encargado)}`;
+        enc.textContent = `Encargado $${formatear(l.encargado)}`;
         enc.disabled = estado.dinero < l.encargado;
     }
 }
