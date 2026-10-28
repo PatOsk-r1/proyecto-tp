@@ -660,6 +660,21 @@
             ctx.lineTo(W * 0.8, H * 0.7);
             ctx.fill();
         },
+        keno() {
+            fondo("#0d0628", "#2b1166");
+            const s = Math.min(W / 8.5, H / 5.5);
+            const ox = W / 2 - s * 4;
+            const oy = H / 2 - s * 2;
+            const marcados = [3, 9, 14, 20, 26, 29];
+            const aciertos = [9, 20, 29];
+            for (let k = 0; k < 32; k++) {
+                const x = ox + (k % 8) * s;
+                const y = oy + Math.floor(k / 8) * s;
+                const color = aciertos.includes(k) ? "#ffbe0b" : marcados.includes(k) ? "#8338ec" : "#ffffff22";
+                caja(x + 1.5, y + 1.5, s - 3, s - 3, 4, color);
+            }
+            for (const [k, x] of [[0, 0.2], [1, 0.4], [2, 0.6], [3, 0.8]]) bola(W * x, oy - s * 0.2 - 2, s * 0.32, k % 2 ? "#ffd166" : "#c9bfff");
+        },
         plinko() {
             fondo("#240046", "#5a189a");
             for (let f = 0; f < 5; f++) for (let c = 0; c <= f + 3; c++) circulo(W / 2 + (c - (f + 3) / 2) * 16, H * 0.14 + f * H * 0.14, 2.6, "#e0aaff");
