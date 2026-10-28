@@ -243,6 +243,51 @@
                 circulo(W * x + r * 0.3, H * y - 2, r * 0.18, "#fff");
             }
         },
+        ciudad() {
+            fondo("#1d3557", "#457b9d", 0.2);
+            const tw = W * 0.16;
+            const iso = (c, f) => ({ x: W / 2 + ((c - f) * tw) / 2, y: H * 0.35 + ((c + f) * tw) / 4 });
+            for (let f = 0; f < 4; f++) for (let c = 0; c < 4; c++) {
+                const p = iso(c, f);
+                ctx.fillStyle = (c + f) % 2 ? "#74c69d" : "#6ab88f";
+                ctx.beginPath();
+                ctx.moveTo(p.x, p.y - tw / 4);
+                ctx.lineTo(p.x + tw / 2, p.y);
+                ctx.lineTo(p.x, p.y + tw / 4);
+                ctx.lineTo(p.x - tw / 2, p.y);
+                ctx.fill();
+            }
+            const torre = (c, f, h, a, b, t) => {
+                const p = iso(c, f);
+                const w = tw * 0.7;
+                ctx.fillStyle = b;
+                ctx.beginPath();
+                ctx.moveTo(p.x - w / 2, p.y);
+                ctx.lineTo(p.x, p.y + w / 4);
+                ctx.lineTo(p.x, p.y + w / 4 - h);
+                ctx.lineTo(p.x - w / 2, p.y - h);
+                ctx.fill();
+                ctx.fillStyle = a;
+                ctx.beginPath();
+                ctx.moveTo(p.x + w / 2, p.y);
+                ctx.lineTo(p.x, p.y + w / 4);
+                ctx.lineTo(p.x, p.y + w / 4 - h);
+                ctx.lineTo(p.x + w / 2, p.y - h);
+                ctx.fill();
+                ctx.fillStyle = t;
+                ctx.beginPath();
+                ctx.moveTo(p.x, p.y - w / 4 - h);
+                ctx.lineTo(p.x + w / 2, p.y - h);
+                ctx.lineTo(p.x, p.y + w / 4 - h);
+                ctx.lineTo(p.x - w / 2, p.y - h);
+                ctx.fill();
+            };
+            torre(1, 0, H * 0.45, "#0096c7", "#48cae4", "#90e0ef");
+            torre(0, 1, H * 0.2, "#e5989b", "#f4acb7", "#d62828");
+            torre(2, 1, H * 0.3, "#6c757d", "#868e96", "#adb5bd");
+            torre(1, 2, H * 0.6, "#735d78", "#b392ac", "#cdb4db");
+            torre(3, 2, H * 0.15, "#7fb3e6", "#a2d2ff", "#457b9d");
+        },
         apilar() {
             fondo("#ff8fab", "#8ec5ff", 0.3);
             const colores = ["#ff595e", "#ffca3a", "#8ac926", "#1982c4", "#6a4c93", "#ff924c"];
