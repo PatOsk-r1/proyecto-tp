@@ -35,6 +35,7 @@ const JUEGOS = [
     { categoria: "casino", grupo: "Tragamonedas y premios", nombre: "Keno", descripcion: "Elegí números y mirá cuántos salen", emoji: "🔢", carpeta: "games/keno/" },
     { categoria: "casino", grupo: "Cartas", nombre: "Blackjack", descripcion: "Llegá a 21 sin pasarte", emoji: "🃏", carpeta: "games/blackjack/" },
     { categoria: "casino", grupo: "Cartas", nombre: "Baccarat", descripcion: "Jugador, banca o empate: el clásico de los casinos", emoji: "🎴", carpeta: "games/baccarat/" },
+    { categoria: "casino", grupo: "Cartas", nombre: "Video póker", descripcion: "Guardá cartas y buscá la escalera real", emoji: "🂡", carpeta: "games/videopoker/" },
     { categoria: "casino", grupo: "Cartas", nombre: "Mayor o menor", descripcion: "Adiviná la próxima carta y multiplicá", emoji: "🃏", carpeta: "games/mayormenor/" },
     { categoria: "casino", grupo: "Mesa", nombre: "Ruleta", descripcion: "Apostá a números, colores o docenas", emoji: "🎡", carpeta: "games/ruleta/" },
     { categoria: "casino", grupo: "Mesa", nombre: "Sic Bo", descripcion: "Tres dados y un paño lleno de apuestas", emoji: "🀄", carpeta: "games/sicbo/" },
