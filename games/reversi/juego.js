@@ -35,17 +35,43 @@ const casillas = Array.from({ length: 64 }, (_, i) => {
     return b;
 });
 
+let tableroAnterior = null;
 function dibujar() {
     const posibles = esMiTurno() ? jugadasValidas(partida.tablero, miNumero()) : [];
+    const ultimo = partida.ultimo;
+    let volteadas = 0;
     partida.tablero.forEach((v, i) => {
         const b = casillas[i];
         const ficha = b.firstElementChild;
+        // Las fichas que cambian de color giran en ola, desde la que se acaba de poner
+        const antes = tableroAnterior?.[i];
+        if (antes && v && antes !== v && ultimo !== null && ultimo !== undefined) {
+            const distancia = Math.max(Math.abs((i % 8) - (ultimo % 8)), Math.abs(Math.floor(i / 8) - Math.floor(ultimo / 8)));
+            ficha.style.transitionDelay = ficha.style.animationDelay = `${distancia * 80}ms`;
+            ficha.classList.remove("voltea");
+            void ficha.offsetWidth;
+            ficha.classList.add("voltea");
+            volteadas++;
+        } else {
+            ficha.style.transitionDelay = "0ms";
+        }
         ficha.hidden = !v;
         ficha.classList.toggle("es-blanca", v === 2);
         ficha.classList.toggle("nueva", i === nueva);
         b.classList.toggle("posible", posibles.includes(i));
         b.classList.toggle("ultima", partida.ultimo === i);
     });
+    if (volteadas && ultimo !== null && ultimo !== undefined) {
+        const mas = document.createElement("span");
+        mas.className = "mas-r";
+        mas.textContent = `+${volteadas}`;
+        casillas[ultimo].appendChild(mas);
+        setTimeout(() => mas.remove(), 1000);
+        setTimeout(() => vibrar(Math.min(60, 10 + volteadas * 6)), 200);
+    }
+    tableroAnterior = [...partida.tablero];
+    $("barra-n").style.flexGrow = cuenta(partida.tablero, 1);
+    $("barra-b").style.flexGrow = cuenta(partida.tablero, 2);
     const color = (n) => `<i class="ficha-mini ${n === 1 ? "n" : "b"}"></i>`;
     $("j-yo").querySelector("span").innerHTML = `${color(miNumero())}${nombres[yo]}`;
     $("j-rival").querySelector("span").innerHTML = `${color(3 - miNumero())}${nombres[rival()]}`;
