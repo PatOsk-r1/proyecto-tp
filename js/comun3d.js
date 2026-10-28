@@ -1,6 +1,7 @@
 // Herramientas compartidas por los juegos 3D: escena, guardado, números y efectos.
 import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js";
 import "./progreso.js"; // trae el progreso guardado en la nube antes de que arranque el juego
+import "./experiencia.js"; // cada minuto jugado suma experiencia y nivel en este juego
 
 export { THREE };
 
