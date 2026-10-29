@@ -83,9 +83,15 @@
         import { fichas } from "./js/fichas.js";
 
         const usuario = await exigirSesion();
-        const nombre = usuario.displayName || usuario.email;
-        document.getElementById("saludo").textContent = `Hola, ${nombre}`;
-        document.getElementById("salir").addEventListener("click", cerrarSesion);
+        const nombre = usuario.displayName || usuario.email || "Invitado";
+        document.getElementById("saludo").textContent = usuario.isAnonymous ? "Hola, invitado · tu progreso está en este teléfono" : `Hola, ${nombre}`;
+        if (usuario.isAnonymous) {
+            // Un invitado no "sale" (perdería todo): en su lugar crea la cuenta y se guarda el progreso
+            const boton = document.getElementById("salir");
+            boton.textContent = "💾 Crear cuenta";
+            boton.classList.add("crear-cuenta");
+            boton.addEventListener("click", () => location.assign("login.html?crear=1"));
+        } else document.getElementById("salir").addEventListener("click", cerrarSesion);
         document.getElementById("fichas-casino").textContent = fichas().toLocaleString("es-AR");
 
         // Perfil y cuántas cosas esperan respuesta: solicitudes de amistad, desafíos y turnos
