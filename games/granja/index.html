@@ -43,6 +43,7 @@
                 <input id="vol-efectos" type="range" min="0" max="100" step="1">
                 <b id="txt-efectos"></b>
             </label>
+            <label class="control-fps"><input id="mostrar-fps" type="checkbox"> Mostrar cuadros por segundo</label>
             <button id="cerrar-ajustes" class="boton-verde ancho" type="button">Listo</button>
             <small id="version-app" class="version-g"></small>
         </div>
@@ -51,7 +52,8 @@
     <div class="cuerpo-g">
         <section class="campo">
             <canvas id="lienzo" class="lienzo-juego"></canvas>
-            <div id="aviso" class="aviso-granja" hidden></div>        </section>
+            <div id="aviso" class="aviso-granja" hidden></div>
+            <div id="medidor-fps" class="medidor-fps" hidden></div>        </section>
 
         <div class="columna-g">
             <!-- En pantallas grandes los pedidos quedan siempre a la vista -->
