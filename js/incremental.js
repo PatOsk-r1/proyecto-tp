@@ -44,7 +44,7 @@ const CSS = `
 .casilla-base { display: flex; align-items: center; gap: 8px; font-weight: 800; font-size: 0.88rem; }
 .casilla-base input { width: 20px; height: 20px; accent-color: #ffd166; }
 .version-base { text-align: center; font-size: 0.72rem; opacity: 0.6; }
-.medidor-base { position: fixed; left: 6px; bottom: calc(6px + env(safe-area-inset-bottom)); z-index: 60; padding: 3px 7px; border-radius: 8px; background: #000b; font: 800 0.68rem ui-monospace, monospace; pointer-events: none; }
+.medidor-base { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(6px + env(safe-area-inset-bottom)); z-index: 60; padding: 3px 7px; border-radius: 8px; background: #000b; font: 800 0.68rem ui-monospace, monospace; pointer-events: none; }
 .medidor-base.bien { color: #8fff8f; } .medidor-base.justo { color: #ffd166; } .medidor-base.mal { color: #ff8a8a; }
 `;
 
