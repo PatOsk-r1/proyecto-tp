@@ -416,25 +416,173 @@ body {
     text-align: center;
 }
 
-.lista-juegos {
-    list-style: none;
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-    gap: 14px;
-    padding: 8px 20px 32px;
-}
-
-.lista-juegos .grupo-juegos {
-    grid-column: 1 / -1;
-    margin-top: 6px;
+/* Encabezado: fichas siempre a la vista */
+.acciones-encabezado {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.pildora-fichas {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px 4px 5px;
+    border-radius: 999px;
+    background: #0004;
+    border: 1px solid #ffcc3355;
+    font-size: 0.85rem;
+    color: #ffd166;
+}
+
+.moneda-chica {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #fff6c2, #ffd166 35%, #e09f3e 75%, #a8661b);
+}
+
+/* ---------- Destacado ---------- */
+.destacado {
+    margin: 4px 20px 6px;
+}
+
+.destacado-tarjeta {
+    position: relative;
+    display: block;
+    aspect-ratio: 16 / 8;
+    max-height: 340px;
+    width: 100%;
+    border-radius: 22px;
+    overflow: hidden;
+    color: #fff;
+    text-decoration: none;
+    box-shadow: 0 14px 34px #0008;
+    border: 1px solid #ffffff2a;
+    transition: transform 0.15s;
+}
+
+.destacado-tarjeta:active {
+    transform: scale(0.98);
+}
+
+.destacado-lienzo {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    transition: opacity 0.7s;
+    will-change: transform, opacity;
+    animation: acercar 12s ease-in-out infinite alternate;
+}
+
+.destacado-lienzo.visible {
+    opacity: 1;
+}
+
+@keyframes acercar {
+    from {
+        transform: scale(1);
+    }
+    to {
+        transform: scale(1.12) translate(-2%, 1%);
+    }
+}
+
+.destacado-velo {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(0deg, #0d0a26f0 0%, #0d0a2699 38%, transparent 70%);
+}
+
+.destacado-texto {
+    position: absolute;
+    left: 16px;
+    right: 16px;
+    bottom: 14px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+}
+
+.destacado-etiqueta {
+    padding: 2px 9px;
+    border-radius: 999px;
+    font-size: 0.7rem;
+    font-weight: 900;
+    color: #1b1440;
+    background: var(--acento);
+}
+
+.destacado-nombre {
+    font-size: 1.45rem;
+    font-weight: 900;
+    text-shadow: 0 2px 10px #000a;
+}
+
+.destacado-descripcion {
+    font-size: 0.86rem;
+    color: #e6e1ff;
+    text-shadow: 0 1px 6px #000a;
+}
+
+.destacado-boton {
+    margin-top: 6px;
+    padding: 9px 18px;
+    border-radius: 999px;
+    font-weight: 900;
+    font-size: 0.95rem;
+    color: #1b1440;
+    background: linear-gradient(180deg, #ffe08a, #ffbf1f);
+    box-shadow: 0 6px 16px #ffbf1f55;
+}
+
+.destacado-puntos {
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+    margin-top: 8px;
+}
+
+.destacado-puntos button {
+    width: 7px;
+    height: 7px;
+    padding: 0;
+    border: none;
+    border-radius: 999px;
+    background: #ffffff44;
+    transition: width 0.25s, background 0.25s;
+}
+
+.destacado-puntos button.activo {
+    width: 22px;
+    background: var(--acento);
+}
+
+/* ---------- Filas ---------- */
+.titulo-fila,
+.lista-juegos .grupo-juegos {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0 20px 8px;
     font-size: 0.85rem;
     font-weight: 900;
     letter-spacing: 0.06em;
     text-transform: uppercase;
     color: var(--acento);
+}
+
+.lista-juegos .grupo-juegos small {
+    padding: 1px 7px;
+    border-radius: 999px;
+    font-size: 0.68rem;
+    color: var(--texto-suave);
+    background: #ffffff14;
+    letter-spacing: 0;
 }
 
 .lista-juegos .grupo-juegos::after {
@@ -444,18 +592,84 @@ body {
     background: linear-gradient(90deg, #ffcc3366, transparent);
 }
 
-.lista-juegos li {
-    animation: entrar 0.45s cubic-bezier(0.2, 0.9, 0.3, 1.2) both;
+.recientes {
+    margin-top: 10px;
+}
+
+.lista-juegos {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    padding: 14px 0 36px;
+}
+
+/* En el celular cada grupo es una fila que se desliza de costado */
+.carrusel {
+    list-style: none;
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: 44%;
+    gap: 12px;
+    overflow-x: auto;
+    padding: 2px 20px 10px;
+    scroll-snap-type: x mandatory;
+    scroll-padding: 0 20px;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+}
+
+.carrusel::-webkit-scrollbar {
+    display: none;
+}
+
+.carrusel > li {
+    scroll-snap-align: start;
+    animation: entrar 0.4s cubic-bezier(0.2, 0.9, 0.3, 1.2) both;
     animation-delay: var(--retraso, 0ms);
+}
+
+.carrusel-chico {
+    grid-auto-columns: 62%;
 }
 
 @keyframes entrar {
     from {
         opacity: 0;
-        transform: translateY(18px) scale(0.94);
+        transform: translateY(14px) scale(0.95);
     }
 }
 
+/* En la compu: grilla */
+@media (min-width: 760px) {
+    .carrusel {
+        grid-auto-flow: row;
+        grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+        grid-auto-columns: auto;
+        overflow: visible;
+        scroll-snap-type: none;
+    }
+
+    .carrusel-chico {
+        grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    }
+
+    .destacado-tarjeta {
+        aspect-ratio: 16 / 6;
+    }
+
+    .destacado-texto {
+        left: 28px;
+        bottom: 24px;
+        max-width: 50%;
+    }
+
+    .destacado-nombre {
+        font-size: 2rem;
+    }
+}
+
+/* ---------- Tarjeta de juego ---------- */
 .tarjeta-juego {
     position: relative;
     display: flex;
@@ -476,6 +690,13 @@ body {
     box-shadow: 0 3px 8px #0005;
 }
 
+@media (hover: hover) {
+    .tarjeta-juego:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 14px 28px #0007;
+    }
+}
+
 /* Brillo que cruza la portada al tocar */
 .tarjeta-juego::after {
     content: "";
@@ -492,11 +713,56 @@ body {
     transform: translateX(120%);
 }
 
+.marco-portada {
+    position: relative;
+    display: block;
+    overflow: hidden;
+}
+
 .portada {
     display: block;
     width: 100%;
     aspect-ratio: 16 / 10;
 }
+
+/* Las portadas en pantalla se acercan despacito (solo transform: no se repintan) */
+.en-vista .portada {
+    animation: respirar 7s ease-in-out infinite alternate;
+}
+
+.carrusel > li:nth-child(2n) .en-vista .portada {
+    animation-delay: -3.5s;
+}
+
+@keyframes respirar {
+    to {
+        transform: scale(1.09);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .en-vista .portada,
+    .destacado-lienzo {
+        animation: none;
+    }
+}
+
+.emoji-juego {
+    position: absolute;
+    left: 10px;
+    top: -17px;
+    width: 34px;
+    height: 34px;
+    display: grid;
+    place-items: center;
+    font-size: 1.15rem;
+    border-radius: 12px;
+    background: #2a1f63;
+    border: 2px solid #ffffff2a;
+    box-shadow: 0 4px 10px #0007;
+    z-index: 1;
+}
+
 
 .tarjeta-juego .nuevo {
     position: absolute;
@@ -512,7 +778,7 @@ body {
     animation: latido 1.6s ease-in-out infinite;
 }
 
-.tarjeta-juego .nivel-juego {
+.nivel-juego {
     position: absolute;
     top: 8px;
     left: 8px;
@@ -532,10 +798,12 @@ body {
 }
 
 .tarjeta-juego .textos {
+    position: relative;
+    flex: 1;
     display: flex;
     flex-direction: column;
     gap: 3px;
-    padding: 10px 12px 12px;
+    padding: 18px 12px 12px;
 }
 
 .tarjeta-juego .nombre {
@@ -549,50 +817,74 @@ body {
     line-height: 1.25;
 }
 
-.seguir {
+.etiquetas {
     display: flex;
-    align-items: center;
-    gap: 12px;
-    margin: 4px 20px 0;
-    padding: 8px;
-    border-radius: var(--radio);
-    background: linear-gradient(135deg, #ffcc3333, #ff7a1a22);
-    border: 1px solid #ffcc3366;
-    color: inherit;
-    text-decoration: none;
-    animation: entrar 0.4s ease-out both;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: auto;
+    padding-top: 6px;
 }
 
-.seguir canvas {
+.etiquetas i {
+    font-style: normal;
+    font-size: 0.64rem;
+    font-weight: 800;
+    padding: 2px 7px;
+    border-radius: 999px;
+    color: #e6e1ff;
+    background: #ffffff14;
+}
+
+/* Tarjeta chica de "Seguir jugando" */
+.tarjeta-chica {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 7px;
+    border-radius: 16px;
+    background: linear-gradient(135deg, #ffcc3326, #ff7a1a1a);
+    border: 1px solid #ffcc3355;
+    color: inherit;
+    text-decoration: none;
+    transition: transform 0.15s;
+}
+
+.tarjeta-chica:active {
+    transform: scale(0.96);
+}
+
+.tarjeta-chica .portada {
     width: 72px;
     height: 46px;
+    aspect-ratio: auto;
     border-radius: 10px;
     flex-shrink: 0;
 }
 
-.seguir .texto {
+.tarjeta-chica .nombre {
     flex: 1;
-    display: flex;
-    flex-direction: column;
-}
-
-.seguir small {
-    font-size: 0.72rem;
     font-weight: 800;
-    color: var(--acento);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
+    font-size: 0.9rem;
+    line-height: 1.15;
 }
 
-.seguir .jugar-ya {
-    width: 40px;
-    height: 40px;
+.tarjeta-chica .nivel-juego {
+    top: -6px;
+    left: auto;
+    right: 46px;
+}
+
+.tarjeta-chica .jugar-ya {
+    width: 34px;
+    height: 34px;
+    flex-shrink: 0;
     display: grid;
     place-items: center;
     border-radius: 50%;
     color: #1b1440;
     background: var(--acento);
-    font-size: 1rem;
+    font-size: 0.85rem;
     box-shadow: 0 3px 10px #0006;
 }
 
