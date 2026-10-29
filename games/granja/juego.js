@@ -34,9 +34,18 @@ const MEJORAS = [
     { id: "comedero", ico: "🌾", nombre: "Comedero", detalle: "Los animales producen 10% más rápido", max: 5, costo: (n) => 400 * 3 ** n },
     { id: "granjero", ico: "👩‍🌾", nombre: "Granjero", detalle: "Cosecha y vuelve a plantar solo", max: 1, costo: () => 5000 },
 ];
+// Edificios que transforman productos: cada uno tiene una receta y una cola (se hacen de a uno)
+const FABRICAS = [
+    { id: "molino", nombre: "Molino", nivel: 3, costo: 400, receta: { trigo: 3 }, da: "harina", nombreProducto: "Harina", tiempo: 45, precio: 40, xp: 3 },
+    { id: "lecheria", nombre: "Lechería", nivel: 5, costo: 1500, receta: { leche: 2 }, da: "queso", nombreProducto: "Queso", tiempo: 120, precio: 210, xp: 8 },
+    { id: "panaderia", nombre: "Panadería", nivel: 6, costo: 3000, receta: { harina: 2, huevo: 2 }, da: "pan", nombreProducto: "Pan casero", tiempo: 90, precio: 160, xp: 6 },
+    { id: "dulceria", nombre: "Dulcería", nivel: 9, costo: 12000, receta: { frutilla: 3 }, da: "mermelada", nombreProducto: "Mermelada", tiempo: 180, precio: 1350, xp: 25 },
+];
+const fabrica = (id) => FABRICAS.find((f) => f.id === id);
 const PRODUCTOS = Object.fromEntries([
     ...CULTIVOS.map((c) => [c.id, { nombre: c.nombre, precio: c.precio, color: c.color }]),
     ...ANIMALES.map((a) => [a.producto, { nombre: a.nombreProducto, precio: a.precio, color: "#fff" }]),
+    ...FABRICAS.map((f) => [f.da, { nombre: f.nombreProducto, precio: f.precio, color: "#fff" }]),
 ]);
 
 const estado = cargar(CLAVE, { monedas: 30, xp: 0, nivel: 1, lotes: 6, parcelas: [], animales: [], granero: {}, mejoras: {}, pedidos: [], elegida: "trigo" });
@@ -49,6 +58,35 @@ const cultivo = (id) => CULTIVOS.find((c) => c.id === id);
 const animal = (id) => ANIMALES.find((a) => a.id === id);
 const costoLote = () => Math.round(50 * 2.2 ** (estado.lotes - 6));
 const enGranero = () => Object.values(estado.granero).reduce((t, n) => t + n, 0);
+
+// ---------- Taller: edificios que transforman productos ----------
+// estado.fabricas[id] = { cola: [fin, fin…] } (momento en que termina cada tanda; se hacen de a una)
+estado.fabricas ??= {};
+const tengoFabrica = (id) => Boolean(estado.fabricas[id]);
+const lugaresCola = (id) => 3 + (estado.fabricas[id]?.extra ?? 0);
+const listosEn = (id) => (estado.fabricas[id]?.cola ?? []).filter((fin) => fin <= Date.now()).length;
+const trabajando = (id) => (estado.fabricas[id]?.cola ?? []).some((fin) => fin > Date.now());
+const alcanzaReceta = (f) => Object.entries(f.receta).every(([id, n]) => (estado.granero[id] ?? 0) >= n);
+function hacerEnFabrica(id) {
+    const f = fabrica(id);
+    const datos = estado.fabricas[id];
+    if (!datos || datos.cola.length >= lugaresCola(id) || !alcanzaReceta(f)) return false;
+    for (const [p, n] of Object.entries(f.receta)) estado.granero[p] -= n;
+    // Empieza cuando termina la anterior (o ya, si no hay nada)
+    const desde = Math.max(Date.now(), ...datos.cola);
+    datos.cola.push(desde + f.tiempo * 1000);
+    return true;
+}
+function juntarFabrica(id) {
+    const f = fabrica(id);
+    const datos = estado.fabricas[id];
+    const n = listosEn(id);
+    if (!n) return 0;
+    datos.cola = datos.cola.filter((fin) => fin > Date.now());
+    estado.granero[f.da] = (estado.granero[f.da] ?? 0) + n;
+    sumarXP(f.xp * n);
+    return n;
+}
 
 // ---------- Lienzo ----------
 const chispas = crearChispas();
@@ -319,7 +357,12 @@ function recoger(k) {
 const tiposPorPedido = () => Math.min(5, 1 + Math.floor(estado.nivel / 3)); // nivel 1: 1 · 3: 2 · 6: 3 · 9: 4 · 12+: 5
 const pedidosALaVez = () => (estado.nivel >= 12 ? 5 : estado.nivel >= 6 ? 4 : 3);
 function nuevoPedido() {
-    const disponibles = [...CULTIVOS.filter((c) => c.nivel <= estado.nivel).map((c) => c.id), ...ANIMALES.filter((a) => estado.animales.some((x) => x.tipo === a.id)).map((a) => a.producto)];
+    const disponibles = [
+        ...CULTIVOS.filter((c) => c.nivel <= estado.nivel).map((c) => c.id),
+        ...ANIMALES.filter((a) => estado.animales.some((x) => x.tipo === a.id)).map((a) => a.producto),
+        // Lo que hacen tus edificios del taller también se pide (y paga mejor)
+        ...FABRICAS.filter((f) => tengoFabrica(f.id)).map((f) => f.da),
+    ];
     const items = {};
     // Cuántas cosas distintas: entre la mitad y el máximo de su nivel
     const maximo = Math.min(tiposPorPedido(), disponibles.length);
@@ -1008,6 +1051,74 @@ function iconoProducto(ctx, id, x, y, tam) {
             ctx.arc(dx * tam, dy * tam, tam * 0.15, 0, TAU);
             ctx.fill();
         }
+    } else if (id === "harina") {
+        // Bolsa de harina atada
+        ctx.fillStyle = "#f8f1e3";
+        ctx.beginPath();
+        ctx.moveTo(-tam * 0.1, -tam * 0.24);
+        ctx.quadraticCurveTo(-tam * 0.3, tam * 0.05, -tam * 0.22, tam * 0.28);
+        ctx.lineTo(tam * 0.22, tam * 0.28);
+        ctx.quadraticCurveTo(tam * 0.3, tam * 0.05, tam * 0.1, -tam * 0.24);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+        ctx.fillStyle = "#c9a26b";
+        ctx.fillRect(-tam * 0.12, -tam * 0.24, tam * 0.24, tam * 0.06);
+        ctx.fillStyle = "#e9c46a";
+        ctx.beginPath();
+        ctx.ellipse(0, tam * 0.06, tam * 0.08, tam * 0.11, 0, 0, TAU);
+        ctx.fill();
+    } else if (id === "queso") {
+        // Porción de queso con agujeros
+        ctx.fillStyle = "#ffd166";
+        ctx.beginPath();
+        ctx.moveTo(-tam * 0.28, tam * 0.2);
+        ctx.lineTo(tam * 0.28, tam * 0.2);
+        ctx.lineTo(tam * 0.28, -tam * 0.04);
+        ctx.lineTo(-tam * 0.2, -tam * 0.2);
+        ctx.closePath();
+        ctx.fill();
+        ctx.strokeStyle = "#c98a1b";
+        ctx.stroke();
+        ctx.fillStyle = "#e0a93a";
+        for (const [dx, dy, r] of [[-0.08, 0.06, 0.05], [0.12, 0.08, 0.04], [0.04, -0.04, 0.03]]) {
+            ctx.beginPath();
+            ctx.arc(dx * tam, dy * tam, r * tam, 0, TAU);
+            ctx.fill();
+        }
+    } else if (id === "pan") {
+        // Pan casero con cortes
+        const g = ctx.createLinearGradient(0, -tam * 0.2, 0, tam * 0.2);
+        g.addColorStop(0, "#e9a45b");
+        g.addColorStop(1, "#a0612a");
+        ctx.fillStyle = g;
+        ctx.beginPath();
+        ctx.ellipse(0, tam * 0.04, tam * 0.3, tam * 0.18, 0, 0, TAU);
+        ctx.fill();
+        ctx.strokeStyle = "#fbe3c0";
+        ctx.lineWidth = 2;
+        for (const dx of [-0.12, 0, 0.12]) {
+            ctx.beginPath();
+            ctx.moveTo(dx * tam - tam * 0.04, -tam * 0.04);
+            ctx.lineTo(dx * tam + tam * 0.04, tam * 0.08);
+            ctx.stroke();
+        }
+    } else if (id === "mermelada") {
+        // Frasco de mermelada con tapa a cuadros
+        ctx.fillStyle = "#c9184a";
+        ctx.beginPath();
+        ctx.roundRect(-tam * 0.18, -tam * 0.12, tam * 0.36, tam * 0.4, tam * 0.06);
+        ctx.fill();
+        ctx.fillStyle = "#ffffff55";
+        ctx.fillRect(-tam * 0.13, -tam * 0.08, tam * 0.05, tam * 0.28);
+        ctx.fillStyle = "#fdf0d5";
+        ctx.fillRect(-tam * 0.14, tam * 0.02, tam * 0.28, tam * 0.12);
+        ctx.fillStyle = "#e63946";
+        ctx.beginPath();
+        ctx.roundRect(-tam * 0.21, -tam * 0.24, tam * 0.42, tam * 0.12, tam * 0.04);
+        ctx.fill();
+        ctx.fillStyle = "#fff";
+        for (let k = 0; k < 4; k++) ctx.fillRect(-tam * 0.19 + k * tam * 0.1, -tam * 0.22, tam * 0.05, tam * 0.04);
     } else {
         ctx.fillStyle = "#6f4518";
         ctx.beginPath();
@@ -1277,6 +1388,7 @@ function pintarFondo(m) {
 }
 
 // Molino de viento a la derecha, con las aspas girando
+let anguloMolino = 0;
 function dibujarMolino(ctx, m, tiempo) {
     const x = ancho * 0.88;
     const base = m.cielo + 4;
@@ -1292,7 +1404,7 @@ function dibujarMolino(ctx, m, tiempo) {
     ctx.fillRect(x - alturaM * 0.04, base - alturaM * 0.22, alturaM * 0.08, alturaM * 0.22);
     ctx.save();
     ctx.translate(x, base - alturaM * 0.78);
-    ctx.rotate(tiempo * 0.9);
+    ctx.rotate(anguloMolino);
     for (let k = 0; k < 4; k++) {
         ctx.rotate(TAU / 4);
         ctx.fillStyle = "#8d5a2b";
@@ -1492,6 +1604,8 @@ function dibujar(dt) {
     dibujarCielo(ctx, m, luz, tiempo, dt);
     if (!fondoCache) fondoCache = pintarFondo(m);
     ctx.drawImage(fondoCache, 0, 0, ancho, alto);
+    // El molino gira más rápido cuando está moliendo
+    anguloMolino += dt * (trabajando("molino") ? 3.5 : 0.9);
     dibujarMolino(ctx, m, tiempo);
 
     // Parcelas
@@ -1980,6 +2094,115 @@ function pintarIconos(contenedor = $("panel")) {
         if (animal(id)) dibujarAnimal(ctx, id, 22, 24, 34, 0);
         else iconoProducto(ctx, id, 22, 24, 26);
     }
+    for (const c of contenedor.querySelectorAll("canvas[data-fabrica]")) dibujarFabrica(c.getContext("2d"), c.dataset.fabrica);
+    // Barras de los productos en marcha: el CSS las anima solo (no hace falta redibujar el panel)
+    for (const el of contenedor.querySelectorAll(".lugar[data-fin] .progreso-lugar")) {
+        const lugar = el.parentElement;
+        const dur = Number(lugar.dataset.dur);
+        const falta = Math.max(0, (Number(lugar.dataset.fin) - Date.now()) / 1000);
+        el.style.animationDuration = `${dur}s`;
+        el.style.animationDelay = `${-(dur - Math.min(dur, falta))}s`;
+    }
+}
+
+// Dibujo de cada edificio del taller (en su tarjeta)
+function dibujarFabrica(ctx, id) {
+    ctx.save();
+    ctx.scale(2, 2);
+    const W = 60;
+    ctx.fillStyle = "#95d5b2";
+    ctx.beginPath();
+    ctx.ellipse(W / 2, 42, 28, 6, 0, 0, TAU);
+    ctx.fill();
+    if (id === "molino") {
+        ctx.fillStyle = "#f8f1e3";
+        ctx.beginPath();
+        ctx.moveTo(20, 42);
+        ctx.lineTo(25, 14);
+        ctx.lineTo(35, 14);
+        ctx.lineTo(40, 42);
+        ctx.fill();
+        ctx.fillStyle = "#8d5a2b";
+        ctx.fillRect(27, 32, 6, 10);
+        ctx.fillStyle = "#c1121f";
+        ctx.beginPath();
+        ctx.moveTo(23, 15);
+        ctx.lineTo(30, 6);
+        ctx.lineTo(37, 15);
+        ctx.fill();
+        ctx.translate(30, 15);
+        for (let k = 0; k < 4; k++) {
+            ctx.rotate(Math.PI / 2);
+            ctx.fillStyle = "#8d5a2b";
+            ctx.fillRect(-0.8, 0, 1.6, 14);
+            ctx.fillStyle = "#fff";
+            ctx.fillRect(1, 4, 4, 10);
+        }
+    } else if (id === "lecheria") {
+        ctx.fillStyle = "#e63946";
+        ctx.fillRect(14, 20, 32, 22);
+        ctx.fillStyle = "#9d0208";
+        ctx.beginPath();
+        ctx.moveTo(11, 21);
+        ctx.lineTo(30, 9);
+        ctx.lineTo(49, 21);
+        ctx.fill();
+        ctx.strokeStyle = "#fff";
+        ctx.lineWidth = 1.5;
+        ctx.strokeRect(24, 28, 12, 14);
+        ctx.fillStyle = "#e9ecef";
+        ctx.beginPath();
+        ctx.roundRect(42, 31, 9, 11, 2);
+        ctx.fill();
+        ctx.fillStyle = "#adb5bd";
+        ctx.fillRect(43, 29, 7, 3);
+    } else if (id === "panaderia") {
+        ctx.fillStyle = "#c1694f";
+        ctx.beginPath();
+        ctx.moveTo(14, 42);
+        ctx.lineTo(14, 26);
+        ctx.quadraticCurveTo(30, 6, 46, 26);
+        ctx.lineTo(46, 42);
+        ctx.fill();
+        ctx.strokeStyle = "#8a3b25";
+        ctx.lineWidth = 1;
+        for (let y = 30; y < 42; y += 4) {
+            ctx.beginPath();
+            ctx.moveTo(15, y);
+            ctx.lineTo(45, y);
+            ctx.stroke();
+        }
+        ctx.fillStyle = "#2b1a0e";
+        ctx.beginPath();
+        ctx.ellipse(30, 36, 8, 7, 0, Math.PI, 0);
+        ctx.fill();
+        ctx.fillRect(22, 36, 16, 6);
+        ctx.fillStyle = "#ff9f1c";
+        ctx.beginPath();
+        ctx.ellipse(30, 38, 5, 3, 0, 0, TAU);
+        ctx.fill();
+        ctx.fillStyle = "#6c757d";
+        ctx.fillRect(38, 8, 5, 10);
+    } else {
+        ctx.fillStyle = "#ffafcc";
+        ctx.fillRect(14, 20, 32, 22);
+        for (let k = 0; k < 4; k++) {
+            ctx.fillStyle = k % 2 ? "#fff" : "#e63946";
+            ctx.beginPath();
+            ctx.moveTo(12 + k * 9, 16);
+            ctx.lineTo(21 + k * 9, 16);
+            ctx.lineTo(21 + k * 9, 23);
+            ctx.quadraticCurveTo(16.5 + k * 9, 26, 12 + k * 9, 23);
+            ctx.fill();
+        }
+        ctx.fillStyle = "#c9184a";
+        for (const x of [20, 30, 40]) {
+            ctx.beginPath();
+            ctx.roundRect(x - 3, 30, 6, 8, 1.5);
+            ctx.fill();
+        }
+    }
+    ctx.restore();
 }
 
 let ultimoPanel = "";
@@ -2011,6 +2234,33 @@ function pintarPanel() {
               items.map(([id, n]) => `<button class="caja-granero" data-vender="${id}" title="Vender 1">${canvasProducto(id)}<b>×${n}</b><small>${MONEDA_G}${precioVenta(id)}</small></button>`).join("") +
               `</div><p class="ayuda-g">Tocá una caja para vender una unidad.</p>`
             : `<p class="vacio-g">El granero está vacío. ¡A cosechar!</p>`;
+    } else if (pestana === "taller") {
+        html = FABRICAS.map((f) => {
+            const datos = estado.fabricas[f.id];
+            const receta = Object.entries(f.receta).map(([id, n]) => `<span class="ing${(estado.granero[id] ?? 0) >= n ? " ok" : ""}">${canvasProducto(id)}<b>${Math.min(estado.granero[id] ?? 0, n)}/${n}</b></span>`).join("");
+            const encabezado = `<canvas width="120" height="96" data-fabrica="${f.id}" class="dibujo-fabrica"></canvas>
+                <div class="txt"><strong>${f.nombre}</strong><small>${PRODUCTOS[f.da].nombre} · ⏱ ${f.tiempo >= 60 ? `${f.tiempo / 60} min` : `${f.tiempo} s`} · vende ${precioVenta(f.da)}</small></div>`;
+            if (!datos) {
+                const bloqueada = f.nivel > estado.nivel;
+                return `<div class="fabrica bloqueada">${encabezado}
+                    <button class="boton-verde" data-construir="${f.id}" ${bloqueada || estado.monedas < f.costo ? "disabled" : ""}>${bloqueada ? `🔒 Nivel ${f.nivel}` : `Construir ${MONEDA_G}${formatear(f.costo)}`}</button></div>`;
+            }
+            const listos = listosEn(f.id);
+            // Cola: cada lugar con el producto; los que están en marcha muestran una barra (la anima el CSS)
+            const lugares = Array.from({ length: lugaresCola(f.id) }, (_, i) => {
+                const fin = datos.cola[i];
+                if (fin === undefined) return `<span class="lugar vacio"></span>`;
+                const listo = fin <= Date.now();
+                return `<span class="lugar${listo ? " listo" : ""}" data-fin="${fin}" data-dur="${f.tiempo}">${canvasProducto(f.da)}${listo ? "" : `<i class="progreso-lugar"></i>`}</span>`;
+            }).join("");
+            return `<div class="fabrica${listos ? " con-listos" : ""}">${encabezado}
+                <div class="receta">${receta}<span class="flecha">➜</span>${canvasProducto(f.da)}</div>
+                <div class="cola">${lugares}</div>
+                <div class="botones-fabrica">
+                    <button class="boton-verde" data-hacer="${f.id}" ${datos.cola.length >= lugaresCola(f.id) || !alcanzaReceta(f) ? "disabled" : ""}>Hacer ${PRODUCTOS[f.da].nombre}</button>
+                    ${listos ? `<button class="boton-verde juntar" data-juntar="${f.id}">Juntar ${listos}</button>` : ""}
+                </div></div>`;
+        }).join("") + `<p class="ayuda-g">Los edificios transforman lo que cosechás en productos que valen mucho más y que la gente pide en los pedidos.</p>`;
     } else if (pestana === "animales") {
         html = ANIMALES.map((a) => {
             const tengo = estado.animales.filter((x) => x.tipo === a.id).length;
@@ -2046,6 +2296,27 @@ function alTocarPanel(e) {
     if (d.semilla) {
         estado.elegida = d.semilla;
         sonidos.toque();
+    } else if (d.construir) {
+        const f = fabrica(d.construir);
+        if (estado.monedas < f.costo || f.nivel > estado.nivel || tengoFabrica(f.id)) return;
+        estado.monedas -= f.costo;
+        estado.fabricas[f.id] = { cola: [] };
+        avisar(`🏭 ¡${f.nombre} construida!`);
+        sonidos.comprar();
+        vibrar(30);
+        completarPedidos();
+    } else if (d.hacer) {
+        if (hacerEnFabrica(d.hacer)) {
+            sonidos.plantar();
+            vibrar(10);
+        } else sonidos.error();
+    } else if (d.juntar) {
+        const n = juntarFabrica(d.juntar);
+        if (n) {
+            avisar(`📦 +${n} ${PRODUCTOS[fabrica(d.juntar).da].nombre}`);
+            sonidos.cosechar();
+            vibrar(20);
+        }
     }
     else if (d.entregar !== undefined) {
         const p = estado.pedidos[Number(d.entregar)];
@@ -2126,6 +2397,7 @@ function pintarDatos() {
     $("xp").style.width = `${(estado.xp / xpParaNivel(estado.nivel)) * 100}%`;
     $("granero").textContent = enGranero();
     $("pedidos-listos").hidden = !estado.pedidos.some(sePuede);
+    $("taller-listo").hidden = !FABRICAS.some((f) => listosEn(f.id) > 0);
     $("tiros-garra").textContent = estado.garra ?? 0;
     $("boton-garra").classList.toggle("hay", (estado.garra ?? 0) > 0);
 }
