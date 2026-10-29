@@ -243,6 +243,50 @@
                 circulo(W * x + r * 0.3, H * y - 2, r * 0.18, "#fff");
             }
         },
+        isla() {
+            // Mar turquesa, isla con palmera, niebla a un costado y la X del tesoro
+            const g = ctx.createRadialGradient(W * 0.5, H * 0.55, 5, W * 0.5, H * 0.55, W * 0.7);
+            g.addColorStop(0, "#2ec4b6");
+            g.addColorStop(1, "#0b4f6c");
+            ctx.fillStyle = g;
+            ctx.fillRect(0, 0, W, H);
+            ctx.fillStyle = "#90e0ef88";
+            ctx.beginPath();
+            ctx.ellipse(W * 0.5, H * 0.6, W * 0.34, H * 0.3, 0, 0, TAU);
+            ctx.fill();
+            ctx.fillStyle = "#f4d58d";
+            ctx.beginPath();
+            ctx.ellipse(W * 0.5, H * 0.6, W * 0.29, H * 0.24, 0, 0, TAU);
+            ctx.fill();
+            ctx.strokeStyle = "#8d5a2b";
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(W * 0.38, H * 0.66);
+            ctx.quadraticCurveTo(W * 0.41, H * 0.48, W * 0.39, H * 0.38);
+            ctx.stroke();
+            ctx.fillStyle = "#2d6a4f";
+            for (let k = 0; k < 5; k++) {
+                const a = -Math.PI / 2 + (k - 2) * 0.7;
+                ctx.beginPath();
+                ctx.ellipse(W * 0.39 + Math.cos(a) * 9, H * 0.38 + Math.sin(a) * 5 + 2, 10, 3.5, a, 0, TAU);
+                ctx.fill();
+            }
+            ctx.strokeStyle = "#d62828";
+            ctx.lineWidth = 3.5;
+            ctx.lineCap = "round";
+            ctx.beginPath();
+            ctx.moveTo(W * 0.56, H * 0.56);
+            ctx.lineTo(W * 0.64, H * 0.68);
+            ctx.moveTo(W * 0.64, H * 0.56);
+            ctx.lineTo(W * 0.56, H * 0.68);
+            ctx.stroke();
+            ctx.fillStyle = "#f8f9fadd";
+            for (const [x, y, r] of [[0.74, 0.5, 10], [0.8, 0.58, 12], [0.72, 0.62, 9], [0.78, 0.68, 8]]) {
+                ctx.beginPath();
+                ctx.arc(W * x, H * y, r, 0, TAU);
+                ctx.fill();
+            }
+        },
         ciudad() {
             fondo("#1d3557", "#457b9d", 0.2);
             const tw = W * 0.16;
