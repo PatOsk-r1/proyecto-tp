@@ -1387,3 +1387,88 @@
 .fabrica.bloqueada {
     grid-template-columns: 60px 1fr auto;
 }
+/* ---------- Estación y misiones ---------- */
+.estacion-g {
+    position: absolute;
+    left: 6px;
+    top: 6px;
+    z-index: 2;
+    padding: 3px 9px;
+    border-radius: 999px;
+    background: #fff4dcdd;
+    color: var(--marron);
+    border: 2px solid #4a2e17;
+    font-weight: 900;
+    font-size: 0.72rem;
+    pointer-events: none;
+}
+
+.mision-g {
+    position: absolute;
+    right: 6px;
+    top: 6px;
+    z-index: 2;
+    padding: 4px 10px;
+    font: inherit;
+    font-size: 0.85rem;
+    font-weight: 900;
+    color: var(--marron);
+    background: var(--crema);
+    border: 2px solid #4a2e17;
+    border-radius: 999px;
+    box-shadow: 0 3px 0 #0005;
+}
+
+.mision-g.lista {
+    background: linear-gradient(180deg, #ffe066, #f4a261);
+    animation: latido 1.2s ease-in-out infinite;
+}
+
+.mision-hoja .capitulo {
+    text-align: center;
+    font-weight: 800;
+    color: #a8661b;
+}
+
+.quien-mision {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+}
+
+.quien-mision .cara {
+    width: 48px;
+    height: 48px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.8rem;
+    border-radius: 50%;
+    background: var(--crema-2);
+    border: 2px solid var(--borde-crema);
+}
+
+.quien-mision p {
+    margin: 4px 0 0;
+    font-weight: 700;
+    font-size: 0.92rem;
+    line-height: 1.3;
+}
+
+.premio-mision {
+    text-align: center;
+    font-weight: 800;
+}
+
+.temporada-s {
+    position: absolute;
+    top: 4px;
+    left: 4px;
+    padding: 1px 5px;
+    border-radius: 999px;
+    background: #fff3b0;
+    color: #a8661b;
+    font-size: 0.56rem;
+    font-weight: 900;
+}
