@@ -7,6 +7,40 @@
     --panel: #0d0217e6;
 }
 
+/* Temáticas: Faraón (arena y turquesa) y Pirata (madera y oro) */
+.tema-maquina-egipto {
+    --fondo: #1d1404;
+    --fondo-2: #5c3d0e;
+    --texto-suave: #f1dca7;
+    --panel: #1d1404e6;
+}
+
+.tema-maquina-egipto .marquesina {
+    background: linear-gradient(180deg, #1d4e89, #0b2545);
+    border-color: #ffd166;
+    box-shadow: 0 0 24px #4dd9c488, inset 0 0 14px #0008;
+}
+
+.tema-maquina-pirata {
+    --fondo: #0b1d2b;
+    --fondo-2: #3d2310;
+    --texto-suave: #f1dca7;
+    --panel: #120a03e6;
+}
+
+.tema-maquina-pirata .marquesina {
+    background: linear-gradient(180deg, #1b1b1b, #3d0000);
+    border-color: #c1121f;
+    color: #fff;
+    text-shadow: 0 0 10px #c1121f, 0 2px 0 #000;
+    box-shadow: 0 0 24px #c1121f88, inset 0 0 14px #0008;
+}
+
+.tema-maquina-pirata .marquesina span,
+.tema-maquina-egipto .marquesina span {
+    animation: none;
+}
+
 /* ---------- Pozos acumulados ---------- */
 
 .pozos {
