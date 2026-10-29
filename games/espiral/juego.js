@@ -4,6 +4,7 @@ import {
     THREE, crearEscena, material, formatear, cargar, guardar, textoFlotante, vibrar, MONEDA,
     fondoDegradado, crearParticulas,
 } from "../../js/comun3d.js";
+import { ejeX, alAccion, tocarSiVisible } from "../../js/teclado.js";
 
 const $ = (id) => document.getElementById(id);
 const CLAVE = "espiral";
@@ -183,6 +184,8 @@ addEventListener("pointermove", (e) => {
     ultimoX = e.clientX;
 });
 addEventListener("pointerup", () => (arrastrando = false));
+// En la compu: flechas para girar (en el ciclo) y espacio para empezar o seguir
+alAccion(() => tocarSiVisible($("jugar")));
 
 // ---------- Juego ----------
 function romperPiso(piso, conFuego) {
@@ -262,6 +265,7 @@ let tiempo = 0;
 alAnimar((dt) => {
     tiempo += dt;
     if (partida?.jugando) {
+        torre.rotation.y += ejeX() * 3.6 * dt;
         bola.visible = true;
         const antes = bola.position.y;
         partida.vy -= GRAVEDAD * dt;
