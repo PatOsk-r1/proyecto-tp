@@ -89,7 +89,8 @@ function ventana(html, alCerrar) {
 // logros: [{ id, icono, nombre, detalle, meta, valor: () => número, fichas }]
 // regaloDiario(dia 1..7) → { icono, texto, dar() }
 // audio: lo que devuelve crearAudio (para los sonidos de logros y menús)
-export function crearBase({ juego, barra, logros = [], regaloDiario = null, audio = null }) {
+// ajustes: false si el juego ya tiene su propio menú de ajustes (solo agrega el botón de logros)
+export function crearBase({ juego, barra, logros = [], regaloDiario = null, audio = null, ajustes = true }) {
     ponerCss();
     const claveLogros = `${juego}-logros`;
     const claveDiario = `${juego}-diario`;
@@ -107,7 +108,8 @@ export function crearBase({ juego, barra, logros = [], regaloDiario = null, audi
     botonAjustes.className = "boton-base";
     botonAjustes.setAttribute("aria-label", "Ajustes");
     botonAjustes.innerHTML = "⚙️";
-    barra?.append(botonLogros, botonAjustes);
+    barra?.append(botonLogros);
+    if (ajustes) barra?.append(botonAjustes);
 
     // ---------- Logros ----------
     const pendientesDeVer = () => logros.filter((l) => hechos.has(l.id) && !leer(`${claveLogros}-vistos`, []).includes(l.id)).length;
