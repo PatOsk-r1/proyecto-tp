@@ -2,6 +2,7 @@
 // Entre oleadas se compran mejoras con oro; las gemas compran mejoras permanentes en la forja.
 import { cargar, guardar, vibrar } from "../../js/comun3d.js";
 import { crearLienzo, bucle, crearChispas } from "../../js/lienzo2d.js";
+import { ejeX, ejeY, accionApretada, alAccion, tocarSiVisible } from "../../js/teclado.js";
 
 const $ = (id) => document.getElementById(id);
 const CLAVE = "muralla";
@@ -452,9 +453,32 @@ function dibujar(dt) {
 }
 
 bucle((dt) => {
-    if (juego?.vivo && juego.enCurso && $("menu").hidden && $("tienda").hidden) paso(dt);
+    if (juego?.vivo && juego.enCurso && $("menu").hidden && $("tienda").hidden) {
+        apuntarConTeclado(dt);
+        paso(dt);
+    }
     dibujar(dt);
 });
+
+// En la compu: las flechas mueven la mira y, mientras se apretan (o con el espacio), la ballesta dispara
+let mira = null;
+let miraTeclado = false;
+function apuntarConTeclado(dt) {
+    const dx = ejeX();
+    const dy = ejeY();
+    if (dx || dy || accionApretada()) {
+        mira ??= { x: ancho / 2, y: yMuro() * 0.45 };
+        const velocidad = Math.min(ancho, 700) * 0.8;
+        mira.x = Math.max(10, Math.min(ancho - 10, mira.x + dx * velocidad * dt));
+        mira.y = Math.max(20, Math.min(yMuro() - 20, mira.y + dy * velocidad * dt));
+        apuntando = { ...mira };
+        miraTeclado = true;
+    } else if (miraTeclado) {
+        apuntando = null;
+        miraTeclado = false;
+    }
+}
+alAccion(() => tocarSiVisible($("jugar"), $("seguir")));
 setInterval(() => juego && pintar(), 250);
 
 // ---------- Controles ----------
