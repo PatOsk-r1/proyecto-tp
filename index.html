@@ -23,7 +23,10 @@
             <h1>Proyecto TP</h1>
             <p id="saludo">Elegí un juego</p>
         </div>
-        <button id="salir" class="boton-texto" type="button">Salir</button>
+        <div class="acciones-encabezado">
+            <span class="pildora-fichas" title="Fichas del casino"><i class="moneda-chica"></i><b id="fichas-arriba">0</b></span>
+            <button id="salir" class="boton-texto" type="button">Salir</button>
+        </div>
     </header>
 
     <nav class="pestanas" role="tablist">
@@ -66,11 +69,27 @@
             <p id="sin-chats" class="sin-chats">Todavía no tenés amigos. Agregalos con su nombre de usuario.</p>
         </section>
 
-        <a id="seguir" class="seguir" href="#" hidden>
-            <canvas></canvas>
-            <span class="texto"><small>Seguir jugando</small><strong></strong></span>
-            <span class="jugar-ya">▶</span>
-        </a>
+        <!-- Juego destacado: rota solo entre los de la pestaña -->
+        <section id="destacado" class="destacado" hidden>
+            <a class="destacado-tarjeta" href="#">
+                <canvas class="destacado-lienzo a"></canvas>
+                <canvas class="destacado-lienzo b"></canvas>
+                <span class="destacado-velo"></span>
+                <span class="destacado-texto">
+                    <small class="destacado-etiqueta">⭐ Destacado</small>
+                    <strong class="destacado-nombre"></strong>
+                    <span class="destacado-descripcion"></span>
+                    <span class="destacado-boton">▶ Jugar</span>
+                </span>
+            </a>
+            <div class="destacado-puntos"></div>
+        </section>
+
+        <!-- Los últimos juegos abiertos -->
+        <section id="recientes" class="recientes" hidden>
+            <h2 class="titulo-fila">⏱️ Seguir jugando</h2>
+            <ul class="carrusel carrusel-chico"></ul>
+        </section>
 
         <ul id="lista-juegos" class="lista-juegos"></ul>
     </main>
@@ -92,7 +111,13 @@
             boton.classList.add("crear-cuenta");
             boton.addEventListener("click", () => location.assign("login.html?crear=1"));
         } else document.getElementById("salir").addEventListener("click", cerrarSesion);
-        document.getElementById("fichas-casino").textContent = fichas().toLocaleString("es-AR");
+        const pintarFichas = () => {
+            const texto = fichas().toLocaleString("es-AR");
+            document.getElementById("fichas-casino").textContent = texto;
+            document.getElementById("fichas-arriba").textContent = texto;
+        };
+        pintarFichas();
+        addEventListener("fichas", pintarFichas);
 
         // Perfil y cuántas cosas esperan respuesta: solicitudes de amistad, desafíos y turnos
         if (usuario.uid) {
@@ -141,8 +166,6 @@
                         : "Solicitudes, partidas y ranking";
                 },
             });
-            // Las fichas del casino se actualizan solas (regalos, premios)
-            addEventListener("fichas", () => (document.getElementById("fichas-casino").textContent = fichas().toLocaleString("es-AR")));
         }
     </script>
 </body>
