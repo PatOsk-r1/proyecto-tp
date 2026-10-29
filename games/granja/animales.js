@@ -9,10 +9,21 @@ function elipse(ctx, x, y, rx, ry, giro = 0) {
     ctx.ellipse(x, y, rx, ry, giro, 0, TAU);
     ctx.fill();
 }
+// Los degradados se guardan y se reutilizan (crearlos en cada cuadro es lo que más cuesta).
+// Sus coordenadas son relativas al animal, así que sirven igual aunque el animal se mueva.
+const degradados = new WeakMap();
 function degradado(ctx, x, y, r, claro, oscuro) {
-    const g = ctx.createRadialGradient(x - r * 0.35, y - r * 0.45, r * 0.1, x, y, r * 1.1);
-    g.addColorStop(0, claro);
-    g.addColorStop(1, oscuro);
+    let porCtx = degradados.get(ctx);
+    if (!porCtx) degradados.set(ctx, (porCtx = new Map()));
+    const clave = `${x.toFixed(1)}|${y.toFixed(1)}|${r.toFixed(1)}|${claro}|${oscuro}`;
+    let g = porCtx.get(clave);
+    if (!g) {
+        if (porCtx.size > 400) porCtx.clear(); // la cabeza al comer cambia de lugar: que no crezca sin fin
+        g = ctx.createRadialGradient(x - r * 0.35, y - r * 0.45, r * 0.1, x, y, r * 1.1);
+        g.addColorStop(0, claro);
+        g.addColorStop(1, oscuro);
+        porCtx.set(clave, g);
+    }
     return g;
 }
 function ojo(ctx, x, y, r, estado) {
