@@ -12,70 +12,56 @@
 
     <link rel="stylesheet" href="../../css/estilos.css">
     <link rel="stylesheet" href="../../css/juegos3d.css">
-    <style>
-        .boton-salto {
-            margin-left: auto;
-            font: inherit;
-            font-weight: 900;
-            color: #02010a;
-            background: linear-gradient(180deg, #c77dff, #7b2cbf);
-            border: none;
-            border-radius: 999px;
-            padding: 8px 14px;
-            box-shadow: 0 3px 0 #0008;
-        }
-        .hoja-fondo {
-            position: fixed;
-            inset: 0;
-            z-index: 30;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-            background: #000b;
-        }
-        .hoja {
-            max-width: 420px;
-            padding: 20px;
-            border-radius: 20px;
-            background: #120a33;
-            border: 2px solid #c77dff;
-            text-align: center;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-        .hoja strong.grande { font-size: 2rem; color: #c77dff; }
-        .hoja .botones { display: flex; gap: 8px; }
-    </style>
+    <link rel="stylesheet" href="estilo.css">
 </head>
 <body class="pantalla-3d tema-espacio">
-    <header class="barra-juego">
+    <header class="barra-juego barra-colonia">
         <a class="boton-volver" href="../../">‹ Juegos</a>
         <h1>Colonia espacial</h1>
         <button id="abrir-salto" class="boton-salto" type="button">🌌 <span id="materia">0</span></button>
     </header>
 
-    <div id="lienzo" class="lienzo-3d">
-        <div class="marcador">
-            <div id="energia" class="grande">⚡ 0</div>
-            <div id="por-segundo" class="chico">0 por segundo · tocá el planeta</div>
-            <div class="chico">💠 <span id="cristales">0</span> · tocá los meteoritos ☄️</div>
+    <div class="cuerpo-col">
+        <div id="lienzo" class="lienzo-3d">
+            <div class="marcador">
+                <div id="energia" class="grande">⚡ 0</div>
+                <div id="por-segundo" class="chico">0 por segundo · tocá el planeta</div>
+                <div class="chico">💠 <span id="cristales">0</span> · tocá los meteoritos ☄️</div>
+            </div>
+            <div id="aviso" class="mensaje-centro" hidden></div>
         </div>
-        <div id="aviso" class="mensaje-centro" hidden></div>
-    </div>
 
-    <div id="mejoras" class="panel-mejoras"></div>
+        <div class="columna-col">
+            <nav class="pestanas-col">
+                <button class="pestana-col activa" data-p="mejoras">🏗️<small>Construir</small></button>
+                <button class="pestana-col" data-p="expediciones">🚀<small>Expediciones</small><i id="exp-lista" hidden></i></button>
+                <button class="pestana-col" data-p="artefactos">💎<small>Artefactos</small></button>
+                <button class="pestana-col" data-p="contratos">📜<small>Contratos</small><i id="con-lista" hidden></i></button>
+            </nav>
+            <div id="mejoras" class="panel-mejoras panel-col"></div>
+            <div id="expediciones" class="panel-col" hidden></div>
+            <div id="artefactos" class="panel-col" hidden></div>
+            <div id="contratos" class="panel-col" hidden></div>
+        </div>
+    </div>
 
     <div id="salto" class="hoja-fondo" hidden>
         <div class="hoja">
             <h2>🌌 Saltar a otra galaxia</h2>
-            <p>Dejás la colonia atrás y empezás de nuevo, pero cada punto de materia oscura hace que <b>todo produzca un 10% más</b>.</p>
+            <p>Dejás la colonia atrás y empezás de nuevo, pero cada punto de materia oscura hace que <b>todo produzca un 10% más</b>. Los artefactos y las naves se quedan.</p>
             <p>Conseguirías <strong id="materia-nueva" class="grande">0</strong></p>
             <div class="botones">
                 <button id="cancelar-salto" class="accion secundaria" type="button">Ahora no</button>
                 <button id="confirmar-salto" class="accion" type="button">Saltar</button>
             </div>
+        </div>
+    </div>
+
+    <div id="evento" class="hoja-fondo" hidden>
+        <div class="hoja hoja-evento">
+            <h2 id="evento-titulo"></h2>
+            <p id="evento-texto"></p>
+            <div id="evento-opciones" class="opciones-evento"></div>
         </div>
     </div>
 
