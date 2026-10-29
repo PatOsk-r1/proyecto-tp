@@ -156,16 +156,26 @@ const mariposas = Array.from({ length: 3 }, (_, i) => ({ x: Math.random(), y: 0.
 const luciernagas = Array.from({ length: 28 }, () => ({ x: Math.random(), y: 0.1 + Math.random() * 0.9, fase: Math.random() * 10, v: 0.3 + Math.random() * 0.5 }));
 
 // Medidas: cielo arriba, parcelas en el medio y corral abajo
+// Solo se muestran las filas de parcelas que tenés más la del próximo terreno: así cada parcela es más grande
+const filasVisibles = () => Math.min(MAX_LOTES / COLUMNAS, Math.ceil(Math.min(MAX_LOTES, estado.lotes + 1) / COLUMNAS));
+const lotesVisibles = () => filasVisibles() * COLUMNAS;
+let filasAntes = 0;
 function medidas() {
-    const cielo = Math.min(alto * 0.15, 86);
+    const cielo = Math.min(alto * 0.14, 80);
     const corral = alto * 0.24;
-    const filas = MAX_LOTES / COLUMNAS;
+    const filas = filasVisibles();
+    if (filas !== filasAntes) {
+        // Cambió el tamaño de las parcelas: se vuelven a pintar el fondo y los dibujos guardados
+        filasAntes = filas;
+        fondoCache = null;
+        sprites?.clear();
+    }
     const hueco = 8;
     const zonaH = alto - cielo - corral - 8;
-    const lado = Math.min((ancho - 24) / COLUMNAS, zonaH / filas) - hueco;
+    const lado = Math.min((ancho - 20) / COLUMNAS, zonaH / filas, 150) - hueco;
     const ox = (ancho - COLUMNAS * (lado + hueco)) / 2 + hueco / 2;
     const oy = cielo + 4 + (zonaH - filas * (lado + hueco)) / 2;
-    return { lado, ox, oy, hueco, cielo, corralY: alto - corral, corral };
+    return { lado, ox, oy, hueco, cielo, corralY: alto - corral, corral, filas };
 }
 const rectParcela = (i, m = medidas()) => ({
     x: m.ox + (i % COLUMNAS) * (m.lado + m.hueco),
@@ -199,9 +209,13 @@ let luzAnterior = luzDelDia();
 function posicionesFaroles(m) {
     const izq = Math.max(9, m.ox - 16);
     const der = Math.min(ancho - 9, ancho - m.ox + 16);
-    const filas = MAX_LOTES / COLUMNAS;
-    const abajo = m.oy + filas * (m.lado + m.hueco);
+    const abajo = m.oy + m.filas * (m.lado + m.hueco);
     const lista = [];
+    // Si no hay lugar a los costados de las parcelas (celular), todos los faroles van sobre la cerca
+    if (m.ox < 24) {
+        for (const x of [0.06, 0.3, 0.54, 0.78, 0.96]) lista.push([ancho * x, m.corralY + 2]);
+        return lista;
+    }
     for (const y of [m.oy + m.lado * 0.6, (m.oy + abajo) / 2 + m.lado * 0.3, abajo - m.lado * 0.2]) lista.push([izq, y], [der, y]);
     lista.push([ancho * 0.3, m.corralY + 2], [ancho * 0.7, m.corralY + 2]);
     return lista;
@@ -1204,7 +1218,7 @@ function pintarFondo(m) {
     // Zona arada detrás de las parcelas
     ctx.fillStyle = "#3d251222";
     ctx.beginPath();
-    ctx.roundRect(m.ox - 8, m.oy - 8, COLUMNAS * (m.lado + m.hueco) + 8, (MAX_LOTES / COLUMNAS) * (m.lado + m.hueco) + 8, 18);
+    ctx.roundRect(m.ox - 8, m.oy - 8, COLUMNAS * (m.lado + m.hueco) + 8, m.filas * (m.lado + m.hueco) + 8, 18);
     ctx.fill();
 
     // Corral: pasto más claro, bebedero, fardo de pasto y cerca de madera
@@ -1461,7 +1475,7 @@ function dibujar(dt) {
     dibujarMolino(ctx, m, tiempo);
 
     // Parcelas
-    for (let i = 0; i < MAX_LOTES; i++) dibujarParcela(ctx, i, rectParcela(i, m), tiempo);
+    for (let i = 0; i < lotesVisibles(); i++) dibujarParcela(ctx, i, rectParcela(i, m), tiempo);
 
     if (!estado.animales.length) {
         ctx.fillStyle = "#1b433288";
@@ -1660,7 +1674,7 @@ bucle((dt) => {
 // (lo mismo que hizo la primera), y al pasar sobre los animales se recoge lo que tengan.
 let arrastre = null; // { modo: "plantar" | "cosechar" | "recoger", vistas: Set }
 const parcelaEn = (x, y, m = medidas()) => {
-    for (let i = 0; i < MAX_LOTES; i++) {
+    for (let i = 0; i < lotesVisibles(); i++) {
         const r = rectParcela(i, m);
         if (x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h) return i;
     }
@@ -1721,7 +1735,7 @@ $("lienzo").addEventListener("pointerdown", (e) => {
         arrastre = { modo: "recoger", vistas: new Set() };
         return refrescar();
     }
-    for (let i = 0; i < MAX_LOTES; i++) {
+    for (let i = 0; i < lotesVisibles(); i++) {
         const r = rectParcela(i, m);
         if (x < r.x || x > r.x + r.w || y < r.y || y > r.y + r.h) continue;
         const p0 = estado.parcelas[i];
@@ -1908,7 +1922,7 @@ function pintarPanel() {
             return `<button class="semilla-c${estado.elegida === c.id ? " elegida" : ""}" data-semilla="${c.id}" ${bloqueado ? "disabled" : ""}>
                 ${canvasProducto(c.id)}<span class="nombre-s">${c.nombre}</span><small>${bloqueado ? `🔒 Nivel ${c.nivel}` : `${MONEDA_G}${c.semilla} · ⏱ ${c.tiempo >= 60 ? c.tiempo / 60 + " min" : c.tiempo + " s"}`}</small>
                 ${bloqueado ? "" : `<span class="vende-s">vende ${precioVenta(c.id)}</span>`}</button>`;
-        }).join("")}</div><p class="ayuda-g">Elegí una semilla y tocá o deslizá el dedo sobre las parcelas vacías. Deslizá sobre lo maduro para cosechar. Juntá la caca del corral 💩 para hacer abono y ponéselo a lo que está creciendo.</p>`;
+        }).join("")}</div><p class="ayuda-g ayuda-semillas">Elegí una semilla y tocá o deslizá el dedo sobre las parcelas vacías. Deslizá sobre lo maduro para cosechar. Juntá la caca del corral 💩 para hacer abono y ponéselo a lo que está creciendo.</p>`;
     } else if (pestana === "pedidos") {
         html = `<div class="lista-pedidos">${htmlPedidos()}</div>`;
     } else if (pestana === "almacen") {
