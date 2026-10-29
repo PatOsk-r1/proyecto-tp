@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="es" class="verificando">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>Tesoro pirata · Proyecto TP</title>
+    <meta name="theme-color" content="#0b1d2b">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="../../icons/icon-180.png">
+    <link rel="manifest" href="../../manifest.webmanifest">
+
+    <link rel="stylesheet" href="../../css/estilos.css">
+    <link rel="stylesheet" href="../../css/juegos3d.css">
+    <link rel="stylesheet" href="../tragamonedas/estilo.css">
+</head>
+<body class="pantalla-3d tema-casino tema-tragamonedas">
+    <header class="barra-juego">
+        <a class="boton-volver" href="../../">‹ Juegos</a>
+        <h1>Tesoro pirata</h1>
+        <div id="fichas" class="fichas-total"></div>
+    </header>
+
+    <div class="pozos">
+        <div class="pozo mini"><span>MINI</span><strong id="pozo-mini">0</strong></div>
+        <div class="pozo gran"><span>GRAN POZO</span><strong id="pozo-gran">0</strong></div>
+        <div class="pozo mayor"><span>MAYOR</span><strong id="pozo-mayor">0</strong></div>
+    </div>
+
+    <main class="sala">
+        <div class="marquesina"><span>★</span> FORTUNA DORADA <span>★</span></div>
+        <div id="maquina" class="maquina">
+            <canvas id="rodillos"></canvas>
+            <div id="giros-gratis" class="giros-gratis" hidden>GIROS GRATIS <b id="giros-restantes">0</b> · ×2</div>
+        </div>
+        <div id="mensaje" class="mensaje-maquina">¡Suerte!</div>
+    </main>
+
+    <div class="controles">
+        <div class="fila-controles">
+            <button id="info" class="chico" type="button">📜<small>Premios</small></button>
+            <button id="logros" class="chico" type="button">🏆<small id="logros-cuenta">0/0</small></button>
+            <div class="apuesta-fila">
+                <button id="menos" class="redondo" type="button">−</button>
+                <div class="apuesta">Apuesta<strong id="apuesta">10</strong></div>
+                <button id="mas" class="redondo" type="button">+</button>
+            </div>
+            <button id="turbo" class="chico" type="button">⚡<small>Turbo</small></button>
+            <button id="auto" class="chico" type="button">🔁<small>Auto</small></button>
+        </div>
+        <button id="girar" class="girar" type="button">GIRAR</button>
+        <button id="recargar" class="accion secundaria" type="button" hidden>🎁 Regalo diario +500</button>
+    </div>
+
+    <div id="celebracion" class="celebracion" hidden>
+        <div id="titulo-celebracion" class="titulo-cel">¡GRAN PREMIO!</div>
+        <div id="monto-celebracion" class="monto-cel">0</div>
+        <small>Tocá para seguir</small>
+    </div>
+
+    <div id="rueda-fondo" class="hoja-fondo" hidden>
+        <div class="rueda-caja">
+            <div class="titulo-cel chico">🎡 RUEDA DEL POZO</div>
+            <canvas id="rueda" width="560" height="560"></canvas>
+            <button id="girar-rueda" class="girar" type="button">¡GIRAR LA RUEDA!</button>
+        </div>
+    </div>
+
+    <div id="panel" class="hoja-fondo" hidden>
+        <div class="hoja-panel">
+            <h2 id="panel-titulo">Premios</h2>
+            <div id="panel-contenido"></div>
+            <button id="cerrar-panel" class="accion" type="button">Cerrar</button>
+        </div>
+    </div>
+
+    <div id="aviso-logro" class="aviso-logro" hidden></div>
+
+    <script>
+        // Si algo falla, se muestra en la máquina para poder avisar qué pasó
+        function mostrarError(texto) {
+            const el = document.getElementById("mensaje");
+            if (el) el.textContent = "Error: " + texto;
+        }
+        addEventListener("error", (e) => mostrarError(e.message || "al cargar " + (e.target && e.target.src)), true);
+        addEventListener("unhandledrejection", (e) => mostrarError(String(e.reason && e.reason.message || e.reason)));
+    </script>
+    <script type="module">
+        import { exigirSesion } from "../../js/sesion.js";
+        exigirSesion();
+    </script>
+    <script>window.TEMA_TRAGAMONEDAS = "pirata";</script>
+    <script type="module" src="../tragamonedas/juego.js"></script>
+</body>
+</html>
