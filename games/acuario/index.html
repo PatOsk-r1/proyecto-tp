@@ -21,6 +21,7 @@
         <div class="hud-acuario">
             <div class="pildora-a"><i class="moneda-a"></i><strong id="monedas">0</strong></div>
             <div class="pildora-a"><span>👀</span><strong id="visitas">0</strong><small>/min</small></div>
+            <button id="abrir-estante" class="boton-estante" type="button" aria-label="Mis peceras">🗄️<b>1</b></button>
         </div>
     </header>
 
@@ -28,20 +29,24 @@
         <section class="pecera">
             <canvas id="lienzo"></canvas>
             <div class="medidores-a">
+                <div class="medidor-a nombre-a" id="nombre-pecera"></div>
                 <div class="medidor-a"><span>😊</span><div class="barra-a"><i id="felicidad"></i></div></div>
                 <div class="medidor-a"><span>💧</span><div class="barra-a agua"><i id="agua"></i></div></div>
                 <div class="medidor-a"><span>🐟</span><b id="poblacion">0/10</b></div>
             </div>
             <button id="limpiar" class="limpiar-a" type="button">🧽 Limpiar</button>
-            <p class="ayuda-pecera">Tocá el agua para darles de comer · tocá un pez para verlo</p>
+            <div id="comidas" class="comidas-a"></div>
+            <p class="ayuda-pecera">Tocá el agua para darles de comer · tocá un animal para verlo</p>
             <div id="ficha" class="ficha-pez" hidden></div>
             <div id="aviso" class="aviso-a" hidden></div>
         </section>
+        <div id="estante" class="estante" hidden></div>
 
         <div class="columna-a">
             <nav class="pestanas-a">
                 <button class="pestana-a activa" data-p="peces">🐠<small>Peces</small></button>
-                <button class="pestana-a" data-p="deco">🌿<small>Plantas y deco</small></button>
+                <button class="pestana-a" data-p="comida">🍽️<small>Comida</small></button>
+                <button class="pestana-a" data-p="deco">🌿<small>Deco</small></button>
                 <button class="pestana-a" data-p="equipo">⚙️<small>Equipo</small></button>
                 <button class="pestana-a" data-p="mios">📋<small>Mi pecera</small></button>
             </nav>
