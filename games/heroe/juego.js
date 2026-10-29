@@ -94,8 +94,32 @@ estado.llaves ??= 0;
 const objetoPorId = (id) => estado.botin.inventario.find((o) => o.id === id);
 const equipados = () => Object.values(estado.botin.equipado).map(objetoPorId).filter(Boolean);
 const bonusLugar = (lugar) => equipados().filter((o) => o.lugar === lugar).reduce((t, o) => t + bonusObjeto(o), 0) / 100;
-// Nivel de la mascota que llevás (-1 si no es esa)
-const conMascota = (id) => (estado.mascotas.activa === id ? estado.mascotas.tengo[id] ?? 0 : -1);
+// ---------- Talentos: 3 ramas; los puntos salen del récord de etapa y de renacer (no se pierden) ----------
+const TALENTOS = [
+    { rama: "Guerrero", id: "fuerza", icono: "💪", nombre: "Fuerza", detalle: (n) => `+${n * 15}% de daño por toque` },
+    { rama: "Guerrero", id: "doble", icono: "⚔️", nombre: "Golpe doble", detalle: (n) => `${n * 5}% de chance de pegar dos veces` },
+    { rama: "Guerrero", id: "berserker", icono: "😤", nombre: "Berserker", detalle: (n) => `+${n * 20}% de daño a los jefes` },
+    { rama: "Guerrero", id: "piel", icono: "🛡️", nombre: "Piel dura", detalle: (n) => `+${n * 2} s contra los jefes` },
+    { rama: "Guerrero", id: "furiaEterna", icono: "🔥", nombre: "Furia eterna", detalle: (n) => `La furia dura ${n * 3} s más` },
+    { rama: "Mago", id: "sabiduria", icono: "📘", nombre: "Sabiduría", detalle: (n) => `+${n * 12}% de daño del equipo` },
+    { rama: "Mago", id: "tormentaMayor", icono: "⚡", nombre: "Tormenta mayor", detalle: (n) => `La tormenta pega +${n * 20}%` },
+    { rama: "Mago", id: "recarga", icono: "⏳", nombre: "Recarga rápida", detalle: (n) => `Habilidades listas ${n * 8}% antes` },
+    { rama: "Mago", id: "lluvia", icono: "💰", nombre: "Lluvia dorada", detalle: (n) => `La lluvia de oro da +${n * 20}%` },
+    { rama: "Mago", id: "concentracion", icono: "🎯", nombre: "Concentración", detalle: (n) => `+${n * 3}% de golpe crítico` },
+    { rama: "Cazador", id: "codicia", icono: "🪙", nombre: "Codicia", detalle: (n) => `+${n * 15}% de oro` },
+    { rama: "Cazador", id: "aguila", icono: "🦅", nombre: "Ojo de águila", detalle: (n) => `+${n * 2}% de golpe crítico` },
+    { rama: "Cazador", id: "cazatesoros", icono: "🧰", nombre: "Cazatesoros", detalle: (n) => `Cofres ${n * 20}% más seguido` },
+    { rama: "Cazador", id: "domador", icono: "🐾", nombre: "Domador", detalle: (n) => `Tu mascota cuenta como ${n} nivel${n === 1 ? "" : "es"} más` },
+    { rama: "Cazador", id: "llavero", icono: "🗝️", nombre: "Llavero", detalle: (n) => `Llaves de mazmorra ${n * 15}% más seguido` },
+];
+const MAX_TALENTO = 5;
+estado.talentos ??= {};
+const tal = (id) => estado.talentos[id] ?? 0;
+const puntosTalento = () => Math.floor((cont.recordEtapa ?? 1) / 10) + (cont.renacimientos ?? 0) * 2;
+const puntosUsados = () => Object.values(estado.talentos).reduce((a, b) => a + b, 0);
+
+// Nivel de la mascota que llevás (-1 si no es esa); el talento Domador suma niveles
+const conMascota = (id) => (estado.mascotas.activa === id ? (estado.mascotas.tengo[id] ?? 0) + tal("domador") : -1);
 const multCartas = () => 1 + (Object.keys(estado.cartas).length * BONUS_CARTA) / 100;
 
 const activa = (h) => (estado.habilidades[h]?.hasta ?? 0) > Date.now();
@@ -103,22 +127,21 @@ const multAlmas = () => 1 + estado.almasTotales * 0.1;
 const hitos = (n) => HITOS.filter((h) => n >= h).length;
 
 const danoToque = () =>
-    (1 + estado.heroe) * 2 ** hitos(estado.heroe) * multAlmas() * (1 + rel("espada") * 0.3) * (activa("furia") ? 3 : 1) * (1 + bonusLugar("arma")) * multCartas();
+    (1 + estado.heroe) * 2 ** hitos(estado.heroe) * multAlmas() * (1 + rel("espada") * 0.3) * (activa("furia") ? 3 : 1) * (1 + bonusLugar("arma")) * multCartas() * (1 + tal("fuerza") * 0.15);
 const dpsDe = (e) => e.dps * estado.equipo[e.id] * 2 ** hitos(estado.equipo[e.id]);
 const dpsEquipo = () =>
-    EQUIPO.reduce((t, e) => t + dpsDe(e), 0) * multAlmas() * (1 + rel("estandarte") * 0.3) * (activa("tormenta") ? 4 : 1) *
-    (1 + bonusLugar("armadura")) * multCartas() * (conMascota("dragon") >= 0 ? 1.4 + conMascota("dragon") * 0.15 : 1);
+    EQUIPO.reduce((t, e) => t + dpsDe(e), 0) * multAlmas() * (1 + rel("estandarte") * 0.3) * (activa("tormenta") ? 4 * (1 + tal("tormentaMayor") * 0.2) : 1) *
+    (1 + bonusLugar("armadura")) * multCartas() * (conMascota("dragon") >= 0 ? 1.4 + conMascota("dragon") * 0.15 : 1) * (1 + tal("sabiduria") * 0.12);
 const probCritico = () =>
-    0.05 + rel("ojo") * 0.02 + equipados().reduce((t, o) => t + o.critico, 0) / 100 + (conMascota("hada") >= 0 ? 0.04 + conMascota("hada") * 0.01 : 0);
+    0.05 + rel("ojo") * 0.02 + equipados().reduce((t, o) => t + o.critico, 0) / 100 + (conMascota("hada") >= 0 ? 0.04 + conMascota("hada") * 0.01 : 0) + tal("aguila") * 0.02 + tal("concentracion") * 0.03;
 const multCritico = () => (conMascota("hada") >= 0 ? 8 : 6);
 
 const esJefe = (s) => s % 5 === 0;
 const vidaEn = (s) => 10 * 1.5 ** (Math.min(s, 120) - 1) * 1.16 ** Math.max(0, s - 120) * (esJefe(s) ? 8 : 1);
 const oroEn = (s) =>
-    Math.ceil((vidaEn(s) / 5) * (esJefe(s) ? 0.6 : 1) * (1 + rel("bolsa") * 0.2) * (1 + bonusLugar("amuleto")) * (conMascota("buho") >= 0 ? 1.25 + conMascota("buho") * 0.1 : 1));
-const tiempoJefe = () => 30 + rel("reloj") * 4 + (conMascota("grifo") >= 0 ? 8 + conMascota("grifo") * 2 : 0);
-const probCofre = () => 0.03 * (conMascota("gato") >= 0 ? 2 + conMascota("gato") * 0.3 : 1);
-
+    Math.ceil((vidaEn(s) / 5) * (esJefe(s) ? 0.6 : 1) * (1 + rel("bolsa") * 0.2) * (1 + bonusLugar("amuleto")) * (conMascota("buho") >= 0 ? 1.25 + conMascota("buho") * 0.1 : 1) * (1 + tal("codicia") * 0.15));
+const tiempoJefe = () => 30 + rel("reloj") * 4 + (conMascota("grifo") >= 0 ? 8 + conMascota("grifo") * 2 : 0) + tal("piel") * 2;
+const probCofre = () => 0.03 * (conMascota("gato") >= 0 ? 2 + conMascota("gato") * 0.3 : 1) * (1 + tal("cazatesoros") * 0.2);
 const CRECE_HEROE = 1.075;
 const CRECE_EQUIPO = 1.08;
 const costoSerie = (base, crece, nivel, n) => (base * crece ** nivel * (crece ** n - 1)) / (crece - 1);
@@ -138,9 +161,87 @@ let jefeRestante = 0;
 let mazmorra = null; // { oleada, restante }
 const OLEADAS_MAZMORRA = 3;
 const tiempoMazmorra = () => 45 + rel("reloj") * 4;
+// ---------- Jefe de la semana: un jefe gigante; el daño se acumula toda la semana (3 intentos de 30 s por día) ----------
+const INTENTOS_DIA = 3;
+const UMBRALES = [0.25, 0.5, 0.75, 1];
+let semanal = null; // { restante } mientras peleás
+const hoyTexto = () => new Date().toLocaleDateString("sv");
+function semanaActual() {
+    const d = new Date();
+    const jueves = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 3 - ((d.getDay() + 6) % 7));
+    const primero = new Date(jueves.getFullYear(), 0, 4);
+    return `${jueves.getFullYear()}-S${1 + Math.round(((jueves - primero) / 86400000 - 3 + ((primero.getDay() + 6) % 7)) / 7)}`;
+}
+function datosSemana() {
+    if (estado.semanal?.semana !== semanaActual()) {
+        estado.semanal = { semana: semanaActual(), dano: 0, premios: 0, dia: "", usados: 0, vida: vidaEn(Math.max(10, cont.recordEtapa)) * 150 };
+    }
+    if (estado.semanal.dia !== hoyTexto()) {
+        estado.semanal.dia = hoyTexto();
+        estado.semanal.usados = 0;
+    }
+    return estado.semanal;
+}
+const intentosHoy = () => INTENTOS_DIA - datosSemana().usados;
+function empezarSemanal() {
+    const w = datosSemana();
+    if (semanal || mazmorra || monstruo?.jefe || intentosHoy() < 1 || w.dano >= w.vida) return;
+    w.usados++;
+    semanal = { restante: 30 };
+    avisar("👹 ¡El jefe de la semana! Pegale todo lo que puedas en 30 segundos");
+    efectos.abrir();
+    nuevoMonstruo();
+    actualizar();
+}
+function premioSemanal(i) {
+    const nivel = cont.recordEtapa;
+    if (i === 0) {
+        const oro = oroEn(nivel) * 40;
+        estado.oro += oro;
+        estado.botin.polvo += 20;
+        avisar(`👹 25%: +${formatear(oro)} de oro y ✨20 de polvo`);
+    } else if (i === 1) {
+        darObjeto(nuevoObjeto(nivel + 5, 2));
+        estado.mascotas.huevos++;
+        avisar("👹 50%: ¡objeto épico y un huevo de mascota!");
+    } else if (i === 2) {
+        estado.almas += 5;
+        estado.almasTotales += 5;
+        darObjeto(nuevoObjeto(nivel + 8, 2));
+        avisar("👹 75%: 5 almas y otro objeto épico");
+    } else {
+        darObjeto(nuevoObjeto(nivel + 10, 3));
+        estado.almas += 10;
+        estado.almasTotales += 10;
+        estado.llaves += 2;
+        cont.semanales = (cont.semanales ?? 0) + 1;
+        avisar("🏆 ¡Venciste al jefe de la semana! Legendario, 10 almas y 2 llaves");
+    }
+    efectos.fanfarria();
+}
+function sumarDanoSemanal(cantidad) {
+    const w = datosSemana();
+    w.dano = Math.min(w.vida, w.dano + cantidad);
+    while (w.premios < UMBRALES.length && w.dano >= w.vida * UMBRALES[w.premios]) {
+        premioSemanal(w.premios);
+        w.premios++;
+    }
+}
+function terminarSemanal(gano) {
+    semanal = null;
+    if (!gano) avisar(`⏱ ¡Tiempo! Llevás ${Math.floor((datosSemana().dano / datosSemana().vida) * 100)}% del jefe de la semana`);
+    nuevoMonstruo();
+    actualizar();
+}
+
 function nuevoMonstruo() {
     const s = estado.etapa;
     const bioma = Math.floor((s - 1) / 10) % BIOMAS.length;
+    if (semanal) {
+        const w = datosSemana();
+        monstruo = { vida: w.vida - w.dano, max: w.vida, jefe: true, semanal: true, bioma, forma: "golem", tono: 350, golpe: 0, entrada: 1, muerte: 0 };
+        return;
+    }
     if (mazmorra) {
         const vida = vidaEn(Math.max(5, cont.recordEtapa)) * 2.5 * (1 + mazmorra.oleada * 0.6);
         monstruo = {
@@ -167,6 +268,7 @@ function nuevoMonstruo() {
 
 function danar(cantidad, critico = false, desdeToque = false) {
     if (!monstruo || monstruo.muerte > 0) return;
+    if (monstruo.semanal) sumarDanoSemanal(Math.min(cantidad, Math.max(0, monstruo.vida)));
     monstruo.vida -= cantidad;
     if (desdeToque) monstruo.golpe = 0.12;
     if (desdeToque || critico) numero(cantidad, critico);
@@ -197,7 +299,7 @@ function soltarBotin(jefe, cofre) {
         flotantes.push({ x: x - 30, y: y - 110, texto: "🥚 ¡Huevo de mascota!", color: "#fff", vida: 1.8, total: 1.8, tam: 17 });
         pestanaConNovedad("mascotas");
     }
-    if (jefe && Math.random() < 0.2) {
+    if (jefe && Math.random() < 0.2 * (1 + tal("llavero") * 0.15)) {
         estado.llaves++;
         flotantes.push({ x: x + 30, y: y - 130, texto: "🗝️ ¡Llave de mazmorra!", color: "#ffd166", vida: 1.8, total: 1.8, tam: 17 });
     }
@@ -214,7 +316,13 @@ function soltarBotin(jefe, cofre) {
 function matar() {
     const s = estado.etapa;
     if (monstruo.mazmorra) return ganarOleada();
-    let oro = oroEn(s) * (activa("oro") ? 3 : 1);
+    if (monstruo.semanal) {
+        monstruo.muerte = 0.45;
+        sonidos.muerte();
+        chispas.emitir(posMonstruo().x, posMonstruo().y, "#ff4d6d", 60, 300);
+        return terminarSemanal(true);
+    }
+    let oro = oroEn(s) * (activa("oro") ? 3 * (1 + tal("lluvia") * 0.2) : 1);
     const cofre = !monstruo.jefe && Math.random() < probCofre();
     if (cofre) oro *= 10;
     estado.oro += oro;
@@ -753,7 +861,12 @@ function dibujar(dt) {
             ctx.fillText(t, x, y);
         };
         sombra(`${b.nombre} · etapa ${estado.etapa}`, 10, 22);
-        if (monstruo.mazmorra && mazmorra) {
+        if (monstruo.semanal && semanal) {
+            const w = datosSemana();
+            sombra(`👹 JEFE SEMANAL ${Math.floor((w.dano / w.vida) * 100)}%  ⏱ ${Math.ceil(semanal.restante)}s`, 10, 40);
+            ctx.fillStyle = "#ff4d6d";
+            ctx.fillRect(10, 46, ancho * 0.3 * (semanal.restante / 30), 4);
+        } else if (monstruo.mazmorra && mazmorra) {
             sombra(`🗝️ MAZMORRA ${mazmorra.oleada + 1}/${OLEADAS_MAZMORRA}  ⏱ ${Math.ceil(mazmorra.restante)}s`, 10, 40);
             ctx.fillStyle = "#b388ff";
             ctx.fillRect(10, 46, ancho * 0.3 * (mazmorra.restante / tiempoMazmorra()), 4);
@@ -886,7 +999,10 @@ bucle((dt) => {
         if (m.muerte <= 0) nuevoMonstruo();
     } else if (m.entrada <= 0) {
         danar(dpsEquipo() * dt);
-        if (mazmorra && monstruo.muerte <= 0) {
+        if (semanal && monstruo.muerte <= 0) {
+            semanal.restante -= dt;
+            if (semanal.restante <= 0) terminarSemanal(false);
+        } else if (mazmorra && monstruo.muerte <= 0) {
             mazmorra.restante -= dt;
             if (mazmorra.restante <= 0) fallarMazmorra();
         } else if (monstruo.jefe && monstruo.muerte <= 0) {
@@ -934,7 +1050,10 @@ $("lienzo").addEventListener("pointerdown", (e) => {
     if (!monstruo || monstruo.muerte > 0 || monstruo.entrada > 0.2) return;
     const critico = Math.random() < probCritico();
     ataque = 0.18;
-    danar(danoToque() * (critico ? multCritico() : 1), critico, true);
+    // Berserker pega más a los jefes; Golpe doble a veces pega dos veces
+    const vsJefe = monstruo.jefe ? 1 + tal("berserker") * 0.2 : 1;
+    const veces = Math.random() < tal("doble") * 0.05 ? 2 : 1;
+    danar(danoToque() * vsJefe * veces * (critico ? multCritico() : 1), critico, true);
     if (critico) {
         vibrar(25);
         cont.criticos++;
@@ -1032,6 +1151,10 @@ function actualizar() {
     $("dps").textContent = formatear(dpsEquipo());
     $("almas").textContent = estado.almas;
     $("llaves").textContent = estado.llaves;
+    $("intentos").textContent = intentosHoy();
+    $("boton-semanal").classList.toggle("sin-llaves", intentosHoy() < 1 || Boolean(semanal) || datosSemana().dano >= datosSemana().vida);
+    const libresT = puntosTalento() - puntosUsados();
+    if (libresT > 0 && panelActual !== "talentos") document.querySelector('.pestana[data-p="talentos"] .novedad')?.removeAttribute("hidden");
     $("boton-mazmorra").classList.toggle("sin-llaves", estado.llaves < 1 || Boolean(mazmorra));
     $("abrir-renacer").classList.toggle("listo", almasNuevas() >= Math.max(1, estado.almasTotales * 0.5));
     $("avanzar").hidden = estado.avanzar;
@@ -1059,7 +1182,7 @@ for (const b of document.querySelectorAll(".cantidad")) {
     });
 }
 
-const PANELES = ["lista", "botin", "mascotas", "cartas", "reliquias"];
+const PANELES = ["lista", "botin", "mascotas", "cartas", "talentos", "reliquias"];
 let panelActual = "lista";
 function mostrarPanel(nombre) {
     panelActual = nombre;
@@ -1073,6 +1196,7 @@ function mostrarPanel(nombre) {
     if (nombre === "botin") pintarBotin();
     if (nombre === "mascotas") pintarMascotas();
     if (nombre === "cartas") pintarCartas();
+    if (nombre === "talentos") pintarTalentos();
 }
 for (const p of document.querySelectorAll(".pestana")) {
     p.addEventListener("click", () => {
@@ -1211,6 +1335,50 @@ function pintarCartas() {
     }
 }
 
+// ---------- Talentos ----------
+function pintarTalentos() {
+    const libres = puntosTalento() - puntosUsados();
+    const ramas = ["Guerrero", "Mago", "Cazador"];
+    const iconosRama = { Guerrero: "⚔️", Mago: "🔮", Cazador: "🏹" };
+    $("talentos").innerHTML = `<div class="cabeza-panel"><strong>🌳 ${libres} punto${libres === 1 ? "" : "s"} libre${libres === 1 ? "" : "s"}</strong>
+        <span>1 cada 10 etapas de récord · 2 por renacer</span></div>
+        ${ramas.map((rama) => {
+            const lista = TALENTOS.filter((x) => x.rama === rama);
+            return `<div class="rama"><h3>${iconosRama[rama]} ${rama}</h3>${lista.map((x, i) => {
+                const n = tal(x.id);
+                // Cada talento se destraba con al menos 1 punto en el anterior de su rama
+                const bloqueado = i > 0 && tal(lista[i - 1].id) < 1;
+                const tope = n >= MAX_TALENTO;
+                return `<div class="objeto talento${bloqueado ? " vacio" : ""}"><span class="ico-objeto">${x.icono}</span><div class="txt"><strong>${x.nombre} <em>${n}/${MAX_TALENTO}</em></strong>
+                    <span>${bloqueado ? "Subí el talento anterior" : x.detalle(Math.max(1, n))}</span></div>
+                    <button type="button" data-talento="${x.id}" ${bloqueado || tope || libres < 1 ? "disabled" : ""}>${tope ? "Máx" : "+1"}</button></div>`;
+            }).join("")}</div>`;
+        }).join("")}
+        ${puntosUsados() ? `<button type="button" class="reiniciar-talentos" data-reiniciar-talentos>Reiniciar talentos (gratis)</button>` : ""}`;
+}
+$("talentos").addEventListener("click", (e) => {
+    const b = e.target.closest("button");
+    if (!b || b.disabled) return;
+    if (b.dataset.talento) {
+        if (puntosTalento() - puntosUsados() < 1 || tal(b.dataset.talento) >= MAX_TALENTO) return;
+        estado.talentos[b.dataset.talento] = tal(b.dataset.talento) + 1;
+        efectos.comprar();
+    } else if (b.dataset.reiniciarTalentos !== undefined) {
+        estado.talentos = {};
+        efectos.toque();
+    }
+    pintarTalentos();
+    actualizar();
+});
+
+$("boton-semanal").addEventListener("click", () => {
+    const w = datosSemana();
+    if (w.dano >= w.vida) return avisar("🏆 Ya venciste al jefe de esta semana. ¡Vuelve el lunes!");
+    if (intentosHoy() < 1) return avisar("👹 No te quedan intentos hoy: mañana hay 3 más");
+    if (mazmorra || monstruo?.jefe) return avisar("Terminá primero con el jefe o la mazmorra");
+    empezarSemanal();
+});
+
 $("boton-mazmorra").addEventListener("click", () => {
     if (estado.llaves < 1) return avisar("🗝️ Necesitás una llave: la sueltan los jefes a veces");
     if (monstruo?.jefe) return avisar("Terminá primero con el jefe");
@@ -1237,7 +1405,8 @@ for (const [id, h] of Object.entries(HABILIDADES)) {
     b.addEventListener("click", () => {
         const ahora = Date.now();
         if (estado.maxEtapa < h.desde || (estado.habilidades[id]?.listo ?? 0) > ahora) return;
-        estado.habilidades[id] = { hasta: ahora + h.dura * 1000, listo: ahora + h.recarga * 1000 };
+        const dura = h.dura + (id === "furia" ? tal("furiaEterna") * 3 : 0);
+        estado.habilidades[id] = { hasta: ahora + dura * 1000, listo: ahora + h.recarga * (1 - tal("recarga") * 0.08) * 1000 };
         avisar(h.texto);
         vibrar(40);
         cont.habilidades++;
@@ -1335,6 +1504,8 @@ const LOGROS = [
     { id: "mascotas", icono: "🐾", nombre: "Amigo de los animales", detalle: "Tené 4 mascotas distintas", meta: 4, valor: () => Object.keys(estado.mascotas.tengo).length, fichas: 3000 },
     { id: "cartas10", icono: "🃏", nombre: "Coleccionista", detalle: "Juntá 10 cartas de monstruos", meta: 10, valor: () => Object.keys(estado.cartas).length, fichas: 2000 },
     { id: "cartas35", icono: "📚", nombre: "Bestiario completo", detalle: "Juntá las 35 cartas", meta: 35, valor: () => Object.keys(estado.cartas).length, fichas: 25000 },
+    { id: "talentos10", icono: "🌳", nombre: "Maestro", detalle: "Poné 10 puntos de talento", meta: 10, valor: () => puntosUsados(), fichas: 2500 },
+    { id: "semanal", icono: "👹", nombre: "Cazador de titanes", detalle: "Vencé a un jefe de la semana", meta: 1, valor: () => cont.semanales ?? 0, fichas: 10000 },
     { id: "hordas", icono: "🐜", nombre: "Cazabichos", detalle: "Atrapá 100 bichitos de horda", meta: 100, valor: () => cont.hordas ?? 0, fichas: 1200 },
 ];
 const base = crearBase({
