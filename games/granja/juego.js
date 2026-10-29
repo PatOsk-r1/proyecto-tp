@@ -5,6 +5,7 @@ import { sonidos, volumen, cambiarVolumen } from "./sonido.js";
 import { dibujarPersona, frase, GRACIAS, persona } from "./visitas.js";
 import { dibujarAnimal } from "./animales.js";
 import { abrirGarra } from "./garra.js";
+import { CAPITULOS } from "./misiones.js";
 
 const $ = (id) => document.getElementById(id);
 const CLAVE = "granja";
@@ -51,13 +52,32 @@ const PRODUCTOS = Object.fromEntries([
 const estado = cargar(CLAVE, { monedas: 30, xp: 0, nivel: 1, lotes: 6, parcelas: [], animales: [], granero: {}, mejoras: {}, pedidos: [], elegida: "trigo" });
 const mejora = (id) => estado.mejoras[id] ?? 0;
 const xpParaNivel = (n) => Math.round(12 * n ** 1.6);
-const tiempoCultivo = (c) => c.tiempo * (1 - mejora("regadera") * 0.08) * 1000;
+// ---------- Estaciones del año: cambian cada 4 días de la granja (32 minutos) ----------
+// En su temporada un cultivo crece 25% más rápido y se vende 20% más caro; en invierno todo crece un poco más lento
+const ESTACIONES = [
+    { id: "primavera", icono: "🌸", nombre: "Primavera", cultivos: ["zanahoria", "frutilla"], pasto: ["#8fd88f", "#55a865"] },
+    { id: "verano", icono: "☀️", nombre: "Verano", cultivos: ["tomate", "maiz", "uva"], pasto: ["#9ccc65", "#5a9a3c"] },
+    { id: "otono", icono: "🍂", nombre: "Otoño", cultivos: ["calabaza", "trigo"], pasto: ["#c5b358", "#8a8a3c"] },
+    { id: "invierno", icono: "❄️", nombre: "Invierno", cultivos: [], pasto: ["#dfe9e8", "#a9c1bd"] },
+];
+const DURACION_ESTACION = 4 * 8 * 60 * 1000;
+const estacion = () => ESTACIONES[Math.floor(Date.now() / DURACION_ESTACION) % 4];
+const faltaEstacion = () => DURACION_ESTACION - (Date.now() % DURACION_ESTACION);
+const deTemporada = (id) => estacion().cultivos.includes(id);
+const multEstacion = (id) => (deTemporada(id) ? 0.75 : estacion().id === "invierno" ? 1.15 : 1);
+const tiempoCultivo = (c) => c.tiempo * (1 - mejora("regadera") * 0.08) * multEstacion(c.id) * 1000;
 const tiempoAnimal = (a) => a.tiempo * (1 - mejora("comedero") * 0.1) * 1000;
-const precioVenta = (id) => Math.round(PRODUCTOS[id].precio * (1 + mejora("mercado") * 0.08));
+const precioVenta = (id) => Math.round(PRODUCTOS[id].precio * (1 + mejora("mercado") * 0.08) * (deTemporada(id) ? 1.2 : 1));
 const cultivo = (id) => CULTIVOS.find((c) => c.id === id);
 const animal = (id) => ANIMALES.find((a) => a.id === id);
 const costoLote = () => Math.round(50 * 2.2 ** (estado.lotes - 6));
 const enGranero = () => Object.values(estado.granero).reduce((t, n) => t + n, 0);
+// Registro de todo lo que se hizo (lo usan las misiones para medir el avance)
+estado.registro ??= { cosecha: {}, recogido: {}, fabricado: {}, entregas: 0 };
+function registrar(tipo, id, n) {
+    if (tipo === "entregas") estado.registro.entregas += n;
+    else estado.registro[tipo][id] = (estado.registro[tipo][id] ?? 0) + n;
+}
 
 // ---------- Taller: edificios que transforman productos ----------
 // estado.fabricas[id] = { cola: [fin, fin…] } (momento en que termina cada tanda; se hacen de a una)
@@ -84,6 +104,7 @@ function juntarFabrica(id) {
     if (!n) return 0;
     datos.cola = datos.cola.filter((fin) => fin > Date.now());
     estado.granero[f.da] = (estado.granero[f.da] ?? 0) + n;
+    registrar("fabricado", f.da, n);
     sumarXP(f.xp * n);
     return n;
 }
@@ -322,6 +343,7 @@ function cosechar(i, automatico = false) {
     // El abono de caca da una de más; la mejora "Abono" da chance de doble
     const cantidad = (Math.random() < mejora("abono") * 0.1 ? 2 : 1) + (p.abonada ? 1 : 0);
     estado.granero[c.id] = (estado.granero[c.id] ?? 0) + cantidad;
+    registrar("cosecha", c.id, cantidad);
     sumarXP(c.xp * cantidad);
     estado.parcelas[i] = null;
     rebotes[i] = performance.now();
@@ -343,6 +365,7 @@ function recoger(k) {
     if (Date.now() - a.desde < tiempoAnimal(datos)) return false;
     a.desde = Date.now();
     estado.granero[datos.producto] = (estado.granero[datos.producto] ?? 0) + 1;
+    registrar("recogido", datos.producto, 1);
     sumarXP(datos.xp);
     const pos = posAnimal(k);
     vuelos.push({ x: pos.x, y: pos.y - 20, id: datos.producto, t: 0 });
@@ -1317,8 +1340,8 @@ function pintarFondo(m) {
 
     // Pasto con textura
     const pasto = ctx.createLinearGradient(0, m.cielo, 0, alto);
-    pasto.addColorStop(0, "#7cc68a");
-    pasto.addColorStop(1, "#4c9a5b");
+    pasto.addColorStop(0, estacion().pasto[0]);
+    pasto.addColorStop(1, estacion().pasto[1]);
     ctx.fillStyle = pasto;
     ctx.fillRect(0, m.cielo + 4, ancho, alto - m.cielo);
     for (let k = 0; k < 260; k++) {
@@ -1389,6 +1412,8 @@ function pintarFondo(m) {
 
 // Molino de viento a la derecha, con las aspas girando
 let anguloMolino = 0;
+let estacionAnterior = null;
+const copos = [];
 function dibujarMolino(ctx, m, tiempo) {
     const x = ancho * 0.88;
     const base = m.cielo + 4;
@@ -1716,6 +1741,45 @@ function dibujar(dt) {
         ctx.ellipse(g.x, g.fin, 3, 1.2, 0, 0, TAU);
         ctx.fill();
         gotas.splice(i, 1);
+    }
+
+    // Estación: aviso al cambiar y partículas (pétalos, hojas o nieve)
+    const est = estacion();
+    if (est.id !== estacionAnterior) {
+        if (estacionAnterior) {
+            const nombres = est.cultivos.map((id) => cultivo(id).nombre.toLowerCase());
+            avisar(`${est.icono} ¡Llegó ${est.nombre.toLowerCase()}!${nombres.length ? ` De temporada: ${nombres.join(", ")}` : " Todo crece un poco más lento"}`, 3500);
+        }
+        estacionAnterior = est.id;
+        fondoCache = null;
+        ultimoPanel = "";
+    }
+    if (est.id !== "verano") {
+        while (copos.length < (calidad.nivel ? 22 : 10)) copos.push({ x: Math.random() * ancho, y: Math.random() * alto, v: 14 + Math.random() * 22, fase: Math.random() * 6 });
+        for (const c of copos) {
+            c.y += c.v * dt;
+            c.fase += dt;
+            c.x += Math.sin(c.fase) * 12 * dt;
+            if (c.y > alto) {
+                c.y = -6;
+                c.x = Math.random() * ancho;
+            }
+            if (est.id === "invierno") {
+                ctx.fillStyle = "#ffffffd0";
+                ctx.beginPath();
+                ctx.arc(c.x, c.y, 2, 0, TAU);
+                ctx.fill();
+            } else {
+                ctx.save();
+                ctx.translate(c.x, c.y);
+                ctx.rotate(c.fase * 2);
+                ctx.fillStyle = est.id === "otono" ? (c.v > 25 ? "#d4772c" : "#a1612b") : "#ffafcc";
+                ctx.beginPath();
+                ctx.ellipse(0, 0, 4, 2, 0, 0, TAU);
+                ctx.fill();
+                ctx.restore();
+            }
+        }
     }
 
     // Mariposas de día, luciérnagas y un poco de oscuridad de noche
@@ -2222,7 +2286,7 @@ function pintarPanel() {
             const bloqueado = c.nivel > estado.nivel;
             return `<button class="semilla-c${estado.elegida === c.id ? " elegida" : ""}" data-semilla="${c.id}" ${bloqueado ? "disabled" : ""}>
                 ${canvasProducto(c.id)}<span class="nombre-s">${c.nombre}</span><small>${bloqueado ? `🔒 Nivel ${c.nivel}` : `${MONEDA_G}${c.semilla} · ⏱ ${c.tiempo >= 60 ? c.tiempo / 60 + " min" : c.tiempo + " s"}`}</small>
-                ${bloqueado ? "" : `<span class="vende-s">vende ${precioVenta(c.id)}</span>`}</button>`;
+                ${bloqueado ? "" : `<span class="vende-s">vende ${precioVenta(c.id)}</span>`}${!bloqueado && deTemporada(c.id) ? `<span class="temporada-s">${estacion().icono} temporada</span>` : ""}</button>`;
         }).join("")}</div><p class="ayuda-g ayuda-semillas">Elegí una semilla y tocá o deslizá el dedo sobre las parcelas vacías. Deslizá sobre lo maduro para cosechar. Juntá la caca del corral 💩 para hacer abono y ponéselo a lo que está creciendo.</p>`;
     } else if (pestana === "pedidos") {
         html = `<div class="lista-pedidos">${htmlPedidos()}</div>`;
@@ -2327,6 +2391,7 @@ function alTocarPanel(e) {
         estado.pedidos[Number(d.entregar)] = nuevoPedido();
         // Cada 6 pedidos entregados, un tiro de regalo en la garra
         estado.entregados = (estado.entregados ?? 0) + 1;
+        registrar("entregas", null, 1);
         if (estado.entregados % 6 === 0) {
             estado.garra = (estado.garra ?? 0) + 1;
             setTimeout(() => avisar("🕹️ ¡6 pedidos entregados! +1 tiro en la garra", 2400), 1700);
@@ -2398,6 +2463,9 @@ function pintarDatos() {
     $("granero").textContent = enGranero();
     $("pedidos-listos").hidden = !estado.pedidos.some(sePuede);
     $("taller-listo").hidden = !FABRICAS.some((f) => listosEn(f.id) > 0);
+    pintarMision();
+    const est = estacion();
+    $("estacion").textContent = `${est.icono} ${est.nombre} · ${Math.ceil(faltaEstacion() / 60000)} min`;
     $("tiros-garra").textContent = estado.garra ?? 0;
     $("boton-garra").classList.toggle("hay", (estado.garra ?? 0) > 0);
 }
@@ -2407,6 +2475,93 @@ function refrescar() {
     pintarDatos();
     pintarPanel();
 }
+
+// ---------- Misiones en cadena ----------
+estado.mision ??= { cap: 0, num: 0, base: null };
+const misionActual = () => CAPITULOS[estado.mision.cap]?.misiones[estado.mision.num] ?? null;
+// Cuánto llevaba el registro al empezar la misión (para contar desde ahí)
+function valorRegistro(m) {
+    if (m.tipo === "cosechar") return estado.registro.cosecha[m.id] ?? 0;
+    if (m.tipo === "recoger") return estado.registro.recogido[m.id] ?? 0;
+    if (m.tipo === "fabricar") return estado.registro.fabricado[m.id] ?? 0;
+    if (m.tipo === "entregar") return estado.registro.entregas;
+    return 0;
+}
+function avanceMision(m = misionActual()) {
+    if (!m) return 0;
+    if (["cosechar", "recoger", "fabricar", "entregar"].includes(m.tipo)) {
+        estado.mision.base ??= valorRegistro(m);
+        return Math.min(m.meta, valorRegistro(m) - estado.mision.base);
+    }
+    if (m.tipo === "construir") return tengoFabrica(m.id) ? 1 : 0;
+    if (m.tipo === "animal") return Math.min(m.meta, estado.animales.filter((a) => a.tipo === m.id).length);
+    if (m.tipo === "nivel") return Math.min(m.meta, estado.nivel);
+    if (m.tipo === "mejora") return Math.min(m.meta, mejora(m.id));
+    if (m.tipo === "lotes") return Math.min(m.meta, estado.lotes);
+    return 0;
+}
+const textoPremio = (p) => [p.monedas && `🪙 ${formatear(p.monedas)}`, p.abono && `🧺 ${p.abono} abono`, p.garra && `🕹️ ${p.garra} tiro${p.garra > 1 ? "s" : ""}`, p.xp && `⭐ ${p.xp}`].filter(Boolean).join(" · ");
+let avisoMisionDado = false;
+function pintarMision() {
+    const m = misionActual();
+    const b = $("boton-mision");
+    if (!m) {
+        b.hidden = true;
+        return;
+    }
+    const av = avanceMision(m);
+    const lista = av >= m.meta;
+    b.hidden = false;
+    b.classList.toggle("lista", lista);
+    b.innerHTML = `📜 <b>${lista ? "¡Cobrar!" : `${av}/${m.meta}`}</b>`;
+    if (lista && !avisoMisionDado) {
+        avisoMisionDado = true;
+        avisar(`📜 ¡Misión cumplida! Tocá el botón para cobrar`, 2600);
+        sonidos.nivel();
+    }
+}
+function abrirMision() {
+    const m = misionActual();
+    if (!m) return;
+    const cap = CAPITULOS[estado.mision.cap];
+    const av = avanceMision(m);
+    const lista = av >= m.meta;
+    const fondo = document.createElement("div");
+    fondo.className = "fondo-ajustes";
+    fondo.innerHTML = `<div class="ajustes-g mision-hoja">
+        <small class="capitulo">Capítulo ${estado.mision.cap + 1}: ${cap.titulo} · ${estado.mision.num + 1}/${cap.misiones.length}</small>
+        <div class="quien-mision"><span class="cara">${CARAS[m.quien] ?? "🧑‍🌾"}</span><div><b>${m.quien}</b><p>${m.texto}</p></div></div>
+        <div class="barra-xp"><div style="width:${(av / m.meta) * 100}%"></div></div>
+        <small class="premio-mision">${av}/${m.meta} · Premio: ${textoPremio(m.premio)}</small>
+        <button class="boton-verde ancho" type="button" ${lista ? "" : "disabled"}>${lista ? "Cobrar premio" : "En eso estoy"}</button>
+        <button class="boton-g secundario" type="button" data-cerrar>Cerrar</button></div>`;
+    const cerrar = () => fondo.remove();
+    fondo.addEventListener("click", (e) => e.target === fondo && cerrar());
+    fondo.querySelector("[data-cerrar]").addEventListener("click", cerrar);
+    fondo.querySelector(".boton-verde").addEventListener("click", () => {
+        if (avanceMision(m) < m.meta) return;
+        const p = m.premio;
+        estado.monedas += p.monedas ?? 0;
+        estado.abono += p.abono ?? 0;
+        estado.garra = (estado.garra ?? 0) + (p.garra ?? 0);
+        if (p.xp) sumarXP(p.xp);
+        estado.mision.num++;
+        estado.mision.base = null;
+        avisoMisionDado = false;
+        if (estado.mision.num >= cap.misiones.length) {
+            estado.mision.cap++;
+            estado.mision.num = 0;
+            avisar(CAPITULOS[estado.mision.cap] ? `📖 ¡Capítulo terminado! Empieza: ${CAPITULOS[estado.mision.cap].titulo}` : "📖 ¡Terminaste todas las misiones! Pronto habrá más", 3500);
+        } else avisar(`📜 +${textoPremio(p)}`);
+        sonidos.monedas();
+        vibrar([30, 40, 30]);
+        cerrar();
+        refrescar();
+    });
+    document.body.appendChild(fondo);
+    sonidos.toque();
+}
+$("boton-mision").addEventListener("click", abrirMision);
 
 // ---------- Garra de premios ----------
 function premioGarra(p) {
