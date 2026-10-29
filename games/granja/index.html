@@ -51,9 +51,7 @@
     <div class="cuerpo-g">
         <section class="campo">
             <canvas id="lienzo" class="lienzo-juego"></canvas>
-            <div id="aviso" class="aviso-granja" hidden></div>
-            <button id="boton-garra" class="boton-garra" type="button" aria-label="Garra de premios">🕹️<b id="tiros-garra">0</b></button>
-        </section>
+            <div id="aviso" class="aviso-granja" hidden></div>        </section>
 
         <div class="columna-g">
             <!-- En pantallas grandes los pedidos quedan siempre a la vista -->
@@ -72,6 +70,7 @@
                 <button class="pestana-g" data-p="almacen">🏠<small>Granero</small></button>
                 <button class="pestana-g" data-p="animales">🐔<small>Animales</small></button>
                 <button class="pestana-g" data-p="mejoras">⭐<small>Mejoras</small></button>
+                <button id="boton-garra" class="pestana-garra" type="button" aria-label="Garra de premios">🕹️<small>Garra</small><b id="tiros-garra">0</b></button>
             </nav>
             <main id="panel" class="panel-g"></main>
         </div>
