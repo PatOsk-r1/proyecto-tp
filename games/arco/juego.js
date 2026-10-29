@@ -5,6 +5,7 @@ import {
     RONDAS, DISTANCIA, RADIO_DIANA, ALTURA_DIANA, ALTURA_TIRADOR, generarVientos, simular, puntos, turnoDe, rondaActual,
     terminada, totales,
 } from "./reglas.js";
+import { ejeX, ejeY, alAccion, alSoltarAccion, tocarSiVisible } from "../../js/teclado.js";
 
 const $ = (id) => document.getElementById(id);
 const CLAVE = "arco";
@@ -285,6 +286,25 @@ renderer.domElement.addEventListener("pointerup", () => {
     disparar(yo, yaw + b.yaw, pitch + b.pitch);
 });
 
+// En la compu: flechas para apuntar, mantener espacio para tensar y soltarlo para tirar
+alAccion(() => {
+    if (tocarSiVisible($("jugar"))) return;
+    if (esMiTurno()) apuntando = true;
+});
+alSoltarAccion(() => {
+    if (!apuntando) return;
+    apuntando = false;
+    if (tension < 0.5) return;
+    const b = balanceo();
+    disparar(yo, yaw + b.yaw, pitch + b.pitch);
+});
+function apuntarConTeclado(dt) {
+    if (!esMiTurno() || (!ejeX() && !ejeY())) return;
+    const paso = 0.09 * dt * (camera.fov / 20);
+    yaw = THREE.MathUtils.clamp(yaw + ejeX() * paso, -0.25, 0.25);
+    pitch = THREE.MathUtils.clamp(pitch - ejeY() * paso, -0.1, 0.25);
+}
+
 // Ángulos que hacen pegar en el centro (los usa la compu)
 function tiroIdeal(viento) {
     let y = 0;
@@ -431,6 +451,7 @@ function finDePartida() {
 // ---------- Ciclo ----------
 alAnimar((dt) => {
     tiempo += dt;
+    apuntarConTeclado(dt);
     tension = apuntando ? Math.min(1, tension + dt * 2.5) : Math.max(0, tension - dt * 6);
     pintarArco(tension);
     // Al tensar se acerca un poco la vista
