@@ -1,6 +1,7 @@
 // Rompeladrillos: niveles con formas, ladrillos especiales, poderes, combos y monedas para el taller.
 import { cargar, guardar, vibrar } from "../../js/comun3d.js";
 import { crearLienzo, bucle, crearChispas } from "../../js/lienzo2d.js";
+import { ejeX, alAccion, tocarSiVisible } from "../../js/teclado.js";
 
 const $ = (id) => document.getElementById(id);
 const CLAVE = "ladrillos";
@@ -695,7 +696,11 @@ function dibujar(dt) {
 }
 
 bucle((dt) => {
-    if (juego?.enJuego && $("centro").hidden) paso(dt);
+    if (juego?.enJuego && $("centro").hidden) {
+        // En la compu: la paleta se mueve suave mientras se mantiene la flecha
+        if (ejeX()) juego.x = Math.max(0.05, Math.min(0.95, juego.x + ejeX() * 1.3 * dt));
+        paso(dt);
+    }
     dibujar(dt);
 });
 
@@ -710,11 +715,8 @@ $("lienzo").addEventListener("pointerdown", (e) => {
     lanzar();
 });
 $("lienzo").addEventListener("pointermove", moverPaleta);
-addEventListener("keydown", (e) => {
-    if (!juego) return;
-    if (e.key === "ArrowLeft") juego.x = Math.max(0.05, juego.x - 0.05);
-    if (e.key === "ArrowRight") juego.x = Math.min(0.95, juego.x + 0.05);
-    if (e.key === " ") lanzar();
+alAccion(() => {
+    if (!tocarSiVisible($("jugar")) && juego) lanzar();
 });
 
 $("jugar").addEventListener("click", () => {
