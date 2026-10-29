@@ -730,6 +730,45 @@
             }
             ctx.textBaseline = "alphabetic";
         },
+        faraon() {
+            fondo("#f4a261", "#7a3e0e");
+            // Sol, pirámides y la máquina con la máscara dorada
+            circulo(W * 0.82, H * 0.2, H * 0.13, "#fff3b0");
+            for (const [x, w, c] of [[0.18, 0.34, "#c98a3d"], [0.42, 0.26, "#e0a458"]]) {
+                ctx.fillStyle = c;
+                ctx.beginPath();
+                ctx.moveTo(W * (x - w / 2), H);
+                ctx.lineTo(W * x, H * 0.38);
+                ctx.lineTo(W * (x + w / 2), H);
+                ctx.fill();
+            }
+            caja(W * 0.5, H * 0.18, W * 0.42, H * 0.66, 10, "#1d4e89");
+            caja(W * 0.54, H * 0.26, W * 0.34, H * 0.5, 6, "#fbf1d9");
+            ctx.fillStyle = "#ffd166";
+            ctx.beginPath();
+            ctx.ellipse(W * 0.71, H * 0.5, W * 0.08, H * 0.17, 0, 0, TAU);
+            ctx.fill();
+            ctx.fillStyle = "#1d4e89";
+            ctx.fillRect(W * 0.66, H * 0.44, W * 0.03, H * 0.03);
+            ctx.fillRect(W * 0.735, H * 0.44, W * 0.03, H * 0.03);
+        },
+        pirata() {
+            fondo("#1d3557", "#0b1d2b");
+            ctx.fillStyle = "#457b9d";
+            ctx.fillRect(0, H * 0.72, W, H * 0.28);
+            // Cofre abierto con monedas
+            caja(W * 0.28, H * 0.5, W * 0.44, H * 0.3, 6, "#6f4518");
+            ctx.fillStyle = "#8d5a2b";
+            ctx.beginPath();
+            ctx.ellipse(W * 0.5, H * 0.38, W * 0.22, H * 0.14, -0.15, Math.PI, 0);
+            ctx.fill();
+            for (let k = 0; k < 9; k++) bola(W * (0.34 + (k % 5) * 0.08), H * (0.5 - Math.floor(k / 5) * 0.07), H * 0.06, "#ffd166");
+            ctx.fillStyle = "#ffd166";
+            ctx.fillRect(W * 0.28, H * 0.56, W * 0.44, H * 0.04);
+            // Calavera en la bandera
+            caja(W * 0.78, H * 0.14, W * 0.16, H * 0.2, 3, "#1b1b1b");
+            circulo(W * 0.86, H * 0.23, H * 0.05, "#f8f9fa");
+        },
         crash() {
             fondo("#07041a", "#2a0b5e");
             estrellas(40, 11);
