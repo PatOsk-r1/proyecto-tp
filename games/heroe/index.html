@@ -35,20 +35,28 @@
             <button id="hab-furia" class="habilidad" type="button">⚔️<small>Furia</small><i></i></button>
             <button id="hab-oro" class="habilidad" type="button">💰<small>Lluvia</small><i></i></button>
             <button id="hab-tormenta" class="habilidad" type="button">⚡<small>Tormenta</small><i></i></button>
+            <button id="boton-mazmorra" class="habilidad mazmorra" type="button">🗝️<small>Mazmorra</small><b id="llaves">0</b></button>
         </div>
         <button id="avanzar" class="avanzar" type="button" hidden>⏩ Volver a avanzar</button>
     </section>
 
-    <div class="pestanas">
-        <button class="pestana activa" data-p="equipo">Equipo</button>
-        <button class="pestana" data-p="reliquias">Reliquias 👻</button>
-        <div class="comprar-de">
-            <button class="cantidad activa" data-cantidad="1">×1</button>
-            <button class="cantidad" data-cantidad="10">×10</button>
-            <button class="cantidad" data-cantidad="max">Máx</button>
-        </div>
+    <div class="pestanas pestanas-heroe">
+        <button class="pestana activa" data-p="lista">⚔️<small>Equipo</small></button>
+        <button class="pestana" data-p="botin">🎒<small>Botín</small><i class="novedad" hidden></i></button>
+        <button class="pestana" data-p="mascotas">🐾<small>Mascotas</small><i class="novedad" hidden></i></button>
+        <button class="pestana" data-p="cartas">🃏<small>Cartas</small><i class="novedad" hidden></i></button>
+        <button class="pestana" data-p="reliquias">👻<small>Reliquias</small></button>
+    </div>
+    <div id="comprar-de" class="comprar-de">
+        <span>Comprar de a</span>
+        <button class="cantidad activa" data-cantidad="1">×1</button>
+        <button class="cantidad" data-cantidad="10">×10</button>
+        <button class="cantidad" data-cantidad="max">Máx</button>
     </div>
     <main id="lista" class="lista"></main>
+    <main id="botin" class="lista" hidden></main>
+    <main id="mascotas" class="lista" hidden></main>
+    <main id="cartas" class="lista" hidden></main>
     <main id="reliquias" class="lista" hidden></main>
 
     <div id="renacer" class="hoja-fondo" hidden>
