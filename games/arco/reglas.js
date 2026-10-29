@@ -2,12 +2,13 @@
 // La simulación es la misma en los dos celulares; igual se guarda dónde pegó cada flecha.
 
 export const RONDAS = 5;
-export const DISTANCIA = 25; // metros hasta la diana
+export const DISTANCIA = 30; // metros hasta la diana
 export const RADIO_DIANA = 1; // metros (cada anillo mide 10 cm)
 export const ALTURA_DIANA = 1.3; // altura del centro
 export const ALTURA_TIRADOR = 1.5;
-export const VELOCIDAD = 50; // m/s
-const GRAVEDAD = 9.8;
+export const VELOCIDAD = 70; // m/s
+// Caída suave (más de juego que real): apuntando al medio la flecha baja poco y lo que más la desvía es el viento
+const GRAVEDAD = 3;
 const PASO = 1 / 240;
 
 const redondear = (n) => Math.round(n * 10) / 10;
@@ -15,7 +16,7 @@ const redondear = (n) => Math.round(n * 10) / 10;
 // Viento por ronda: lateral (x) y vertical (y), en m/s²
 export function generarVientos() {
     return Array.from({ length: RONDAS }, (_, i) => ({
-        x: redondear((Math.random() * 2 - 1) * (1.5 + i * 0.6)),
+        x: redondear((Math.random() * 2 - 1) * (2.5 + i * 0.9)),
         y: redondear((Math.random() * 2 - 1) * 0.8),
     }));
 }
