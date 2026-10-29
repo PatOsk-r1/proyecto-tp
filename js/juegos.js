@@ -8,7 +8,7 @@ const JUEGOS = [
     { categoria: "solo", grupo: "Defensa", nombre: "Muralla", descripcion: "Apuntá la ballesta y defendé el castillo", emoji: "🏹", carpeta: "games/muralla/" },
     { categoria: "solo", grupo: "Defensa", nombre: "Defensa lunar", descripcion: "Frená a los aliens en 5 carriles", emoji: "👽", carpeta: "games/luna/" },
     { categoria: "solo", grupo: "Incrementales", nombre: "Héroe idle", descripcion: "Pegale a monstruos, armá tu equipo y vencé jefes", emoji: "🗡️", carpeta: "games/heroe/" },
-    { categoria: "solo", grupo: "Incrementales", nombre: "Ciudad", descripcion: "Construí edificios que crecen y producen solos", emoji: "🏙️", carpeta: "games/ciudad/" },
+    { categoria: "solo", grupo: "Incrementales", nombre: "Isla del tesoro", descripcion: "Explorá la niebla, armá el campamento y encontrá la X", emoji: "🏝️", carpeta: "games/isla/" },
     { categoria: "solo", grupo: "Incrementales", nombre: "Granja", descripcion: "Plantá, criá animales y cumplí pedidos", emoji: "🌾", carpeta: "games/granja/" },
     { categoria: "solo", grupo: "Incrementales", nombre: "Acuario", descripcion: "Criá peces que juntan monedas solos", emoji: "🐠", carpeta: "games/acuario/" },
     { categoria: "solo", grupo: "Incrementales", nombre: "Panadería", descripcion: "Horneá, contratá encargados y abrí sucursales", emoji: "🥐", carpeta: "games/panaderia/" },
