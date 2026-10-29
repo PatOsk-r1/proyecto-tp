@@ -180,6 +180,14 @@ body {
     opacity: 0.4;
 }
 
+.boton-texto.crear-cuenta {
+    font-weight: 800;
+    color: #1b1440;
+    background: var(--acento);
+    border-radius: 999px;
+    padding: 7px 12px;
+}
+
 .aviso {
     font-size: 0.9rem;
     padding: 10px 12px;
