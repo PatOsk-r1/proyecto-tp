@@ -124,7 +124,36 @@ function generarIsla(n) {
         if (elegidas.every((o) => dist(o, c) >= 3)) elegidas.push(c);
     }
     elegidas.forEach((c, i) => (c.tipo = i < 3 ? "ruina" : "tesoro"));
+    conectarIsla(casillas);
     return casillas;
+}
+// Toda la tierra tiene que poder alcanzarse desde el campamento: los islotes sueltos se hunden.
+// Si tenían una ruina o la X, se mudan a una casilla alcanzable (si ya está todo explorado,
+// esa casilla se vuelve a tapar con niebla para poder excavarla).
+function conectarIsla(lista) {
+    const centro = lista.find((c) => c.tipo === "campamento");
+    const alcanzable = new Set([centro]);
+    const cola = [centro];
+    while (cola.length) for (const v of vecinas(cola.pop(), lista)) if (v.tierra && !alcanzable.has(v)) {
+        alcanzable.add(v);
+        cola.push(v);
+    }
+    const especial = (c) => ["ruina", "tesoro", "campamento"].includes(c.tipo);
+    for (const c of lista) {
+        if (!c.tierra || alcanzable.has(c)) continue;
+        if ((c.tipo === "ruina" || c.tipo === "tesoro") && !c.vista) {
+            const libres = [...alcanzable].filter((d) => !especial(d) && !d.vacia);
+            const destino = libres.filter((d) => !d.vista).sort((a, b) => dist(b, centro) - dist(a, centro))[0]
+                ?? libres.filter((d) => d.tipo === "arena" || d.tipo === "pasto").sort((a, b) => dist(b, centro) - dist(a, centro))[0];
+            if (destino) {
+                destino.tipo = c.tipo;
+                destino.vista = false;
+            }
+        }
+        c.tierra = false;
+        c.tipo = null;
+        c.vista = false;
+    }
 }
 const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
 function vecinas(c, casillas = estado.isla.casillas) {
@@ -137,6 +166,8 @@ function vecinas(c, casillas = estado.isla.casillas) {
     return lista;
 }
 if (!estado.isla.casillas) estado.isla.casillas = generarIsla(isla());
+else conectarIsla(estado.isla.casillas); // arregla partidas viejas con islotes imposibles de alcanzar
+estado.isla.brillos ??= [];
 const casillas = () => estado.isla.casillas;
 const tierras = () => casillas().filter((c) => c.tierra);
 // Se puede explorar si es tierra sin ver y toca una casilla ya vista
@@ -562,6 +593,21 @@ function dibujar(dt) {
             ctx.globalAlpha = 1;
         }
     }
+    // Destellos: algo nuevo enterrado en casillas ya exploradas
+    ctx.fillStyle = "#fff6b0";
+    for (const i of estado.isla.brillos) {
+        const p = centroCasilla(casillas()[i], m);
+        const r = l * (0.16 + Math.sin(t * 5 + i) * 0.04);
+        const bx = p.x + l * 0.24;
+        const by = p.y - l * 0.24;
+        ctx.beginPath();
+        ctx.moveTo(bx, by - r);
+        ctx.quadraticCurveTo(bx, by, bx + r, by);
+        ctx.quadraticCurveTo(bx, by, bx, by + r);
+        ctx.quadraticCurveTo(bx, by, bx - r, by);
+        ctx.quadraticCurveTo(bx, by, bx, by - r);
+        ctx.fill();
+    }
     // Con los 3 pedazos del mapa, la X del tesoro se ve aunque haya niebla
     const x = casillas().find((k) => k.tipo === "tesoro");
     if (x && estado.isla.fragmentos >= 3 && !estado.isla.tesoroAbierto) {
@@ -642,6 +688,7 @@ function terminarExcavacion() {
     const k = excavando;
     excavando = null;
     if (!k) return;
+    if (k.brillo) return cavarDestello(k.real);
     k.vista = true;
     cont.exploradas++;
     const p = centroCasilla(k);
@@ -731,6 +778,58 @@ function tocarTesoroVisto(k) {
     return true;
 }
 
+// ---------- Destellos ----------
+// Cada tanto aparece algo enterrado en una casilla ya explorada: así siempre hay cómo seguir
+// juntando recursos aunque la isla esté toda descubierta (para el muelle y zarpar).
+const indice = (k) => k.y * COLS + k.x;
+const maxDestellos = () => (porcentajeExplorado() >= 1 ? 5 : 3);
+let relojDestellos = 0;
+function sumarDestello(dt) {
+    relojDestellos += dt;
+    const cada = porcentajeExplorado() >= 1 ? 12 : 35;
+    if (relojDestellos < cada) return;
+    relojDestellos = 0;
+    if (estado.isla.brillos.length >= maxDestellos()) return;
+    const libres = tierras().filter((k) => k.vista && k.tipo !== "campamento" && !estado.isla.brillos.includes(indice(k)));
+    if (libres.length) estado.isla.brillos.push(indice(libres[Math.floor(Math.random() * libres.length)]));
+}
+function tocarDestello(k) {
+    if (!estado.isla.brillos.includes(indice(k))) return false;
+    if (excavando || explorador.destino) return true;
+    if (estado.energia < 1) {
+        avisar("Te falta energía (⚡1). Esperá un rato o comé un coco 🥥");
+        efectos.error();
+        return true;
+    }
+    estado.energia -= 1;
+    excavando = { brillo: true, real: k };
+    explorador.destino = k;
+    efectos.toque();
+    refrescar();
+    return true;
+}
+function cavarDestello(k) {
+    estado.isla.brillos = estado.isla.brillos.filter((i) => i !== indice(k));
+    const p = centroCasilla(k);
+    const mult = multEncontrar() * 0.8;
+    const r = Math.random;
+    sonidos.cavar();
+    chispas.emitir(p.x, p.y, "#fff6b0", 12, 110);
+    if (k.tipo === "palmera" || k.tipo === "mono") {
+        dar("madera", (3 + r() * 3) * mult, p, 0);
+        dar("cocos", (1 + r() * 2) * mult, p, 1);
+    } else if (k.tipo === "roca" || k.tipo === "cueva" || k.tipo === "ruina") {
+        dar("piedra", (3 + r() * 3) * mult, p, 0);
+        dar("monedas", (10 + r() * 10) * mult, p, 1);
+    } else {
+        dar("monedas", (15 + r() * 20) * mult, p, 0);
+        dar(r() < 0.5 ? "madera" : "piedra", (1 + r() * 3) * mult, p, 1);
+    }
+    if (r() < 0.08) dar("gemas", 1, p, 2);
+    sonidos.descubrir();
+    refrescar();
+}
+
 // ---------- Toques ----------
 $("lienzo").addEventListener("pointerdown", (e) => {
     const caja = $("lienzo").getBoundingClientRect();
@@ -741,7 +840,7 @@ $("lienzo").addEventListener("pointerdown", (e) => {
     const k = casillas()[cy * COLS + cx];
     if (!k.tierra) return;
     if (k.vista) {
-        if (tocarTesoroVisto(k)) return;
+        if (tocarTesoroVisto(k) || tocarDestello(k)) return;
         if (!explorador.destino && !excavando) explorador.destino = k; // caminar hasta ahí
         return;
     }
@@ -778,6 +877,7 @@ function pintarPanel() {
             <div class="fila-i zarpar"><span class="ico-i">⛵</span><div class="txt"><strong>Zarpar a la isla ${isla() + 1}</strong>
                 <span>${nivel("muelle") ? `Empezás de nuevo en una isla más grande y rica. Ganás ${nuevas} brújula${nuevas === 1 ? "" : "s"}.` : "Primero construí el muelle en el campamento."}</span></div>
                 <button type="button" data-zarpar ${nivel("muelle") && nuevas > 0 ? "" : "disabled"}>Zarpar</button></div>
+            ${pct >= 100 ? `<p class="ayuda-i"><strong>¡Isla explorada!</strong> Cavá los destellos ✨ que aparecen para seguir juntando, construí el muelle ⚓ y zarpá a una isla nueva.</p>` : ""}
             <p class="ayuda-i">Tocá las casillas que brillan para explorarlas. Los 3 pedazos del mapa 🗺️ muestran la X del gran tesoro. Cuanto más explores antes de zarpar, más brújulas.</p>`;
     }
     if (html === ultimoPanel) return;
@@ -937,6 +1037,7 @@ bucle((dt) => {
         estado.madera += p.madera * segundo;
         estado.piedra += p.piedra * segundo;
         estado.monedas += p.monedas * segundo;
+        sumarDestello(segundo);
         segundo = 0;
         recargarEnergia();
     }
