@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="es" class="verificando">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>Isla del tesoro · Proyecto TP</title>
+    <meta name="theme-color" content="#0b4f6c">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="../../icons/icon-180.png">
+    <link rel="manifest" href="../../manifest.webmanifest">
+
+    <link rel="stylesheet" href="../../css/estilos.css">
+    <link rel="stylesheet" href="../../css/juegos3d.css">
+    <link rel="stylesheet" href="estilo.css">
+</head>
+<body class="pantalla-3d tema-isla">
+    <header class="barra-juego barra-isla">
+        <a class="boton-volver" href="../../">‹ Juegos</a>
+        <h1>Isla del tesoro</h1>
+        <div class="hud-isla">
+            <div class="pildora-i"><i class="moneda-i"></i><strong id="monedas">0</strong></div>
+            <div class="pildora-i"><span>💎</span><strong id="gemas">0</strong></div>
+        </div>
+    </header>
+
+    <div class="cuerpo-i">
+        <section class="mapa-i">
+            <canvas id="lienzo"></canvas>
+            <div class="energia-i">
+                <span class="rayo">⚡</span>
+                <div class="barra-energia"><i id="barra-energia"></i><b id="texto-energia">0/20</b></div>
+                <small id="recarga">+1 en 30 s</small>
+            </div>
+            <div class="recursos-i">
+                <span title="Madera">🪵 <b id="madera">0</b></span>
+                <span title="Piedra">🪨 <b id="piedra">0</b></span>
+                <span title="Cocos">🥥 <b id="cocos">0</b></span>
+                <span title="Pedazos del mapa">🗺️ <b id="fragmentos">0/3</b></span>
+            </div>
+            <button id="comer" class="comer-i" type="button">🥥 Comer coco <small>+5 ⚡</small></button>
+            <div id="aviso" class="aviso-i" hidden></div>
+        </section>
+
+        <div class="columna-i">
+            <nav class="pestanas-i">
+                <button class="pestana-i activa" data-p="campamento">⛺<small>Campamento</small></button>
+                <button class="pestana-i" data-p="isla">🏝️<small>Isla</small></button>
+            </nav>
+            <main id="panel" class="panel-i"></main>
+        </div>
+    </div>
+
+    <script type="module">
+        import { exigirSesion } from "../../js/sesion.js";
+        exigirSesion();
+    </script>
+    <script type="module" src="juego.js"></script>
+</body>
+</html>
