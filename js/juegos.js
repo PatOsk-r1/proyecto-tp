@@ -12,7 +12,7 @@ const JUEGOS = [
     { categoria: "solo", grupo: "Incrementales", nombre: "Granja", descripcion: "Plantá, criá animales y cumplí pedidos", emoji: "🌾", carpeta: "games/granja/" },
     { categoria: "solo", grupo: "Incrementales", nombre: "Acuario", descripcion: "Simulador: criá peces, cuidalos y ojo con los depredadores", emoji: "🐠", carpeta: "games/acuario/" },
     { categoria: "solo", grupo: "Incrementales", nombre: "Panadería", descripcion: "Horneá, atendé la fila de clientes y armá tu cadena", emoji: "🥐", carpeta: "games/panaderia/" },
-    { categoria: "solo", grupo: "Incrementales", nombre: "Colonia espacial", descripcion: "Construí satélites y estaciones en órbita", emoji: "🪐", carpeta: "games/colonia/" },
+    { categoria: "solo", grupo: "Incrementales", nombre: "Colonia espacial", descripcion: "Construí en órbita, mandá naves a explorar y juntá artefactos", emoji: "🪐", carpeta: "games/colonia/" },
     { categoria: "solo", grupo: "Arcade", nombre: "Corredor espacial", descripcion: "Esquivá y destruí oleadas de naves", emoji: "🚀", carpeta: "games/espacial/" },
     { categoria: "solo", grupo: "Arcade", nombre: "Rompeladrillos", descripcion: "Rompé todos los ladrillos con la pelota", emoji: "🧱", carpeta: "games/ladrillos/" },
     { categoria: "solo", grupo: "Arcade", nombre: "Apilar", descripcion: "Soltá cada bloque justo encima del anterior", emoji: "🧱", carpeta: "games/apilar/" },
