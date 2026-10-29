@@ -30,6 +30,7 @@ export async function exigirSesion() {
     // Activar desde la consola del navegador: localStorage.setItem("modo-prueba", "1")
     if (location.hostname === "localhost" && localStorage.getItem("modo-prueba") === "1") {
         document.documentElement.classList.remove("verificando");
+        montarAyudaDelJuego();
         return { displayName: "Prueba", email: "prueba@localhost" };
     }
 
@@ -39,7 +40,14 @@ export async function exigirSesion() {
         return new Promise(() => {}); // la página se va, no sigue
     }
     document.documentElement.classList.remove("verificando");
+    montarAyudaDelJuego();
     return usuario;
+}
+
+// En las páginas de juegos (games/<id>/) agrega el botón "?" de cómo jugar
+function montarAyudaDelJuego() {
+    const id = location.pathname.match(/\/games\/([^/]+)\//)?.[1];
+    if (id) import("./ayuda.js").then((m) => m.montarAyuda(id)).catch(() => {});
 }
 
 export async function cerrarSesion() {
