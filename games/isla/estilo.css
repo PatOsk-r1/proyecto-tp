@@ -1,0 +1,417 @@
+/* Isla del tesoro: mar turquesa, arena y madera de barco */
+.tema-isla {
+    --fondo: #0b4f6c;
+    --fondo-2: #01497c;
+    --texto-suave: #caf0f8;
+    --acento: #ffd166;
+    --acento-2: #f4a261;
+    --panel: #013a63;
+    --arena: #fdf0d5;
+    --arena-2: #f4d58d;
+    --madera: #8d5a2b;
+    --oscuro: #3d2c00;
+}
+
+/* ---------- Barra de arriba ---------- */
+.barra-isla {
+    gap: 8px;
+    padding: calc(8px + env(safe-area-inset-top)) 10px 8px;
+    background: linear-gradient(180deg, #a9713f, #6f4518);
+    border-bottom: 3px solid #3d2512;
+    box-shadow: 0 4px 12px #0006;
+    position: relative;
+    z-index: 2;
+}
+
+.barra-isla h1 {
+    font-size: 1.15rem;
+    text-shadow: 0 2px 0 #3d2512;
+}
+
+.barra-isla .boton-volver {
+    background: #0003;
+}
+
+.hud-isla {
+    display: flex;
+    gap: 6px;
+    margin-left: auto;
+}
+
+.pildora-i {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 10px 3px 4px;
+    border-radius: 999px;
+    background: var(--arena);
+    color: var(--oscuro);
+    border: 2px solid #3d2512;
+    box-shadow: inset 0 -3px 0 var(--arena-2);
+    font-weight: 900;
+}
+
+.pildora-i span {
+    font-size: 1rem;
+    margin-left: 3px;
+}
+
+.moneda-i {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #fff6c2, #ffd166 35%, #e09f3e 75%, #a8661b);
+    box-shadow: inset 0 0 0 1.5px #b8751f;
+}
+
+@media (max-width: 520px) {
+    .barra-isla h1 {
+        display: none;
+    }
+
+    .barra-isla .boton-volver {
+        width: 38px;
+        height: 38px;
+        padding: 0;
+        font-size: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+    }
+
+    .barra-isla .boton-volver::before {
+        content: "‹";
+        font-size: 1.7rem;
+        margin-top: -3px;
+    }
+
+    .hud-isla {
+        flex: 1;
+        margin-left: 0;
+    }
+
+    .pildora-i {
+        flex: 1;
+    }
+}
+
+/* ---------- Mapa ---------- */
+.cuerpo-i {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.columna-i {
+    display: contents;
+}
+
+.mapa-i {
+    position: relative;
+    flex: 1;
+    min-height: 0;
+}
+
+.mapa-i canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+    touch-action: manipulation;
+}
+
+.energia-i {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    right: 8px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    pointer-events: none;
+}
+
+.energia-i .rayo {
+    font-size: 1.3rem;
+    filter: drop-shadow(0 2px 2px #0008);
+}
+
+.barra-energia {
+    position: relative;
+    flex: 1;
+    height: 18px;
+    border-radius: 999px;
+    background: #013a63cc;
+    border: 2px solid #ffffffaa;
+    overflow: hidden;
+}
+
+.barra-energia i {
+    position: absolute;
+    inset: 0 auto 0 0;
+    background: linear-gradient(180deg, #ffe066, #f4a261);
+    transition: width 0.3s;
+}
+
+.barra-energia b {
+    position: relative;
+    display: block;
+    text-align: center;
+    font-size: 0.72rem;
+    line-height: 14px;
+    color: #fff;
+    text-shadow: 0 1px 2px #000;
+}
+
+.energia-i small {
+    font-size: 0.7rem;
+    font-weight: 800;
+    color: #fff;
+    text-shadow: 0 1px 3px #000;
+    white-space: nowrap;
+}
+
+.recursos-i {
+    position: absolute;
+    left: 8px;
+    bottom: 8px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    max-width: calc(100% - 140px);
+    pointer-events: none;
+}
+
+.recursos-i span {
+    padding: 3px 8px;
+    border-radius: 999px;
+    background: #fdf0d5ee;
+    color: var(--oscuro);
+    border: 2px solid #3d2512;
+    font-size: 0.78rem;
+    font-weight: 800;
+}
+
+.comer-i {
+    position: absolute;
+    right: 8px;
+    bottom: 8px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 6px 10px;
+    font: inherit;
+    font-weight: 900;
+    font-size: 0.85rem;
+    color: #fff;
+    background: linear-gradient(180deg, #8fd14f, #3f9a2a);
+    border: 2px solid #2f6e1c;
+    border-radius: 14px;
+    box-shadow: 0 3px 0 #2f6e1c;
+}
+
+.comer-i small {
+    font-size: 0.66rem;
+}
+
+.comer-i:disabled {
+    opacity: 0.5;
+}
+
+.aviso-i {
+    position: absolute;
+    top: 40px;
+    left: 0;
+    right: 0;
+    width: fit-content;
+    max-width: 92%;
+    margin: 0 auto;
+    padding: 7px 14px;
+    border-radius: 14px;
+    background: var(--arena);
+    color: var(--oscuro);
+    border: 2px solid #3d2512;
+    box-shadow: 0 6px 16px #0007;
+    font-weight: 900;
+    font-size: 0.85rem;
+    text-align: center;
+    pointer-events: none;
+    animation: aparecer 0.25s ease-out;
+    z-index: 3;
+}
+
+/* ---------- Pestañas y panel ---------- */
+.pestanas-i {
+    display: flex;
+    gap: 4px;
+    padding: 6px 8px 0;
+    background: linear-gradient(180deg, #a9713f, #6f4518);
+    border-top: 3px solid #3d2512;
+}
+
+.pestana-i {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 6px 0 5px;
+    font: inherit;
+    font-size: 1.4rem;
+    color: #fdf0d5cc;
+    background: #0002;
+    border: none;
+    border-radius: 12px 12px 0 0;
+}
+
+.pestana-i small {
+    font-size: 0.66rem;
+    font-weight: 900;
+}
+
+.pestana-i.activa {
+    color: var(--oscuro);
+    background: var(--arena);
+    transform: translateY(-3px);
+    box-shadow: 0 -3px 0 #3d2512;
+}
+
+.panel-i {
+    height: 36vh;
+    min-height: 190px;
+    overflow-y: auto;
+    padding: 10px 10px calc(14px + env(safe-area-inset-bottom));
+    background: var(--arena);
+    color: var(--oscuro);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.fila-i {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 10px;
+    border-radius: 14px;
+    background: linear-gradient(180deg, #fffaf0, #f6e3bc);
+    border: 2px solid #d9b77e;
+    box-shadow: 0 3px 0 #d9b77e;
+}
+
+.ico-i {
+    width: 42px;
+    height: 42px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.6rem;
+    border-radius: 12px;
+    background: #fdf0d5;
+    border: 2px solid #e3cfa6;
+}
+
+.fila-i .txt {
+    flex: 1;
+    min-width: 0;
+    font-weight: 900;
+    font-size: 0.92rem;
+}
+
+.fila-i .txt em {
+    font-style: normal;
+    color: #a8661b;
+    font-size: 0.78rem;
+}
+
+.fila-i .txt span {
+    display: block;
+    font-weight: 700;
+    font-size: 0.75rem;
+    color: #7a5a3a;
+}
+
+.fila-i button {
+    font: inherit;
+    font-size: 0.78rem;
+    font-weight: 900;
+    color: #fff;
+    text-shadow: 0 1px 0 #2a5a14;
+    background: linear-gradient(180deg, #8fd14f, #3f9a2a);
+    border: 2px solid #2f6e1c;
+    border-radius: 12px;
+    padding: 8px 10px;
+    max-width: 44%;
+    box-shadow: inset 0 2px 0 #ffffff55, 0 3px 0 #2f6e1c;
+}
+
+.fila-i button:disabled {
+    color: #8a7a62;
+    text-shadow: none;
+    background: #e8dcc2;
+    border-color: #cdb98f;
+    box-shadow: 0 2px 0 #cdb98f;
+}
+
+.fila-i.zarpar {
+    border-color: #168aad;
+    box-shadow: 0 3px 0 #168aad;
+}
+
+.tarjeta-isla {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 12px;
+    border-radius: 14px;
+    background: linear-gradient(135deg, #2ec4b6, #168aad);
+    color: #fff;
+    font-weight: 800;
+    font-size: 0.85rem;
+}
+
+.tarjeta-isla strong {
+    font-size: 1.1rem;
+}
+
+.progreso-isla {
+    height: 10px;
+    border-radius: 999px;
+    background: #0004;
+    overflow: hidden;
+}
+
+.progreso-isla i {
+    display: block;
+    height: 100%;
+    background: linear-gradient(90deg, #ffe066, #f4a261);
+}
+
+.ayuda-i {
+    text-align: center;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #7a5a3a;
+}
+
+/* ---------- Compu: el panel al costado ---------- */
+@media (min-width: 900px) {
+    .cuerpo-i {
+        flex-direction: row;
+    }
+
+    .columna-i {
+        display: flex;
+        flex-direction: column;
+        width: min(400px, 34vw);
+        flex-shrink: 0;
+        border-left: 4px solid #3d2512;
+        background: var(--arena);
+    }
+
+    .panel-i {
+        flex: 1;
+        height: auto;
+    }
+}
