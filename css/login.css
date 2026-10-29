@@ -1,0 +1,392 @@
+/* Login: fondo animado con luces y fichas de juegos, tarjeta de vidrio */
+
+.pagina-login {
+    position: relative;
+    overflow-x: hidden;
+    background: radial-gradient(120% 90% at 50% 0%, #2d2170 0%, #140f33 55%, #0b0820 100%);
+    background-attachment: fixed;
+}
+
+/* ---------- Fondo ---------- */
+.fondo-login {
+    position: fixed;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+    z-index: 0;
+}
+
+.luz {
+    position: absolute;
+    width: 60vmax;
+    height: 60vmax;
+    border-radius: 50%;
+    filter: blur(60px);
+    opacity: 0.5;
+    animation: flotar-luz 18s ease-in-out infinite alternate;
+}
+
+.l1 {
+    top: -25vmax;
+    left: -15vmax;
+    background: radial-gradient(circle, #7b2ff7, transparent 65%);
+}
+
+.l2 {
+    bottom: -30vmax;
+    right: -20vmax;
+    background: radial-gradient(circle, #ff3d7f, transparent 65%);
+    animation-delay: -6s;
+}
+
+.l3 {
+    top: 30%;
+    left: 40%;
+    width: 40vmax;
+    height: 40vmax;
+    background: radial-gradient(circle, #00c2ff, transparent 65%);
+    opacity: 0.3;
+    animation-delay: -12s;
+}
+
+@keyframes flotar-luz {
+    to {
+        transform: translate(6vmax, 4vmax) scale(1.15);
+    }
+}
+
+.ficha {
+    position: absolute;
+    display: grid;
+    place-items: center;
+    width: 54px;
+    height: 54px;
+    font-size: 1.7rem;
+    border-radius: 16px;
+    background: linear-gradient(160deg, #ffffff22, #ffffff08);
+    border: 1px solid #ffffff26;
+    box-shadow: 0 10px 30px #0006;
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    opacity: 0.75;
+    animation: flotar-ficha 9s ease-in-out infinite;
+}
+
+.f1 { top: 8%; left: 7%; transform: rotate(-12deg); animation-delay: 0s; }
+.f2 { top: 14%; right: 9%; animation-delay: -2s; }
+.f3 { top: 46%; left: 3%; animation-delay: -4s; }
+.f4 { bottom: 12%; left: 10%; animation-delay: -1s; }
+.f5 { bottom: 20%; right: 6%; animation-delay: -5s; }
+.f6 { top: 70%; right: 26%; animation-delay: -3s; width: 44px; height: 44px; font-size: 1.3rem; }
+.f7 { top: 30%; right: 3%; animation-delay: -6s; width: 46px; height: 46px; font-size: 1.4rem; }
+.f8 { top: 3%; left: 42%; animation-delay: -7s; width: 42px; height: 42px; font-size: 1.2rem; }
+.f9 { bottom: 4%; left: 46%; animation-delay: -8s; width: 42px; height: 42px; font-size: 1.2rem; }
+
+@keyframes flotar-ficha {
+    0%, 100% {
+        translate: 0 0;
+        rotate: -6deg;
+    }
+    50% {
+        translate: 0 -14px;
+        rotate: 6deg;
+    }
+}
+
+/* En el celular, las fichas del centro se esconden para no tapar el formulario */
+@media (max-width: 600px) {
+    .f3, .f6, .f7, .f9 {
+        display: none;
+    }
+
+    .ficha {
+        opacity: 0.45;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .luz, .ficha {
+        animation: none;
+    }
+}
+
+/* ---------- Caja ---------- */
+.caja-login {
+    position: relative;
+    z-index: 1;
+    max-width: 400px;
+    gap: 18px;
+    padding: 28px 18px 32px;
+}
+
+.marca {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    text-align: center;
+    animation: entrar-arriba 0.6s ease-out both;
+}
+
+.logo-aro {
+    padding: 4px;
+    border-radius: 24px;
+    background: conic-gradient(from 0deg, #ffcc33, #ff3d7f, #7b2ff7, #00c2ff, #ffcc33);
+    box-shadow: 0 0 40px #ff3d7f55, 0 12px 30px #0008;
+    animation: latir-aro 3s ease-in-out infinite;
+}
+
+.logo-aro .logo-login {
+    display: block;
+    border-radius: 20px;
+}
+
+@keyframes latir-aro {
+    50% {
+        box-shadow: 0 0 60px #ffcc3377, 0 12px 30px #0008;
+        transform: translateY(-3px);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .logo-aro {
+        animation: none;
+    }
+}
+
+.marca h1 {
+    margin-top: 8px;
+    font-size: 2rem;
+    font-weight: 900;
+    letter-spacing: -0.02em;
+    background: linear-gradient(90deg, #fff, #ffe08a);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+}
+
+.lema {
+    font-size: 0.92rem;
+    color: var(--texto-suave);
+}
+
+.tarjeta-login {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+    padding: 18px 18px 14px;
+    border-radius: 24px;
+    background: linear-gradient(165deg, #ffffff1f, #ffffff0a);
+    border: 1px solid #ffffff2e;
+    box-shadow: 0 24px 60px #0009, inset 0 1px 0 #ffffff33;
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    animation: entrar-arriba 0.6s 0.1s ease-out both;
+}
+
+@keyframes entrar-arriba {
+    from {
+        opacity: 0;
+        transform: translateY(18px);
+    }
+}
+
+.solo-lector {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+}
+
+/* Entrar / Crear cuenta */
+.selector-modo {
+    position: relative;
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    padding: 4px;
+    border-radius: 14px;
+    background: #0000004d;
+}
+
+.selector-modo button {
+    position: relative;
+    z-index: 1;
+    font: inherit;
+    font-weight: 800;
+    font-size: 0.95rem;
+    padding: 10px;
+    color: var(--texto-suave);
+    background: none;
+    border: none;
+    transition: color 0.25s;
+}
+
+.selector-modo button.activo {
+    color: #1b1440;
+}
+
+.selector-modo .marcador {
+    position: absolute;
+    top: 4px;
+    bottom: 4px;
+    left: 4px;
+    width: calc(50% - 4px);
+    border-radius: 10px;
+    background: linear-gradient(180deg, #ffe08a, #ffbf1f);
+    box-shadow: 0 4px 14px #ffbf1f55;
+    transition: transform 0.3s cubic-bezier(0.3, 1.4, 0.6, 1);
+}
+
+.selector-modo.crear .marcador {
+    transform: translateX(100%);
+}
+
+.pagina-login .boton-google {
+    margin-top: 0;
+    border-radius: 14px;
+    padding: 14px;
+    box-shadow: 0 6px 18px #0005;
+    transition: transform 0.15s;
+}
+
+.pagina-login .boton-google:active {
+    transform: scale(0.98);
+}
+
+.pagina-login .formulario {
+    margin-top: 0;
+    gap: 14px;
+}
+
+.pagina-login .campo {
+    font-weight: 700;
+    font-size: 0.82rem;
+    animation: aparecer-campo 0.3s ease-out;
+}
+
+@keyframes aparecer-campo {
+    from {
+        opacity: 0;
+        transform: translateY(-6px);
+    }
+}
+
+.entrada {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.entrada > svg {
+    position: absolute;
+    left: 13px;
+    width: 19px;
+    height: 19px;
+    fill: none;
+    stroke: var(--texto-suave);
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    pointer-events: none;
+    transition: stroke 0.2s;
+}
+
+.pagina-login .campo input {
+    width: 100%;
+    padding: 14px 44px 14px 42px;
+    border-radius: 14px;
+    background: #0000003d;
+    border: 1.5px solid #ffffff22;
+    transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+}
+
+.pagina-login .campo input::placeholder {
+    color: #b9b3e077;
+}
+
+.pagina-login .campo input:focus {
+    border-color: var(--acento);
+    background: #00000055;
+    box-shadow: 0 0 0 4px #ffcc3326;
+}
+
+.entrada:focus-within > svg {
+    stroke: var(--acento);
+}
+
+.ver-clave {
+    position: absolute;
+    right: 6px;
+    width: 36px;
+    height: 36px;
+    display: grid;
+    place-items: center;
+    background: none;
+    border: none;
+    border-radius: 10px;
+}
+
+.ver-clave svg {
+    width: 20px;
+    height: 20px;
+    fill: none;
+    stroke: var(--texto-suave);
+    stroke-width: 1.8;
+}
+
+.ver-clave.viendo svg {
+    stroke: var(--acento);
+}
+
+.pagina-login .boton-principal {
+    position: relative;
+    overflow: hidden;
+    margin-top: 2px;
+    padding: 15px;
+    font-size: 1.05rem;
+    font-weight: 900;
+    border-radius: 14px;
+    color: #1b1440;
+    background: linear-gradient(180deg, #ffe08a, #ffbf1f);
+    box-shadow: 0 8px 22px #ffbf1f44, inset 0 -3px 0 #0002;
+    transition: transform 0.15s;
+}
+
+.pagina-login .boton-principal::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: -60%;
+    width: 40%;
+    height: 100%;
+    background: linear-gradient(100deg, transparent, #fff8, transparent);
+    animation: brillo-boton 3.5s ease-in-out infinite;
+}
+
+@keyframes brillo-boton {
+    0%, 60% {
+        left: -60%;
+    }
+    100% {
+        left: 130%;
+    }
+}
+
+.pagina-login .boton-principal:active {
+    transform: scale(0.98);
+}
+
+.pagina-login .boton-texto {
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: var(--texto-suave);
+}
+
+.pagina-login .aviso {
+    font-weight: 600;
+    animation: aparecer-campo 0.25s ease-out;
+}
