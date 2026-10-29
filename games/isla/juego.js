@@ -210,15 +210,16 @@ let encuadre = null;
 function medidas() {
     if (!encuadre || encuadre.isla !== estado.isla) {
         const t = tierras();
-        const minX = Math.min(...t.map((c) => c.x)) - 0.7;
-        const maxX = Math.max(...t.map((c) => c.x)) + 1.7;
-        const minY = Math.min(...t.map((c) => c.y)) - 0.7;
-        const maxY = Math.max(...t.map((c) => c.y)) + 2.2; // abajo hay lugar para el muelle
+        // Margen justo: un poquito de mar a los costados y lugar abajo para el muelle
+        const minX = Math.min(...t.map((c) => c.x)) - 0.25;
+        const maxX = Math.max(...t.map((c) => c.x)) + 1.25;
+        const minY = Math.min(...t.map((c) => c.y)) - 0.25;
+        const maxY = Math.max(...t.map((c) => c.y)) + 1.6;
         encuadre = { isla: estado.isla, minX, minY, w: maxX - minX, h: maxY - minY };
     }
-    const arriba = 40; // barra de energía
-    const abajo = 56; // recursos y botón de comer
-    const lado = Math.floor(Math.min((ancho - 12) / encuadre.w, (alto - arriba - abajo) / encuadre.h, 96));
+    const arriba = 34; // barra de energía
+    const abajo = 30; // recursos y botón de comer (pueden quedar sobre el mar)
+    const lado = Math.floor(Math.min((ancho - 4) / encuadre.w, (alto - arriba - abajo) / encuadre.h, 110));
     const ox = Math.floor((ancho - lado * encuadre.w) / 2 - encuadre.minX * lado);
     const oy = Math.floor(arriba + (alto - arriba - abajo - lado * encuadre.h) / 2 - encuadre.minY * lado);
     return { lado, ox, oy };
@@ -818,6 +819,14 @@ $("panel").addEventListener("click", (e) => {
 });
 for (const p of document.querySelectorAll(".pestana-i")) {
     p.addEventListener("click", () => {
+        // Tocar la pestaña que ya está abierta achica el panel (más lugar para la isla en el celular)
+        const cuerpo = document.querySelector(".cuerpo-i");
+        if (pestana === p.dataset.p && !cuerpo.classList.contains("panel-chico")) {
+            cuerpo.classList.add("panel-chico");
+            efectos.toque();
+            return;
+        }
+        cuerpo.classList.remove("panel-chico");
         pestana = p.dataset.p;
         for (const x of document.querySelectorAll(".pestana-i")) x.classList.toggle("activa", x === p);
         efectos.toque();
