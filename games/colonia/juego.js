@@ -4,6 +4,24 @@ import {
     THREE, crearEscena, material, formatear, cargar, guardar, textoFlotante, aPantalla, vibrar, crearParticulas,
 } from "../../js/comun3d.js";
 import { icono } from "../../js/iconos.js";
+import { crearAudio, MUSICAS } from "../../js/sonido.js";
+import { crearBase } from "../../js/incremental.js";
+import { DESTINOS, destino, MAX_NAVES, costoNave, EVENTOS, ARTEFACTOS, artefactoAlAzar, TIPOS_CONTRATO } from "./aventura.js";
+
+const audio = crearAudio({ musica: MUSICAS.misterio });
+const { nota, golpe, efectos } = audio;
+const sonidos = {
+    toque: () => nota({ f: 600 + Math.random() * 300, hasta: 1200, dur: 0.08, vol: 0.05, onda: "sine" }),
+    meteoro: () => {
+        golpe({ dur: 0.4, vol: 0.2, filtro: 500, tipo: "lowpass" });
+        nota({ f: 1200, hasta: 300, dur: 0.4, vol: 0.1, onda: "sawtooth" });
+    },
+    despegue: () => {
+        golpe({ dur: 1.2, vol: 0.18, filtro: 300, tipo: "lowpass" });
+        nota({ f: 120, hasta: 600, dur: 1.2, vol: 0.08, onda: "sawtooth" });
+    },
+    regreso: () => [523, 659, 784].forEach((f, k) => nota({ f, t: k * 0.1, dur: 0.3, vol: 0.12, onda: "sine" })),
+};
 
 const $ = (id) => document.getElementById(id);
 const CLAVE = "colonia";
@@ -25,6 +43,14 @@ const estado = cargar(CLAVE, { energia: 0, total: 0, materia: 0, toque: 0, edifi
 for (const e of EDIFICIOS) estado.edificios[e.id] ??= 0;
 estado.cristales ??= 0;
 estado.tec ??= {};
+// Expediciones, artefactos y contratos (no se pierden al saltar de galaxia)
+estado.naves ??= 1;
+estado.viajes ??= []; // [{ destino, vuelve, evento }]
+estado.artefactos ??= {}; // id → nivel
+estado.contratos ??= [];
+estado.contadores ??= { toques: 0, meteoros: 0, expediciones: 0, compras: 0, energiaHecha: 0, saltos: 0, eventos: 0, contratos: 0 };
+const cont = estado.contadores;
+const nivelArt = (efecto) => ARTEFACTOS.filter((a) => a.efecto === efecto).reduce((t, a) => t + (estado.artefactos[a.id] ?? 0) * a.valor, 0);
 
 // Tecnologías: se compran con cristales de meteorito y no se pierden al saltar de galaxia
 const TECNOLOGIAS = [
@@ -35,19 +61,20 @@ const TECNOLOGIAS = [
 ];
 const tec = (id) => estado.tec[id] ?? 0;
 
-const multiplicador = () => (1 + estado.materia * 0.1) * 1.25 ** tec("reactores");
+const multiplicador = () => (1 + estado.materia * 0.1) * 1.25 ** tec("reactores") * (1 + nivelArt("prod"));
 const cantidad = (e) => estado.edificios[e.id];
 const bonoHitos = (e) => 2 ** HITOS.filter((h) => cantidad(e) >= h).length;
 const produceDe = (e) => e.produce * cantidad(e) * bonoHitos(e) * multiplicador();
 const porSegundo = () => EDIFICIOS.reduce((t, e) => t + produceDe(e), 0);
 const costoDe = (e) => e.costo * CRECIMIENTO ** cantidad(e);
-const porToque = () => (1 + porSegundo() * 0.05) * 2 ** estado.toque * 2 ** tec("guantes") * multiplicador();
+const porToque = () => (1 + porSegundo() * 0.05) * 2 ** estado.toque * 2 ** tec("guantes") * multiplicador() * (1 + nivelArt("toque"));
 const costoToque = () => 50 * 6 ** estado.toque;
 const materiaNueva = () => Math.floor(Math.sqrt(estado.total / 1e6));
 
 function ganar(n) {
     estado.energia += n;
     estado.total += n;
+    cont.energiaHecha += n;
 }
 
 // ---------- Escena ----------
@@ -285,7 +312,7 @@ alAnimar((dt) => {
         if (Math.abs(meteorito.position.x) > d.limite) {
             scene.remove(meteorito);
             meteorito = null;
-            proximoMeteorito = (40 + Math.random() * 40) / (1 + tec("radar") * 0.5);
+            proximoMeteorito = (40 + Math.random() * 40) / (1 + tec("radar") * 0.5) / (1 + nivelArt("meteoros"));
         }
     } else {
         proximoMeteorito -= dt;
@@ -317,7 +344,9 @@ renderer.domElement.addEventListener("pointerdown", (e) => {
         const cerca = raycaster.ray.distanceToPoint(meteorito.position) < meteorito.userData.radio;
         if (cerca) {
             const premio = Math.max(50, porSegundo() * 45) * (1 + tec("radar") * 0.5);
-            const cristales = 1 + (Math.random() < 0.3 + tec("radar") * 0.1 ? 1 : 0);
+            const cristales = Math.round((1 + (Math.random() < 0.3 + tec("radar") * 0.1 ? 1 : 0)) * (1 + nivelArt("cristales")));
+            cont.meteoros++;
+            sonidos.meteoro();
             ganar(premio);
             estado.cristales += cristales;
             particulas.emitir(meteorito.position, 0xff9f1c, 30, { velocidad: 4, arriba: 2, tamano: 0.12, gravedad: 0, vida: 0.8, brillo: true });
@@ -334,6 +363,8 @@ renderer.domElement.addEventListener("pointerdown", (e) => {
     }
     const n = porToque();
     ganar(n);
+    cont.toques++;
+    if (cont.toques % 2 === 0) sonidos.toque();
     pulso = 1;
     vibrar(8);
     particulas.emitir(new THREE.Vector3((Math.random() - 0.5) * 1.5, (Math.random() - 0.5) * 1.5, 1.4), 0x7df9ff, 5, {
@@ -368,6 +399,8 @@ const tarjetas = EDIFICIOS.map((e) => ({
         if (estado.energia < costo) return;
         estado.energia -= costo;
         estado.edificios[e.id]++;
+        cont.compras++;
+        efectos.comprar();
         if (HITOS.includes(cantidad(e))) avisar(`¡${e.nombre} ahora produce el doble!`);
         ubicarPiezas(orbitas.find((o) => o.e === e), true);
         const p = aPantalla(new THREE.Vector3(e.radio, 0, 0), camera, renderer.domElement);
@@ -458,6 +491,8 @@ $("confirmar-salto").addEventListener("click", () => {
     const nueva = materiaNueva();
     if (nueva < 1) return;
     estado.materia += nueva;
+    cont.saltos++;
+    efectos.fanfarria();
     Object.assign(estado, { energia: 0, total: 0, toque: 0 });
     for (const e of EDIFICIOS) estado.edificios[e.id] = 0;
     for (const o of orbitas) ubicarPiezas(o, false);
@@ -476,11 +511,263 @@ setInterval(guardarProgreso, 5000);
 document.addEventListener("visibilitychange", guardarProgreso);
 addEventListener("pagehide", guardarProgreso);
 
-const ausente = Math.min((Date.now() - estado.ultimaVez) / 1000, (MAX_HORAS_AUSENTE + tec("piloto") * 2) * 3600);
-const ganadoAusente = porSegundo() * ausente;
-if (ganadoAusente >= 1) {
-    ganar(ganadoAusente);
-    setTimeout(() => avisar(`Mientras no estabas la colonia juntó ⚡ ${formatear(ganadoAusente)}`), 400);
+// ---------- Pestañas del panel ----------
+const PANELES = ["mejoras", "expediciones", "artefactos", "contratos"];
+let panelActual = "mejoras";
+for (const p of document.querySelectorAll(".pestana-col")) {
+    p.addEventListener("click", () => {
+        panelActual = p.dataset.p;
+        for (const x of document.querySelectorAll(".pestana-col")) x.classList.toggle("activa", x === p);
+        for (const id of PANELES) $(id).hidden = id !== panelActual;
+        efectos.toque();
+        pintarPaneles(true);
+    });
 }
 
+// ---------- Expediciones ----------
+const rapidez = () => (0.93 ** ((estado.artefactos.motor ?? 0)) * 0.95 ** ((estado.artefactos.brujula ?? 0)));
+const duracion = (d) => d.dur * 60 * 1000 * rapidez();
+const navesLibres = () => estado.naves - estado.viajes.length;
+function mandarNave(id) {
+    const d = destino(id);
+    if (navesLibres() < 1 || (d.requiere && estado.materia < d.requiere)) return;
+    estado.viajes.push({ destino: id, vuelve: Date.now() + duracion(d), evento: Math.random() < 0.3 ? EVENTOS[Math.floor(Math.random() * EVENTOS.length)].id : null });
+    cont.expediciones++;
+    sonidos.despegue();
+    lanzarCohete();
+    avisar(`🚀 Nave rumbo a ${d.nombre} (${formatearDuracion(duracion(d))})`);
+    guardarProgreso();
+}
+function formatearDuracion(ms) {
+    const s = Math.max(0, Math.ceil(ms / 1000));
+    if (s >= 3600) return `${Math.floor(s / 3600)} h ${Math.floor((s % 3600) / 60)} min`;
+    if (s >= 60) return `${Math.floor(s / 60)} min ${s % 60} s`;
+    return `${s} s`;
+}
+// Recompensa de un viaje (según lo que produce la colonia ahora)
+function recompensa(d) {
+    const botin = 1 + nivelArt("botin");
+    const [cmin, cmax] = d.cristales;
+    return {
+        energia: Math.max(100, porSegundo() * d.energia) * botin,
+        cristales: Math.round((cmin + Math.floor(Math.random() * (cmax - cmin + 1))) * botin * (1 + nivelArt("cristales"))),
+        artefacto: Math.random() < d.artefacto,
+        materia: d.materia ?? 0,
+    };
+}
+function juntarViaje(i) {
+    const v = estado.viajes[i];
+    if (!v || v.vuelve > Date.now()) return;
+    const d = destino(v.destino);
+    const r = recompensa(d);
+    estado.viajes.splice(i, 1);
+    const ev = EVENTOS.find((e) => e.id === v.evento);
+    if (ev) return mostrarEvento(ev, d, r);
+    entregar(d, r, null);
+}
+function entregar(d, r, mensaje) {
+    ganar(r.energia);
+    estado.cristales += r.cristales;
+    estado.materia += r.materia;
+    let art = null;
+    if (r.artefacto) {
+        art = artefactoAlAzar();
+        estado.artefactos[art.id] = (estado.artefactos[art.id] ?? 0) + 1;
+    }
+    sonidos.regreso();
+    vibrar([30, 30, 60]);
+    avisar(`${mensaje ? `${mensaje} · ` : ""}${d.icono} +⚡${formatear(r.energia)}${r.cristales ? ` · 💠${r.cristales}` : ""}${r.materia ? ` · 🌌${r.materia}` : ""}${art ? ` · ${art.icono} ¡${art.nombre}!` : ""}`);
+    if (art) efectos.logro();
+    guardarProgreso();
+    actualizar();
+    pintarPaneles(true);
+}
+function mostrarEvento(ev, d, r) {
+    cont.eventos++;
+    $("evento-titulo").textContent = ev.titulo;
+    $("evento-texto").textContent = `${ev.texto} (vuelve de ${d.nombre} con ⚡${formatear(r.energia)})`;
+    $("evento-opciones").innerHTML = ev.opciones.map((o, k) => `<button type="button" data-k="${k}">${o.texto}<small>${o.riesgo}</small></button>`).join("");
+    $("evento").hidden = false;
+    efectos.abrir();
+    $("evento-opciones").onclick = (e) => {
+        const b = e.target.closest("button");
+        if (!b) return;
+        const res = ev.opciones[Number(b.dataset.k)].resolver(r);
+        $("evento").hidden = true;
+        entregar(d, { ...r, energia: r.energia * res.mult, cristales: Math.round(r.cristales * Math.min(1, res.mult)) + (res.cristales ?? 0), artefacto: r.artefacto || res.artefacto }, res.msg);
+    };
+}
+// Cohete que sale del planeta (decorativo)
+const cohetes = [];
+function lanzarCohete() {
+    const g = MODELOS.nave();
+    g.scale.setScalar(1.2);
+    g.position.set(0, 1.6, 0);
+    g.rotation.z = Math.PI / 2;
+    g.userData = { vida: 2.2, vel: new THREE.Vector3((Math.random() - 0.5) * 2, 3, -2) };
+    scene.add(g);
+    cohetes.push(g);
+}
+alAnimar((dt) => {
+    for (let i = cohetes.length - 1; i >= 0; i--) {
+        const c = cohetes[i];
+        c.userData.vida -= dt;
+        c.userData.vel.multiplyScalar(1 + dt * 1.2);
+        c.position.addScaledVector(c.userData.vel, dt);
+        particulas.emitir(c.position, 0xffb703, 1, { velocidad: 0.4, arriba: 0, tamano: 0.1, gravedad: 0, vida: 0.4, brillo: true });
+        if (c.userData.vida <= 0) {
+            scene.remove(c);
+            cohetes.splice(i, 1);
+        }
+    }
+});
+
+function pintarExpediciones() {
+    const ahora = Date.now();
+    const viajes = estado.viajes.map((v, i) => {
+        const d = destino(v.destino);
+        const falta = v.vuelve - ahora;
+        const total = duracion(d);
+        const listo = falta <= 0;
+        return `<div class="fila-col${listo ? " lista" : ""}"><span class="ico-col">${d.icono}</span><div class="txt">${listo ? "¡Volvió de" : "Viajando a"} ${d.nombre}${listo ? "!" : ""}
+            <small>${listo ? (v.evento ? "Algo pasó en el viaje…" : "Tocá para descargar") : `Vuelve en ${formatearDuracion(falta)}`}</small>
+            ${listo ? "" : `<div class="barra-col"><i style="width:${Math.round((1 - falta / total) * 100)}%"></i></div>`}</div>
+            ${listo ? `<button type="button" class="juntar" data-juntar="${i}">Descargar</button>` : ""}</div>`;
+    }).join("");
+    const destinos = DESTINOS.map((d) => {
+        const bloqueado = d.requiere && estado.materia < d.requiere;
+        return `<div class="fila-col${bloqueado ? " bloqueada" : ""}"><span class="ico-col">${d.icono}</span><div class="txt">${d.nombre} <em>${formatearDuracion(duracion(d))}</em>
+            <small>${bloqueado ? `🔒 Necesita 🌌 ${d.requiere} de materia oscura` : `${d.detalle} · ⚡${formatear(Math.max(100, porSegundo() * d.energia) * (1 + nivelArt("botin")))} · 💠${d.cristales[0]}-${d.cristales[1]}${d.artefacto >= 1 ? " · 💎 seguro" : d.artefacto >= 0.1 ? ` · 💎 ${Math.round(d.artefacto * 100)}%` : ""}`}</small></div>
+            <button type="button" data-mandar="${d.id}" ${bloqueado || navesLibres() < 1 ? "disabled" : ""}>Mandar</button></div>`;
+    }).join("");
+    const comprar = estado.naves < MAX_NAVES
+        ? `<div class="fila-col"><span class="ico-col">🛸</span><div class="txt">Nave nueva<small>Más naves = más viajes a la vez</small></div><button type="button" data-nave ${estado.cristales < costoNave(estado.naves) ? "disabled" : ""}>💠 ${costoNave(estado.naves)}</button></div>`
+        : "";
+    return `<div class="cabeza-col"><span>🚀 Naves: ${navesLibres()} libres de ${estado.naves}</span><span>Los viajes siguen aunque cierres la app</span></div>${viajes}${destinos}${comprar}`;
+}
+$("expediciones").addEventListener("click", (e) => {
+    const b = e.target.closest("button");
+    if (!b || b.disabled) return;
+    if (b.dataset.mandar) mandarNave(b.dataset.mandar);
+    else if (b.dataset.juntar !== undefined) juntarViaje(Number(b.dataset.juntar));
+    else if (b.dataset.nave !== undefined && estado.cristales >= costoNave(estado.naves)) {
+        estado.cristales -= costoNave(estado.naves);
+        estado.naves++;
+        efectos.comprar();
+        avisar(`🛸 ¡Ya tenés ${estado.naves} naves!`);
+    }
+    actualizar();
+    pintarPaneles(true);
+});
+
+// ---------- Artefactos ----------
+function pintarArtefactos() {
+    const tengo = ARTEFACTOS.filter((a) => estado.artefactos[a.id]).length;
+    return `<div class="cabeza-col"><span>💎 ${tengo}/${ARTEFACTOS.length} artefactos</span><span>Se consiguen en expediciones · repetidos suben de nivel</span></div>
+        <div class="grilla-artefactos">${ARTEFACTOS.map((a) => {
+            const n = estado.artefactos[a.id] ?? 0;
+            return n ? `<div class="artefacto"><span>${a.icono}</span>${a.nombre} <b>Nv ${n}</b><small>${a.texto(n)}</small></div>` : `<div class="artefacto oculto"><span>❔</span>???<small>Explorá para encontrarlo</small></div>`;
+        }).join("")}</div>`;
+}
+
+// ---------- Contratos ----------
+function nuevoContrato() {
+    // Un tipo que no esté ya entre los contratos abiertos
+    const usados = new Set(estado.contratos.map((c) => c.medida));
+    const libres = TIPOS_CONTRATO.filter((x) => !usados.has(x.medida));
+    const tipo = libres[Math.floor(Math.random() * libres.length)] ?? TIPOS_CONTRATO[0];
+    const escala = 1 + estado.materia * 0.3;
+    const meta = tipo.energia ? Math.max(1000, Math.round(porSegundo() * 600)) : Math.round(tipo.base * escala * (0.8 + Math.random() * 0.6));
+    return { medida: tipo.medida, meta, desde: cont[tipo.medida], cristales: 2 + Math.floor(Math.random() * 3) + Math.floor(estado.materia / 2), energia: Math.round(Math.max(200, porSegundo() * 300)) };
+}
+estado.contratos = estado.contratos.filter((c, i, l) => l.findIndex((x) => x.medida === c.medida) === i);
+while (estado.contratos.length < 3) estado.contratos.push(nuevoContrato());
+const progresoContrato = (c) => Math.min(c.meta, cont[c.medida] - c.desde);
+function pintarContratos() {
+    return `<div class="cabeza-col"><span>📜 Contratos de la federación</span><span>Al cumplir uno aparece otro</span></div>` + estado.contratos.map((c, i) => {
+        const tipo = TIPOS_CONTRATO.find((x) => x.medida === c.medida);
+        const p = progresoContrato(c);
+        const listo = p >= c.meta;
+        return `<div class="fila-col${listo ? " lista" : ""}"><span class="ico-col">📜</span><div class="txt">${tipo.texto(tipo.energia ? formatear(c.meta) : c.meta)}
+            <small>Premio: 💠${c.cristales} y ⚡${formatear(c.energia)}</small><div class="barra-col"><i style="width:${Math.round((p / c.meta) * 100)}%"></i></div></div>
+            <button type="button" class="${listo ? "juntar" : ""}" data-contrato="${i}" ${listo ? "" : "disabled"}>${listo ? "Cobrar" : `${tipo.energia ? formatear(p) : p}/${tipo.energia ? formatear(c.meta) : c.meta}`}</button></div>`;
+    }).join("");
+}
+$("contratos").addEventListener("click", (e) => {
+    const b = e.target.closest("button[data-contrato]");
+    if (!b || b.disabled) return;
+    const i = Number(b.dataset.contrato);
+    const c = estado.contratos[i];
+    if (progresoContrato(c) < c.meta) return;
+    estado.cristales += c.cristales;
+    ganar(c.energia);
+    cont.contratos++;
+    estado.contratos.splice(i, 1);
+    estado.contratos.splice(i, 0, nuevoContrato());
+    efectos.monedas();
+    avisar(`📜 ¡Contrato cumplido! +💠${c.cristales}`);
+    actualizar();
+    pintarPaneles(true);
+});
+
+// Solo se redibuja el panel abierto, y solo si cambió
+const ultimos = {};
+function pintarPaneles(forzar = false) {
+    const html = { expediciones: pintarExpediciones, artefactos: pintarArtefactos, contratos: pintarContratos }[panelActual]?.();
+    if (html !== undefined && (forzar || html !== ultimos[panelActual])) {
+        ultimos[panelActual] = html;
+        $(panelActual).innerHTML = html;
+    }
+    $("exp-lista").hidden = !estado.viajes.some((v) => v.vuelve <= Date.now());
+    $("con-lista").hidden = !estado.contratos.some((c) => progresoContrato(c) >= c.meta);
+}
+setInterval(() => pintarPaneles(), 1000);
+
+// ---------- Base común ----------
+const LOGROS = [
+    { id: "toques", icono: "👆", nombre: "Dedos de energía", detalle: "Tocá el planeta 1000 veces", meta: 1000, valor: () => cont.toques, fichas: 400 },
+    { id: "meteoros", icono: "☄️", nombre: "Cazameteoritos", detalle: "Atrapá 25 meteoritos", meta: 25, valor: () => cont.meteoros, fichas: 1000 },
+    { id: "exp1", icono: "🚀", nombre: "Primer viaje", detalle: "Mandá una expedición", meta: 1, valor: () => cont.expediciones, fichas: 200 },
+    { id: "exp50", icono: "🛰️", nombre: "Flota estelar", detalle: "Mandá 50 expediciones", meta: 50, valor: () => cont.expediciones, fichas: 4000 },
+    { id: "naves", icono: "🛸", nombre: "Escuadrón", detalle: "Tené 4 naves", meta: 4, valor: () => estado.naves, fichas: 2500 },
+    { id: "artefactos5", icono: "💎", nombre: "Arqueólogo espacial", detalle: "Encontrá 5 artefactos distintos", meta: 5, valor: () => Object.keys(estado.artefactos).length, fichas: 2000 },
+    { id: "artefactos10", icono: "👑", nombre: "Museo galáctico", detalle: "Encontrá los 10 artefactos", meta: 10, valor: () => Object.keys(estado.artefactos).length, fichas: 10000 },
+    { id: "contratos10", icono: "📜", nombre: "Contratista", detalle: "Cumplí 10 contratos", meta: 10, valor: () => cont.contratos, fichas: 1500 },
+    { id: "salto", icono: "🌌", nombre: "Viajero intergaláctico", detalle: "Saltá de galaxia", meta: 1, valor: () => cont.saltos, fichas: 2000 },
+    { id: "dyson", icono: "☀️", nombre: "Anillo Dyson", detalle: "Construí un anillo Dyson", meta: 1, valor: () => estado.edificios.dyson ?? 0, fichas: 6000 },
+    { id: "eventos", icono: "🏴‍☠️", nombre: "Aventurero", detalle: "Viví 10 eventos en el espacio", meta: 10, valor: () => cont.eventos, fichas: 1200 },
+];
+const base = crearBase({
+    juego: "colonia",
+    barra: document.querySelector(".barra-colonia"),
+    logros: LOGROS,
+    audio,
+    regaloDiario: (dia) => {
+        const e = Math.max(500, porSegundo() * 900 * dia);
+        return dia === 7
+            ? { icono: "💎", texto: `⚡${formatear(e)}, 💠10 y un artefacto`, dar: () => { ganar(e); estado.cristales += 10; const a = artefactoAlAzar(); estado.artefactos[a.id] = (estado.artefactos[a.id] ?? 0) + 1; actualizar(); } }
+            : { icono: dia % 2 ? "⚡" : "💠", texto: dia % 2 ? `⚡${formatear(e)}` : `💠${2 + dia}`, dar: () => { if (dia % 2) ganar(e); else estado.cristales += 2 + dia; actualizar(); } };
+    },
+});
+// Rendimiento: cuánto tarda cada cuadro (de la primera a la última animación registrada)
+let inicioCuadro = performance.now();
+alAnimar(() => {
+    base.medir(performance.now() - inicioCuadro);
+    requestAnimationFrame(() => (inicioCuadro = performance.now()));
+});
+
+// ---------- Mientras no estabas ----------
+const ausenteTotal = (Date.now() - estado.ultimaVez) / 1000;
+const ausente = Math.min(ausenteTotal, (MAX_HORAS_AUSENTE + tec("piloto") * 2 + nivelArt("ausente")) * 3600);
+const ganadoAusente = porSegundo() * ausente;
+if (ganadoAusente >= 1) ganar(ganadoAusente);
+const navesListas = estado.viajes.filter((v) => v.vuelve <= Date.now()).length;
+const mostro = ausenteTotal > 60 && base.resumenAlVolver(ausenteTotal, [
+    { icono: "⚡", texto: "Energía que juntó la colonia", valor: ganadoAusente >= 1 ? formatear(ganadoAusente) : "" },
+    { icono: "🚀", texto: "Naves que ya volvieron", valor: navesListas ? `${navesListas} (descargalas en Expediciones)` : "" },
+    { icono: "⏳", texto: "Tope de horas", valor: ausenteTotal > ausente ? `${Math.round(ausente / 3600)} h (subilo con el piloto automático)` : "" },
+]);
+if (!mostro) setTimeout(() => base.revisarRegalo(), 600);
+
 actualizar();
+pintarPaneles(true);
