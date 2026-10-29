@@ -20,7 +20,7 @@ function pintar() {
     $("avatar").innerHTML = htmlAvatar(perfil, usuario.displayName || usuario.email || "?");
     $("quitar").hidden = !perfil?.foto;
     $("nombre").value = perfil?.nombre ?? "";
-    $("email").textContent = `Entrás con ${usuario.email}`;
+    $("email").textContent = usuario.isAnonymous ? "Jugás como invitado: creá tu cuenta desde el inicio para no perder nada" : `Entrás con ${usuario.email}`;
 }
 
 $("form-nombre").addEventListener("submit", async (e) => {
