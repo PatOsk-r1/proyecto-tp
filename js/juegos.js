@@ -29,6 +29,8 @@ const JUEGOS = [
     { categoria: "multi", grupo: "Rápidos", nombre: "Puntos y cajas", descripcion: "Cerrá cajas y jugá de nuevo", emoji: "🟦", carpeta: "games/cajas/" },
 
     { categoria: "casino", grupo: "Tragamonedas y premios", nombre: "Tragamonedas", descripcion: "Pozos acumulados, giros gratis y logros", emoji: "🎰", carpeta: "games/tragamonedas/" },
+    { categoria: "casino", grupo: "Tragamonedas y premios", nombre: "Tesoro del faraón", descripcion: "Tragamonedas de Egipto: máscaras, escarabajos y pirámides", emoji: "🏺", carpeta: "games/faraon/" },
+    { categoria: "casino", grupo: "Tragamonedas y premios", nombre: "Tesoro pirata", descripcion: "Tragamonedas pirata: doblones, loros y cofres", emoji: "🏴‍☠️", carpeta: "games/pirata/" },
     { categoria: "casino", grupo: "Tragamonedas y premios", nombre: "Rueda de la fortuna", descripcion: "Girá y multiplicá con tres niveles de riesgo", emoji: "🎡", carpeta: "games/rueda/" },
     { categoria: "casino", grupo: "Tragamonedas y premios", nombre: "Raspadita", descripcion: "Raspá con el dedo y buscá tres iguales", emoji: "🎟️", carpeta: "games/raspadita/" },
     { categoria: "casino", grupo: "Tragamonedas y premios", nombre: "Bingo", descripcion: "Hasta 4 cartones, 32 bolillas y líneas que pagan", emoji: "🎱", carpeta: "games/bingo/" },
