@@ -2,6 +2,7 @@
 // Los cristales que juntás se gastan en el hangar: naves nuevas y mejoras permanentes.
 import { cargar, guardar, vibrar } from "../../js/comun3d.js";
 import { crearLienzo, bucle, crearChispas } from "../../js/lienzo2d.js";
+import { ejeX, ejeY, alAccion, tocarSiVisible } from "../../js/teclado.js";
 
 const $ = (id) => document.getElementById(id);
 const CLAVE = "espacial";
@@ -972,8 +973,25 @@ function dibujar(dt) {
 }
 
 bucle((dt) => {
-    if (juego?.vivo && $("centro").hidden && $("hangar").hidden) paso(dt);
+    if (juego?.vivo && $("centro").hidden && $("hangar").hidden) {
+        moverConTeclado(dt);
+        paso(dt);
+    }
     dibujar(dt);
+});
+
+// En la compu: flechas para mover la nave, espacio para la bomba (o para empezar)
+function moverConTeclado(dt) {
+    const dx = ejeX();
+    const dy = ejeY();
+    if (!dx && !dy) return;
+    const n = juego.nave;
+    const velocidad = Math.min(lienzo.ancho, 700) * 0.9;
+    n.objetivoX = Math.max(18, Math.min(lienzo.ancho - 18, (n.objetivoX ?? lienzo.ancho / 2) + dx * velocidad * dt));
+    n.objetivoY = Math.max(lienzo.alto * 0.4, Math.min(lienzo.alto - 30, (n.objetivoY ?? lienzo.alto * 0.8) + dy * velocidad * dt));
+}
+alAccion(() => {
+    if (!tocarSiVisible($("jugar"))) usarBomba();
 });
 
 // ---------- Controles: la nave va hacia el dedo (un poco más arriba para verla) ----------
