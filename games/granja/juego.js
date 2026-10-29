@@ -6,6 +6,7 @@ import { dibujarPersona, frase, GRACIAS, persona } from "./visitas.js";
 import { dibujarAnimal } from "./animales.js";
 import { abrirGarra } from "./garra.js";
 import { CAPITULOS } from "./misiones.js";
+import { crearBase } from "../../js/incremental.js";
 
 const $ = (id) => document.getElementById(id);
 const CLAVE = "granja";
@@ -534,6 +535,7 @@ function abonar(i) {
     p.desde -= falta * 0.5;
     p.abonada = true;
     estado.abono--;
+    estado.abonoUsado = (estado.abonoUsado ?? 0) + 1;
     rebotes[i] = performance.now();
     const r = rectParcela(i);
     chispas.emitir(r.x + r.w / 2, r.y + r.h / 2, "#8fd14f", 14, 110);
@@ -2665,11 +2667,55 @@ addEventListener("pagehide", () => guardar(CLAVE, estado));
 pintarDatos();
 pintarPanel();
 
+// ---------- Base común: logros, regalo diario y resumen al volver (la Granja tiene sus propios ajustes) ----------
+const LOGROS = [
+    { id: "nivel5", icono: "⭐", nombre: "Granjero novato", detalle: "Llegá a nivel 5", meta: 5, valor: () => estado.nivel, fichas: 300 },
+    { id: "nivel10", icono: "🌟", nombre: "Granjero experto", detalle: "Llegá a nivel 10", meta: 10, valor: () => estado.nivel, fichas: 1500 },
+    { id: "nivel15", icono: "👑", nombre: "Rey del campo", detalle: "Llegá a nivel 15", meta: 15, valor: () => estado.nivel, fichas: 6000 },
+    { id: "trigo100", icono: "🌾", nombre: "Mar de trigo", detalle: "Cosechá 100 de trigo", meta: 100, valor: () => estado.registro.cosecha.trigo ?? 0, fichas: 500 },
+    { id: "cosecha500", icono: "🧺", nombre: "Gran cosecha", detalle: "Cosechá 500 cultivos en total", meta: 500, valor: () => Object.values(estado.registro.cosecha).reduce((a, b) => a + b, 0), fichas: 2000 },
+    { id: "pedidos25", icono: "📦", nombre: "Repartidor", detalle: "Entregá 25 pedidos", meta: 25, valor: () => estado.registro.entregas, fichas: 1200 },
+    { id: "pedidos100", icono: "🚚", nombre: "La granja del pueblo", detalle: "Entregá 100 pedidos", meta: 100, valor: () => estado.registro.entregas, fichas: 5000 },
+    { id: "animales", icono: "🐄", nombre: "Corral lleno", detalle: "Tené 8 animales", meta: 8, valor: () => estado.animales.length, fichas: 1500 },
+    { id: "taller", icono: "🏭", nombre: "Industria rural", detalle: "Construí los 4 edificios del taller", meta: 4, valor: () => FABRICAS.filter((f) => tengoFabrica(f.id)).length, fichas: 4000 },
+    { id: "terreno", icono: "🗺️", nombre: "Hacendado", detalle: "Comprá los 16 terrenos", meta: 16, valor: () => estado.lotes, fichas: 3000 },
+    { id: "capitulo2", icono: "📖", nombre: "Buena vecina", detalle: "Terminá el capítulo 1 de misiones", meta: 1, valor: () => estado.mision.cap, fichas: 1000 },
+    { id: "capitulo4", icono: "🏆", nombre: "Leyenda del pueblo", detalle: "Terminá todas las misiones", meta: 4, valor: () => estado.mision.cap, fichas: 10000 },
+    { id: "abono", icono: "💩", nombre: "Nada se desperdicia", detalle: "Juntá 50 cacas", meta: 50, valor: () => (estado.abono + estado.abonoUsado) * 5 + estado.estiercol, fichas: 800 },
+];
+estado.abonoUsado ??= 0;
+const base = crearBase({
+    juego: "granja",
+    barra: document.querySelector(".barra-granja"),
+    logros: LOGROS,
+    ajustes: false,
+    regaloDiario: (dia) => {
+        const m = Math.round(Math.max(80, estado.nivel * 40) * dia);
+        if (dia === 7) return { icono: "🕹️", texto: `${formatear(m)} monedas, 3 tiros de garra y 3 abonos`, dar: () => ((estado.monedas += m), (estado.garra = (estado.garra ?? 0) + 3), (estado.abono += 3), refrescar()) };
+        if (dia === 4) return { icono: "🧺", texto: `${formatear(m)} monedas y 2 abonos`, dar: () => ((estado.monedas += m), (estado.abono += 2), refrescar()) };
+        return { icono: "🪙", texto: `${formatear(m)} monedas`, dar: () => ((estado.monedas += m), refrescar()) };
+    },
+});
+// El botón de logros va antes de la ruedita de ajustes
+$("ajustes").before(document.querySelector(".barra-granja .boton-base"));
+
 // Al volver: qué pasó mientras la granja estuvo cerrada
 {
+    const ausente = (Date.now() - (estado.ultimaVisita ?? Date.now())) / 1000;
     const listos = estado.parcelas.filter((p) => p && progreso(p) >= 1).length;
     const animalesListos = estado.animales.filter((a) => Date.now() - a.desde >= tiempoAnimal(animal(a.tipo))).length;
-    const partes = [listos && `${listos} cultivo${listos > 1 ? "s" : ""}`, animalesListos && `${animalesListos} animal${animalesListos > 1 ? "es" : ""}`].filter(Boolean);
-    if (mejora("granjero") && estado.parcelas.some(Boolean)) avisar("👩‍🌾 El granjero cuidó el campo mientras no estabas", 2800);
-    else if (partes.length) avisar(`🌾 Listos para juntar: ${partes.join(" y ")} · deslizá el dedo`, 3200);
+    const taller = FABRICAS.reduce((t, f) => t + listosEn(f.id), 0);
+    const mostro = ausente > 60 && base.resumenAlVolver(ausente, [
+        { icono: "🌾", texto: "Cultivos listos para cosechar", valor: listos ? `${listos} (deslizá el dedo)` : "" },
+        { icono: "🥚", texto: "Animales con algo para juntar", valor: animalesListos || "" },
+        { icono: "🏭", texto: "Productos listos en el taller", valor: taller || "" },
+        { icono: "💩", texto: "Caca para juntar en el corral", valor: estado.caca.length || "" },
+        { icono: "👩‍🌾", texto: "El granjero cuidó el campo", valor: mejora("granjero") && estado.parcelas.some(Boolean) ? "✔" : "" },
+    ]);
+    if (!mostro) setTimeout(() => base.revisarRegalo(), 600);
 }
+setInterval(() => (estado.ultimaVisita = Date.now()), 4000);
+addEventListener("pagehide", () => {
+    estado.ultimaVisita = Date.now();
+    guardar(CLAVE, estado);
+});
