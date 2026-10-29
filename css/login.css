@@ -1,10 +1,11 @@
-/* Login: fondo animado con luces y fichas de juegos, tarjeta de vidrio */
+/* Login: fondo animado con luces y fichas de juegos, tarjeta de vidrio.
+   Rendimiento: sin filter/backdrop-filter (son lo más caro en celulares) y todas las animaciones
+   solo mueven transform u opacity, que la placa de video hace sin volver a pintar la página. */
 
 .pagina-login {
     position: relative;
     overflow-x: hidden;
-    background: radial-gradient(120% 90% at 50% 0%, #2d2170 0%, #140f33 55%, #0b0820 100%);
-    background-attachment: fixed;
+    background: #140f33;
 }
 
 /* ---------- Fondo ---------- */
@@ -14,6 +15,7 @@
     overflow: hidden;
     pointer-events: none;
     z-index: 0;
+    background: radial-gradient(120% 90% at 50% 0%, #2d2170 0%, #140f33 55%, #0b0820 100%);
 }
 
 .luz {
@@ -21,8 +23,8 @@
     width: 60vmax;
     height: 60vmax;
     border-radius: 50%;
-    filter: blur(60px);
     opacity: 0.5;
+    will-change: transform;
     animation: flotar-luz 18s ease-in-out infinite alternate;
 }
 
@@ -66,13 +68,12 @@
     background: linear-gradient(160deg, #ffffff22, #ffffff08);
     border: 1px solid #ffffff26;
     box-shadow: 0 10px 30px #0006;
-    backdrop-filter: blur(4px);
-    -webkit-backdrop-filter: blur(4px);
     opacity: 0.75;
+    will-change: transform;
     animation: flotar-ficha 9s ease-in-out infinite;
 }
 
-.f1 { top: 8%; left: 7%; transform: rotate(-12deg); animation-delay: 0s; }
+.f1 { top: 8%; left: 7%; animation-delay: 0s; }
 .f2 { top: 14%; right: 9%; animation-delay: -2s; }
 .f3 { top: 46%; left: 3%; animation-delay: -4s; }
 .f4 { bottom: 12%; left: 10%; animation-delay: -1s; }
@@ -84,12 +85,10 @@
 
 @keyframes flotar-ficha {
     0%, 100% {
-        translate: 0 0;
-        rotate: -6deg;
+        transform: translateY(0) rotate(-6deg);
     }
     50% {
-        translate: 0 -14px;
-        rotate: 6deg;
+        transform: translateY(-14px) rotate(6deg);
     }
 }
 
@@ -129,11 +128,24 @@
 }
 
 .logo-aro {
+    position: relative;
     padding: 4px;
     border-radius: 24px;
     background: conic-gradient(from 0deg, #ffcc33, #ff3d7f, #7b2ff7, #00c2ff, #ffcc33);
-    box-shadow: 0 0 40px #ff3d7f55, 0 12px 30px #0008;
+    box-shadow: 0 12px 30px #0008;
+    will-change: transform;
     animation: latir-aro 3s ease-in-out infinite;
+}
+
+/* Halo de luz detrás del logo: late cambiando solo su opacidad */
+.logo-aro::before {
+    content: "";
+    position: absolute;
+    inset: -30px;
+    z-index: -1;
+    border-radius: 50%;
+    background: radial-gradient(circle, #ffcc3366, #ff3d7f33 45%, transparent 70%);
+    animation: latir-halo 3s ease-in-out infinite;
 }
 
 .logo-aro .logo-login {
@@ -143,13 +155,21 @@
 
 @keyframes latir-aro {
     50% {
-        box-shadow: 0 0 60px #ffcc3377, 0 12px 30px #0008;
         transform: translateY(-3px);
     }
 }
 
+@keyframes latir-halo {
+    0%, 100% {
+        opacity: 0.5;
+    }
+    50% {
+        opacity: 1;
+    }
+}
+
 @media (prefers-reduced-motion: reduce) {
-    .logo-aro {
+    .logo-aro, .logo-aro::before {
         animation: none;
     }
 }
@@ -178,11 +198,10 @@
     gap: 14px;
     padding: 18px 18px 14px;
     border-radius: 24px;
-    background: linear-gradient(165deg, #ffffff1f, #ffffff0a);
+    /* Casi opaca en vez de desenfoque: se ve igual y no obliga a redibujar el fondo animado */
+    background: linear-gradient(165deg, #3a2f7aeb, #1e1747f2);
     border: 1px solid #ffffff2e;
     box-shadow: 0 24px 60px #0009, inset 0 1px 0 #ffffff33;
-    backdrop-filter: blur(18px);
-    -webkit-backdrop-filter: blur(18px);
     animation: entrar-arriba 0.6s 0.1s ease-out both;
 }
 
@@ -360,20 +379,73 @@
     content: "";
     position: absolute;
     top: 0;
-    left: -60%;
+    left: 0;
     width: 40%;
     height: 100%;
     background: linear-gradient(100deg, transparent, #fff8, transparent);
+    transform: translateX(-150%);
     animation: brillo-boton 3.5s ease-in-out infinite;
 }
 
 @keyframes brillo-boton {
     0%, 60% {
-        left: -60%;
+        transform: translateX(-150%);
     }
     100% {
-        left: 130%;
+        transform: translateX(330%);
     }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .pagina-login .boton-principal::after {
+        animation: none;
+    }
+}
+
+/* ---------- Invitado ---------- */
+.boton-invitado {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font: inherit;
+    font-weight: 800;
+    font-size: 1rem;
+    color: #fff;
+    padding: 13px;
+    border-radius: 14px;
+    background: linear-gradient(180deg, #7b2ff7, #5a1fc4);
+    border: 1px solid #ffffff33;
+    box-shadow: 0 6px 18px #7b2ff755;
+    transition: transform 0.15s;
+}
+
+.boton-invitado:active {
+    transform: scale(0.98);
+}
+
+.boton-invitado:disabled {
+    opacity: 0.5;
+}
+
+.nota-invitado {
+    margin-top: -6px;
+    font-size: 0.78rem;
+    text-align: center;
+    color: var(--texto-suave);
+}
+
+.banner-invitado {
+    width: 100%;
+    padding: 10px 12px;
+    border-radius: 12px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    line-height: 1.35;
+    color: #fff3c4;
+    background: #ffcc3322;
+    border: 1px solid #ffcc3366;
 }
 
 .pagina-login .boton-principal:active {
