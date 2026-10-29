@@ -5,9 +5,14 @@ import { fichas, cambiarFichas, recargar, puedeRecargar } from "../../js/fichas.
 import { APUESTAS, mantenerApretado } from "../../js/casino.js";
 import { crearLienzo, bucle } from "../../js/lienzo2d.js";
 import { SIMBOLOS, NOMBRES, LINEAS, POZOS, RUEDA, PROB_RUEDA, GIROS_GRATIS, PAGO_BONO, MULT_GRATIS, tirada, evaluar, sortear } from "./reglas.js";
+import { TEMAS } from "./temas.js";
 
 const $ = (id) => document.getElementById(id);
-const CLAVE = "tragamonedas";
+// Las variantes (games/faraon, games/pirata) cargan este mismo juego con otra temática
+const TEMA = TEMAS[window.TEMA_TRAGAMONEDAS] ?? TEMAS.clasico;
+const CLAVE = TEMA.clave;
+document.querySelector(".marquesina").innerHTML = TEMA.marquesina;
+document.body.classList.add(`tema-maquina-${window.TEMA_TRAGAMONEDAS ?? "clasico"}`);
 const TAU = Math.PI * 2;
 const COLORES_LINEA = ["#ff006e", "#ffbe0b", "#3a86ff", "#8ac926", "#ff7a1a", "#c77dff", "#00f5d4", "#f15bb5", "#fee440", "#00bbf9"];
 
@@ -107,6 +112,7 @@ function sprite(nombre) {
         x.fillText(t, 0, y);
     };
     sombra();
+    if (TEMA.dibujar?.(nombre, { x, radial, texto, sombra, sinSombra })) return c;
     if (nombre === "cereza") {
         x.strokeStyle = "#2d6a4f";
         x.lineWidth = 6;
@@ -318,14 +324,14 @@ function dibujarMaquina(dt) {
     const m = marco();
     // Gabinete dorado con luces
     const g = ctx.createLinearGradient(0, 0, 0, alto);
-    g.addColorStop(0, gratisActivo ? "#c77dff" : "#ffd166");
-    g.addColorStop(0.5, gratisActivo ? "#5a189a" : "#b5179e");
-    g.addColorStop(1, gratisActivo ? "#240046" : "#560bad");
+    g.addColorStop(0, gratisActivo ? "#c77dff" : TEMA.gabinete[0]);
+    g.addColorStop(0.5, gratisActivo ? "#5a189a" : TEMA.gabinete[1]);
+    g.addColorStop(1, gratisActivo ? "#240046" : TEMA.gabinete[2]);
     ctx.fillStyle = g;
     ctx.beginPath();
     ctx.roundRect(0, 0, ancho, alto, 22);
     ctx.fill();
-    ctx.strokeStyle = "#fff3b0";
+    ctx.strokeStyle = TEMA.borde;
     ctx.lineWidth = 3;
     ctx.stroke();
     // Bombitas
@@ -341,8 +347,8 @@ function dibujarMaquina(dt) {
         else if ((d -= alto) < ancho) [bx, by] = [ancho - d, alto - 6];
         else [bx, by] = [6, alto - (d - ancho)];
         const prendida = (k + Math.floor(tiempo * (parpadeo > 0 ? 14 : 3))) % 3 === 0;
-        ctx.fillStyle = prendida ? "#fffbe0" : "#ffd16655";
-        ctx.shadowColor = prendida ? "#ffd166" : "transparent";
+        ctx.fillStyle = prendida ? TEMA.luz : "#ffd16655";
+        ctx.shadowColor = prendida ? TEMA.luz : "transparent";
         ctx.shadowBlur = prendida ? 8 : 0;
         ctx.beginPath();
         ctx.arc(bx, by, 3, 0, TAU);
@@ -350,7 +356,7 @@ function dibujarMaquina(dt) {
     }
     ctx.shadowBlur = 0;
     // Ventana
-    ctx.fillStyle = "#1a0526";
+    ctx.fillStyle = TEMA.ventana;
     ctx.beginPath();
     ctx.roundRect(m.x - 4, m.y - 4, m.w + 8, m.h + 8, 14);
     ctx.fill();
@@ -363,10 +369,10 @@ function dibujarMaquina(dt) {
     rodillos.forEach((r, i) => {
         const x0 = m.x + i * rw;
         const fondo = ctx.createLinearGradient(0, m.y, 0, m.y + m.h);
-        fondo.addColorStop(0, "#d9d9e6");
-        fondo.addColorStop(0.18, "#ffffff");
-        fondo.addColorStop(0.82, "#ffffff");
-        fondo.addColorStop(1, "#d9d9e6");
+        fondo.addColorStop(0, TEMA.rodillo[0]);
+        fondo.addColorStop(0.18, TEMA.rodillo[1]);
+        fondo.addColorStop(0.82, TEMA.rodillo[1]);
+        fondo.addColorStop(1, TEMA.rodillo[0]);
         ctx.fillStyle = fondo;
         ctx.fillRect(x0 + 1.5, m.y, rw - 3, m.h);
         if (r.anticipa && r.estado !== "quieto") {
