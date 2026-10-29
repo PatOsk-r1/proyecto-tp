@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <title>Panadería · Proyecto TP</title>
-    <meta name="theme-color" content="#5a2d0c">
+    <meta name="theme-color" content="#6f4518">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <link rel="apple-touch-icon" href="../../icons/icon-180.png">
@@ -15,41 +15,32 @@
     <link rel="stylesheet" href="estilo.css">
 </head>
 <body class="pantalla-3d tema-panaderia">
-    <header class="barra-juego">
+    <header class="barra-juego barra-pan">
         <a class="boton-volver" href="../../">‹ Juegos</a>
         <h1>Panadería</h1>
-        <button id="abrir-sucursal" class="boton-sucursal" type="button">⭐ <span id="estrellas">0</span></button>
+        <div class="hud-pan">
+            <div class="pildora-p"><i class="moneda-p"></i><strong id="monedas">0</strong></div>
+            <div class="pildora-p nivel-p"><span class="estrella-p"><b id="nivel">1</b></span><div class="barra-p"><i id="xp"></i></div></div>
+        </div>
     </header>
 
-    <section class="vidriera">
-        <div class="cartel-local">PANADERÍA <span id="nombre-local">LA ESQUINA</span></div>
-        <div id="dinero" class="dinero">$0</div>
-        <div id="por-segundo" class="por-segundo">$0 por segundo</div>
-        <div class="comprar-de">
-            <span>Comprar:</span>
-            <button class="cantidad activa" data-cantidad="1">×1</button>
-            <button class="cantidad" data-cantidad="10">×10</button>
-            <button class="cantidad" data-cantidad="100">×100</button>
-            <button class="cantidad" data-cantidad="max">Máx</button>
-        </div>
-    </section>
+    <div class="cuerpo-p">
+        <section class="local">
+            <canvas id="lienzo"></canvas>
+            <div id="aviso" class="aviso-p" hidden></div>
+            <p class="ayuda-local">Tocá un horno para hornear · tocá al cliente para venderle</p>
+        </section>
 
-    <main id="lineas" class="lineas"></main>
-
-    <div id="sucursal" class="hoja-fondo" hidden>
-        <div class="hoja">
-            <h2>⭐ Abrir una nueva sucursal</h2>
-            <p>Empezás de cero, pero cada estrella hace que <strong>todo gane un 10% más</strong> para siempre.</p>
-            <p class="grande-s">Ganarías <strong id="estrellas-nuevas">0</strong> estrellas</p>
-            <p class="chico-s">Las estrellas salen de todo lo que ganaste en esta sucursal.</p>
-            <div class="botones-s">
-                <button id="cancelar-sucursal" class="accion secundaria" type="button">Ahora no</button>
-                <button id="confirmar-sucursal" class="accion" type="button">Abrir sucursal</button>
-            </div>
+        <div class="columna-p">
+            <nav class="pestanas-p">
+                <button class="pestana-p activa" data-p="recetas">🥐<small>Recetas</small></button>
+                <button class="pestana-p" data-p="mejoras">⭐<small>Mejoras</small></button>
+                <button class="pestana-p" data-p="personal">👩‍🍳<small>Personal</small></button>
+                <button class="pestana-p" data-p="sucursal">🏪<small>Sucursal</small></button>
+            </nav>
+            <main id="panel" class="panel-p"></main>
         </div>
     </div>
-
-    <div id="aviso" class="mensaje-centro" hidden></div>
 
     <script type="module">
         import { exigirSesion } from "../../js/sesion.js";
