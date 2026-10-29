@@ -10,7 +10,7 @@ const JUEGOS = [
     { categoria: "solo", grupo: "Incrementales", nombre: "Héroe idle", descripcion: "Pegale a monstruos, armá tu equipo y vencé jefes", emoji: "🗡️", carpeta: "games/heroe/" },
     { categoria: "solo", grupo: "Incrementales", nombre: "Isla del tesoro", descripcion: "Explorá la niebla, armá el campamento y encontrá la X", emoji: "🏝️", carpeta: "games/isla/" },
     { categoria: "solo", grupo: "Incrementales", nombre: "Granja", descripcion: "Plantá, criá animales y cumplí pedidos", emoji: "🌾", carpeta: "games/granja/" },
-    { categoria: "solo", grupo: "Incrementales", nombre: "Acuario", descripcion: "Criá peces que juntan monedas solos", emoji: "🐠", carpeta: "games/acuario/" },
+    { categoria: "solo", grupo: "Incrementales", nombre: "Acuario", descripcion: "Simulador: criá peces, cuidalos y ojo con los depredadores", emoji: "🐠", carpeta: "games/acuario/" },
     { categoria: "solo", grupo: "Incrementales", nombre: "Panadería", descripcion: "Horneá, contratá encargados y abrí sucursales", emoji: "🥐", carpeta: "games/panaderia/" },
     { categoria: "solo", grupo: "Incrementales", nombre: "Colonia espacial", descripcion: "Construí satélites y estaciones en órbita", emoji: "🪐", carpeta: "games/colonia/" },
     { categoria: "solo", grupo: "Arcade", nombre: "Corredor espacial", descripcion: "Esquivá y destruí oleadas de naves", emoji: "🚀", carpeta: "games/espacial/" },
