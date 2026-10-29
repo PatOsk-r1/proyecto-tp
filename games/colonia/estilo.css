@@ -1,0 +1,314 @@
+/* Colonia espacial: panel con pestañas, expediciones, artefactos y contratos */
+.boton-salto {
+    margin-left: auto;
+    font: inherit;
+    font-weight: 900;
+    color: #02010a;
+    background: linear-gradient(180deg, #c77dff, #7b2cbf);
+    border: none;
+    border-radius: 999px;
+    padding: 8px 14px;
+    box-shadow: 0 3px 0 #0008;
+}
+
+.barra-colonia {
+    gap: 8px;
+}
+
+@media (max-width: 480px) {
+    .barra-colonia h1 {
+        display: none;
+    }
+}
+
+.hoja-fondo {
+    position: fixed;
+    inset: 0;
+    z-index: 30;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    background: #000b;
+}
+
+.hoja {
+    max-width: 420px;
+    padding: 20px;
+    border-radius: 20px;
+    background: #120a33;
+    border: 2px solid #c77dff;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.hoja strong.grande {
+    font-size: 2rem;
+    color: #c77dff;
+}
+
+.hoja .botones {
+    display: flex;
+    gap: 8px;
+}
+
+.opciones-evento {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.opciones-evento button {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 12px;
+    font: inherit;
+    font-weight: 900;
+    color: #fff;
+    background: linear-gradient(160deg, #3c096c, #240046);
+    border: 2px solid #c77dff;
+    border-radius: 14px;
+}
+
+.opciones-evento button small {
+    font-weight: 700;
+    color: #e0aaff;
+    font-size: 0.75rem;
+}
+
+/* ---------- Cuerpo y columna ---------- */
+.cuerpo-col {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.columna-col {
+    display: flex;
+    flex-direction: column;
+    max-height: 46%;
+    min-height: 0;
+    background: var(--panel);
+    border-top: 1px solid var(--borde);
+}
+
+.pestanas-col {
+    display: flex;
+    gap: 4px;
+    padding: 6px 6px 0;
+}
+
+.pestana-col {
+    position: relative;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 6px 0 5px;
+    font: inherit;
+    font-size: 1.3rem;
+    color: #e0aaffaa;
+    background: #ffffff08;
+    border: none;
+    border-radius: 12px 12px 0 0;
+}
+
+.pestana-col small {
+    font-size: 0.62rem;
+    font-weight: 900;
+}
+
+.pestana-col.activa {
+    color: #fff;
+    background: #ffffff18;
+}
+
+.pestana-col i {
+    position: absolute;
+    top: 3px;
+    right: 16%;
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: #ff4d6d;
+    box-shadow: 0 0 6px #ff4d6d;
+}
+
+.panel-col {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 10px 12px calc(12px + env(safe-area-inset-bottom));
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.panel-col[hidden] {
+    display: none !important;
+}
+
+.columna-col .panel-mejoras {
+    display: grid;
+    max-height: none;
+    border-top: none;
+    background: none;
+    backdrop-filter: none;
+}
+
+.fila-col {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px;
+    border-radius: 14px;
+    background: linear-gradient(160deg, #ffffff16, #ffffff05);
+    border: 1px solid #ffffff22;
+}
+
+.fila-col.lista {
+    border-color: #8fd14f;
+    box-shadow: 0 0 12px #8fd14f44;
+}
+
+.fila-col.bloqueada {
+    opacity: 0.5;
+}
+
+.ico-col {
+    width: 44px;
+    height: 44px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.6rem;
+    border-radius: 12px;
+    background: #ffffff10;
+}
+
+.fila-col .txt {
+    flex: 1;
+    min-width: 0;
+    font-weight: 900;
+    font-size: 0.9rem;
+}
+
+.fila-col .txt small {
+    display: block;
+    font-weight: 600;
+    font-size: 0.74rem;
+    color: var(--texto-suave);
+}
+
+.fila-col .txt em {
+    font-style: normal;
+    color: #ffd166;
+    font-size: 0.75rem;
+}
+
+.fila-col button {
+    font: inherit;
+    font-size: 0.8rem;
+    font-weight: 900;
+    color: #02010a;
+    background: linear-gradient(180deg, #7df9ff, #3a86ff);
+    border: none;
+    border-radius: 10px;
+    padding: 9px 11px;
+    white-space: nowrap;
+}
+
+.fila-col button:disabled {
+    opacity: 0.4;
+}
+
+.fila-col button.juntar {
+    background: linear-gradient(180deg, #b7f171, #3f9a2a);
+}
+
+.barra-col {
+    height: 6px;
+    margin-top: 5px;
+    border-radius: 999px;
+    background: #ffffff1a;
+    overflow: hidden;
+}
+
+.barra-col i {
+    display: block;
+    height: 100%;
+    background: linear-gradient(90deg, #7df9ff, #c77dff);
+}
+
+.cabeza-col {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.85rem;
+    font-weight: 800;
+    color: var(--texto-suave);
+}
+
+.grilla-artefactos {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 8px;
+}
+
+.artefacto {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    padding: 10px 6px;
+    border-radius: 14px;
+    text-align: center;
+    background: linear-gradient(160deg, #3c096c88, #24004688);
+    border: 1px solid #c77dff66;
+    font-size: 0.8rem;
+    font-weight: 800;
+}
+
+.artefacto span {
+    font-size: 1.8rem;
+}
+
+.artefacto small {
+    font-weight: 600;
+    color: #e0aaff;
+    font-size: 0.7rem;
+}
+
+.artefacto.oculto {
+    opacity: 0.35;
+    filter: grayscale(1);
+}
+
+@media (min-width: 900px) {
+    .cuerpo-col {
+        flex-direction: row;
+    }
+
+    .columna-col {
+        width: min(420px, 36vw);
+        max-height: none;
+        border-top: none;
+        border-left: 1px solid var(--borde);
+    }
+}
+
+.cabeza-col span:last-child {
+    font-size: 0.7rem;
+    opacity: 0.75;
+    text-align: right;
+}
+
+.columna-col .panel-mejoras {
+    align-content: start;
+    grid-auto-rows: max-content;
+}
