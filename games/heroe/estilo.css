@@ -264,3 +264,18 @@
     display: flex;
     gap: 8px;
 }
+
+/* Barra de arriba: en pantallas angostas se oculta el título para que entren los botones */
+.barra-juego {
+    gap: 8px;
+}
+
+.barra-juego .boton-almas {
+    margin-left: auto;
+}
+
+@media (max-width: 480px) {
+    .barra-juego h1 {
+        display: none;
+    }
+}
