@@ -219,6 +219,72 @@
     opacity: 0.5;
 }
 
+/* Evento con opciones (mercader) */
+.evento-i {
+    position: absolute;
+    left: 50%;
+    bottom: 44px;
+    transform: translateX(-50%);
+    width: min(320px, 92%);
+    padding: 10px 12px;
+    border-radius: 16px;
+    background: var(--arena);
+    color: var(--oscuro);
+    border: 3px solid #3d2512;
+    box-shadow: 0 10px 24px #0008;
+    font-weight: 800;
+    font-size: 0.85rem;
+    text-align: center;
+    z-index: 4;
+    animation: aparecer 0.25s ease-out;
+}
+
+.evento-i strong {
+    display: block;
+    font-size: 1rem;
+    margin-bottom: 2px;
+}
+
+.evento-i .botones-evento {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.evento-i button {
+    flex: 1;
+    padding: 9px;
+    font: inherit;
+    font-weight: 900;
+    border: none;
+    border-radius: 12px;
+    color: #fff;
+    background: #2a9d8f;
+}
+
+.evento-i button.no {
+    background: #8d5a2b;
+}
+
+.evento-i button:disabled {
+    opacity: 0.45;
+}
+
+.evento-i .tiempo-evento {
+    height: 4px;
+    margin-top: 8px;
+    border-radius: 999px;
+    background: #3d251233;
+    overflow: hidden;
+}
+
+.evento-i .tiempo-evento i {
+    display: block;
+    height: 100%;
+    background: #e76f51;
+    transform-origin: left;
+}
+
 .aviso-i {
     position: absolute;
     top: 40px;
