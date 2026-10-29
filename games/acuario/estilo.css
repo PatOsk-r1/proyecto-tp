@@ -91,6 +91,22 @@
 
     .pildora-a {
         flex: 1;
+        min-width: 0;
+        gap: 3px;
+        padding: 3px 8px 3px 3px;
+    }
+
+    .pildora-a small {
+        display: none;
+    }
+
+    .hud-acuario {
+        gap: 4px;
+        min-width: 0;
+    }
+
+    .boton-estante {
+        padding: 2px 7px;
     }
 }
 
