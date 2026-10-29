@@ -3,6 +3,7 @@ import {
     THREE, crearEscena, material, formatear, cargar, guardar, textoFlotante, vibrar, MONEDA,
     fondoDegradado, crearParticulas,
 } from "../../js/comun3d.js";
+import { alAccion, tocarSiVisible } from "../../js/teclado.js";
 
 const $ = (id) => document.getElementById(id);
 const CLAVE = "apilar";
@@ -258,6 +259,11 @@ function terminar() {
 
 renderer.domElement.addEventListener("pointerdown", () => {
     if (partida?.jugando && movil) soltar();
+});
+// En la compu: espacio para soltar el bloque (o para empezar)
+alAccion(() => {
+    if (partida?.jugando && movil) soltar();
+    else tocarSiVisible($("jugar"));
 });
 
 // ---------- Animación ----------
