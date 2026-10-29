@@ -2,6 +2,31 @@
 // Cada 5 etapas hay un jefe con tiempo. Al renacer ganás almas: más daño para siempre y reliquias.
 import { formatear, cargar, guardar, vibrar } from "../../js/comun3d.js";
 import { crearLienzo, bucle, crearChispas } from "../../js/lienzo2d.js";
+import { crearAudio, MUSICAS } from "../../js/sonido.js";
+import { crearBase, calidadAutomatica } from "../../js/incremental.js";
+
+const audio = crearAudio({ musica: MUSICAS.aventura });
+const { nota, golpe, efectos } = audio;
+// Sonidos propios del héroe
+const sonidos = {
+    toque: () => {
+        golpe({ dur: 0.07, vol: 0.18, filtro: 900, tipo: "lowpass" });
+        nota({ f: 180 + Math.random() * 40, hasta: 90, dur: 0.09, vol: 0.12, onda: "square" });
+    },
+    critico: () => {
+        golpe({ dur: 0.1, vol: 0.25, filtro: 700, tipo: "lowpass" });
+        nota({ f: 1200, hasta: 1800, dur: 0.18, vol: 0.12, onda: "triangle" });
+    },
+    muerte: () => {
+        nota({ f: 420, hasta: 120, dur: 0.22, vol: 0.14, onda: "sawtooth" });
+        golpe({ t: 0.05, dur: 0.12, vol: 0.12, filtro: 1200, tipo: "lowpass" });
+    },
+    habilidad: () => {
+        golpe({ dur: 0.35, vol: 0.18, filtro: 1500, tipo: "bandpass" });
+        nota({ f: 300, hasta: 1200, dur: 0.35, vol: 0.12, onda: "sawtooth" });
+    },
+    renacer: () => [262, 330, 392, 523, 659, 784].forEach((f, k) => nota({ f, t: k * 0.12, dur: 0.6, vol: 0.14, onda: "sine" })),
+};
 
 const $ = (id) => document.getElementById(id);
 const CLAVE = "heroe";
@@ -51,6 +76,9 @@ const FORMAS = ["baba", "ojo", "hongo", "golem", "fantasma"];
 const NUEVO = () => ({ oro: 0, etapa: 1, muertes: 0, heroe: 1, equipo: {}, avanzar: true });
 const estado = cargar(CLAVE, { ...NUEVO(), almas: 0, almasTotales: 0, maxEtapa: 1, reliquias: {}, habilidades: {}, ultimaVez: Date.now() });
 for (const e of EQUIPO) estado.equipo[e.id] ??= 0;
+// Contadores para los logros (no se pierden al renacer)
+estado.contadores ??= { jefes: 0, renacimientos: 0, criticos: 0, cofres: 0, oroTotal: 0, recordEtapa: estado.maxEtapa ?? 1, habilidades: 0 };
+const cont = estado.contadores;
 for (const r of RELIQUIAS) estado.reliquias[r.id] ??= 0;
 const rel = (id) => estado.reliquias[id];
 
@@ -114,6 +142,12 @@ function matar() {
     const cofre = !monstruo.jefe && Math.random() < 0.03;
     if (cofre) oro *= 10;
     estado.oro += oro;
+    cont.oroTotal += oro;
+    if (cofre) cont.cofres++;
+    if (monstruo.jefe) cont.jefes++;
+    sonidos.muerte();
+    if (monstruo.jefe) efectos.fanfarria();
+    else if (cofre) efectos.monedas();
     monstruo.muerte = 0.45;
     const { x, y } = posMonstruo();
     chispas.emitir(x, y, `hsl(${monstruo.tono},80%,60%)`, monstruo.jefe ? 40 : 16, monstruo.jefe ? 260 : 170);
@@ -132,6 +166,7 @@ function matar() {
         }
     }
     estado.maxEtapa = Math.max(estado.maxEtapa, estado.etapa);
+    cont.recordEtapa = Math.max(cont.recordEtapa, estado.etapa);
     actualizar();
 }
 
@@ -141,6 +176,7 @@ function fallarJefe() {
     estado.avanzar = false;
     avisar("Se acabó el tiempo. Mejorá el equipo y volvé a intentar.");
     vibrar(150);
+    efectos.error();
     nuevoMonstruo();
     actualizar();
 }
@@ -154,10 +190,30 @@ let ancho = 300;
 let alto = 200;
 let ataque = 0;
 let tiempo = 0;
+// Dibujos guardados (compañeros, cielo): se pintan una vez y se copian en cada cuadro
+const sprites = new Map();
+function sprite(clave, w, h, dibujarlo) {
+    let s = sprites.get(clave);
+    if (!s) {
+        const escala = Math.min(devicePixelRatio, 1.5);
+        const c = document.createElement("canvas");
+        c.width = Math.max(1, Math.ceil(w * escala));
+        c.height = Math.max(1, Math.ceil(h * escala));
+        const cx = c.getContext("2d");
+        cx.scale(escala, escala);
+        dibujarlo(cx);
+        s = { c, w, h };
+        sprites.set(clave, s);
+    }
+    return s;
+}
 const lienzo = crearLienzo($("lienzo"), (d) => {
     ancho = d.ancho;
     alto = d.alto;
-});
+    sprites.clear();
+}, 1.5);
+// Si el teléfono no llega, baja la resolución (primero un poco, después más)
+const vigilarCalidad = calidadAutomatica((nivel) => lienzo.cambiarEscala(nivel === 1 ? 1.15 : 1));
 const suelo = () => alto * 0.8;
 const posHeroe = () => ({ x: ancho * 0.3, y: suelo() });
 const posMonstruo = () => ({ x: ancho * 0.72, y: suelo() - (monstruo?.forma === "ojo" || monstruo?.forma === "fantasma" ? alto * 0.18 : alto * 0.11) });
@@ -169,11 +225,14 @@ function numero(valor, critico) {
 
 function dibujarFondo(ctx) {
     const b = BIOMAS[Math.floor((estado.etapa - 1) / 10) % BIOMAS.length];
-    const g = ctx.createLinearGradient(0, 0, 0, suelo());
-    g.addColorStop(0, b.cielo[0]);
-    g.addColorStop(1, b.cielo[1]);
-    ctx.fillStyle = g;
-    ctx.fillRect(0, 0, ancho, alto);
+    const cielo = sprite(`cielo-${b.nombre}`, ancho, suelo(), (c) => {
+        const g = c.createLinearGradient(0, 0, 0, suelo());
+        g.addColorStop(0, b.cielo[0]);
+        g.addColorStop(1, b.cielo[1]);
+        c.fillStyle = g;
+        c.fillRect(0, 0, ancho, suelo());
+    });
+    ctx.drawImage(cielo.c, 0, 0, cielo.w, cielo.h);
     // Lomas lejanas que se mueven despacio
     ctx.fillStyle = b.lomas;
     ctx.globalAlpha = 0.7;
@@ -442,8 +501,6 @@ function dibujarDisparo(ctx, d) {
     } else if (d.tipo === "tajo") {
         ctx.strokeStyle = d.color;
         ctx.lineWidth = 3;
-        ctx.shadowColor = d.color;
-        ctx.shadowBlur = 8;
         ctx.beginPath();
         ctx.arc(0, 0, 10, -1, 1);
         ctx.stroke();
@@ -455,8 +512,11 @@ function dibujarDisparo(ctx, d) {
         ctx.fill();
     } else {
         ctx.fillStyle = d.color;
-        ctx.shadowColor = d.color;
-        ctx.shadowBlur = 12;
+        ctx.globalAlpha = 0.3;
+        ctx.beginPath();
+        ctx.arc(0, 0, d.tipo === "fuego" ? 12 : 9, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = 1;
         ctx.beginPath();
         ctx.arc(0, 0, d.tipo === "fuego" ? 7 : 5, 0, Math.PI * 2);
         ctx.fill();
@@ -481,7 +541,16 @@ function dibujar(dt) {
     const contratados = EQUIPO.filter((e) => estado.equipo[e.id] > 0);
     contratados.map((e, i) => ({ e, i })).reverse().forEach(({ e, i }) => {
         const { x, y } = lugarEquipo(i);
-        dibujarPersonaje(ctx, x, y, tam * 0.55, e.color, e.id);
+        // Cada compañero es un dibujo guardado; el saltito se aplica al copiarlo
+        const t2 = tam * 0.55;
+        const img = sprite(`pj-${e.id}-${Math.round(t2)}`, t2 * 1.4, t2 * 1.6, (c) => {
+            const guardado = tiempo;
+            tiempo = -(t2 * 0.7) / 4; // así el saltito queda en 0 dentro del dibujo
+            dibujarPersonaje(c, t2 * 0.7, t2 * 1.45, t2, e.color, e.id);
+            tiempo = guardado;
+        });
+        const brinco = Math.abs(Math.sin(tiempo * 4 + x)) * t2 * 0.05;
+        ctx.drawImage(img.c, x - t2 * 0.7, y - t2 * 1.45 - brinco, img.w, img.h);
     });
     const h = posHeroe();
     dibujarPersonaje(ctx, h.x, h.y, tam, "#3a86ff", "heroe", ataque > 0 ? Math.sin((1 - ataque / 0.18) * Math.PI) : 0);
@@ -595,6 +664,7 @@ function dibujar(dt) {
 // ---------- Ciclo ----------
 let acumulado = 0;
 bucle((dt) => {
+    const inicioCuadro = performance.now();
     tiempo += dt;
     ataque = Math.max(0, ataque - dt);
     if (!monstruo) nuevoMonstruo();
@@ -618,6 +688,9 @@ bucle((dt) => {
         actualizar();
         pintarHabilidades();
     }
+    const ms = performance.now() - inicioCuadro;
+    base?.medir(ms);
+    vigilarCalidad(ms);
 });
 
 $("lienzo").addEventListener("pointerdown", () => {
@@ -625,7 +698,11 @@ $("lienzo").addEventListener("pointerdown", () => {
     const critico = Math.random() < probCritico();
     ataque = 0.18;
     danar(danoToque() * (critico ? 6 : 1), critico, true);
-    if (critico) vibrar(25);
+    if (critico) {
+        vibrar(25);
+        cont.criticos++;
+        sonidos.critico();
+    } else sonidos.toque();
     const p = posMonstruo();
     chispas.emitir(p.x - 10, p.y, critico ? "#ffd166" : "#ffffff", critico ? 10 : 4, 140);
 });
@@ -663,6 +740,7 @@ crearFila({
         estado.oro -= costoHeroe(n);
         estado.heroe += n;
         vibrar(15);
+        efectos.comprar();
         actualizar();
     },
     pintar(el) {
@@ -687,6 +765,7 @@ for (const e of EQUIPO) {
             if (!estado.equipo[e.id]) avisar(`¡${e.nombre} se unió al equipo!`);
             estado.equipo[e.id] += n;
             vibrar(15);
+            efectos.comprar();
             actualizar();
         },
         pintar(el) {
@@ -773,6 +852,8 @@ for (const [id, h] of Object.entries(HABILIDADES)) {
         estado.habilidades[id] = { hasta: ahora + h.dura * 1000, listo: ahora + h.recarga * 1000 };
         avisar(h.texto);
         vibrar(40);
+        cont.habilidades++;
+        sonidos.habilidad();
         pintarHabilidades();
         actualizar();
     });
@@ -793,6 +874,8 @@ $("confirmar-renacer").addEventListener("click", () => {
     if (nuevas < 1) return;
     estado.almas += nuevas;
     estado.almasTotales += nuevas;
+    cont.renacimientos++;
+    sonidos.renacer();
     Object.assign(estado, NUEVO());
     for (const e of EQUIPO) estado.equipo[e.id] = 0;
     estado.etapa = 1 + rel("atajo") * 3;
@@ -826,6 +909,7 @@ $("reliquias").addEventListener("click", (e) => {
     estado.almas -= costo;
     estado.reliquias[r.id]++;
     vibrar(30);
+    efectos.comprar();
     pintarReliquias();
     actualizar();
 });
@@ -839,14 +923,55 @@ setInterval(guardarProgreso, 5000);
 document.addEventListener("visibilitychange", guardarProgreso);
 addEventListener("pagehide", guardarProgreso);
 
+// ---------- Base común: logros, regalo diario, resumen al volver y ajustes ----------
+const LOGROS = [
+    { id: "etapa10", icono: "🌲", nombre: "Explorador", detalle: "Llegá a la etapa 10", meta: 10, valor: () => cont.recordEtapa, fichas: 200 },
+    { id: "etapa25", icono: "🕳️", nombre: "Cazador de cuevas", detalle: "Llegá a la etapa 25", meta: 25, valor: () => cont.recordEtapa, fichas: 500 },
+    { id: "etapa50", icono: "🏜️", nombre: "Caminante del desierto", detalle: "Llegá a la etapa 50", meta: 50, valor: () => cont.recordEtapa, fichas: 1500 },
+    { id: "etapa100", icono: "🌋", nombre: "Domador de volcanes", detalle: "Llegá a la etapa 100", meta: 100, valor: () => cont.recordEtapa, fichas: 5000 },
+    { id: "etapa200", icono: "🌌", nombre: "Leyenda del abismo", detalle: "Llegá a la etapa 200", meta: 200, valor: () => cont.recordEtapa, fichas: 20000 },
+    { id: "jefe1", icono: "👑", nombre: "Primer jefe", detalle: "Vencé a un jefe", meta: 1, valor: () => cont.jefes, fichas: 150 },
+    { id: "jefe25", icono: "⚔️", nombre: "Matajefes", detalle: "Vencé 25 jefes", meta: 25, valor: () => cont.jefes, fichas: 1000 },
+    { id: "jefe100", icono: "🐉", nombre: "Pesadilla de los jefes", detalle: "Vencé 100 jefes", meta: 100, valor: () => cont.jefes, fichas: 4000 },
+    { id: "renacer1", icono: "👻", nombre: "Nueva vida", detalle: "Renacé una vez", meta: 1, valor: () => cont.renacimientos, fichas: 800 },
+    { id: "renacer10", icono: "♾️", nombre: "Alma eterna", detalle: "Renacé 10 veces", meta: 10, valor: () => cont.renacimientos, fichas: 6000 },
+    { id: "equipo", icono: "🛡️", nombre: "Equipo completo", detalle: "Contratá a los 8 compañeros", meta: EQUIPO.length, valor: () => EQUIPO.filter((e) => estado.equipo[e.id] > 0).length, fichas: 3000 },
+    { id: "heroe100", icono: "💪", nombre: "Héroe entrenado", detalle: "Subí al héroe a nivel 100", meta: 100, valor: () => estado.heroe, fichas: 1000 },
+    { id: "criticos", icono: "🎯", nombre: "Ojo certero", detalle: "Hacé 200 golpes críticos", meta: 200, valor: () => cont.criticos, fichas: 800 },
+    { id: "cofres", icono: "🧰", nombre: "Buscatesoros", detalle: "Encontrá 15 cofres", meta: 15, valor: () => cont.cofres, fichas: 1200 },
+    { id: "oro", icono: "💰", nombre: "Millonario", detalle: "Juntá 1M de oro en total", meta: 1e6, valor: () => cont.oroTotal, fichas: 1500 },
+    { id: "habilidades", icono: "⚡", nombre: "Mago de batalla", detalle: "Usá habilidades 50 veces", meta: 50, valor: () => cont.habilidades, fichas: 700 },
+];
+const base = crearBase({
+    juego: "heroe",
+    barra: document.querySelector(".barra-juego"),
+    logros: LOGROS,
+    audio,
+    // El regalo crece hasta el día 7, que además da almas
+    regaloDiario: (dia) => {
+        const oro = Math.ceil(oroEn(Math.max(1, cont.recordEtapa - 2)) * 15 * dia);
+        return dia === 7
+            ? { icono: "👻", texto: `${formatear(oro)} de oro y 3 almas`, dar: () => ((estado.oro += oro), (estado.almas += 3), (estado.almasTotales += 3), actualizar()) }
+            : { icono: dia >= 4 ? "💎" : "💰", texto: `${formatear(oro)} de oro`, dar: () => ((estado.oro += oro), actualizar()) };
+    },
+});
+
 // El equipo sigue juntando oro en la etapa actual (sin avanzar) mientras no jugás
-const ausente = Math.min((Date.now() - estado.ultimaVez) / 1000, (2 + rel("cofre")) * 3600);
+const ausenteTotal = (Date.now() - estado.ultimaVez) / 1000;
+const ausente = Math.min(ausenteTotal, (2 + rel("cofre")) * 3600);
 const etapaGranja = esJefe(estado.etapa) ? estado.etapa - 1 : estado.etapa;
 const ganadoAusente = Math.floor((dpsEquipo() / vidaEn(etapaGranja)) * oroEn(etapaGranja) * ausente * 0.5);
+const monstruosAusente = Math.floor((dpsEquipo() / vidaEn(etapaGranja)) * ausente * 0.5);
 if (ganadoAusente >= 1 && ausente > 60) {
     estado.oro += ganadoAusente;
-    setTimeout(() => avisar(`Mientras no estabas el equipo juntó ${formatear(ganadoAusente)} de oro`), 500);
+    cont.oroTotal += ganadoAusente;
 }
+const mostroResumen = ausenteTotal > 60 && base.resumenAlVolver(ausenteTotal, [
+    { icono: "💰", texto: "Oro que juntó el equipo", valor: ganadoAusente >= 1 ? formatear(ganadoAusente) : "" },
+    { icono: "👾", texto: "Monstruos vencidos", valor: monstruosAusente >= 1 ? formatear(monstruosAusente) : "" },
+    { icono: "⏳", texto: "Tope de tiempo", valor: ausenteTotal > ausente ? `${2 + rel("cofre")} h (subilo con el Cofre del viajero)` : "" },
+]);
+if (!mostroResumen) setTimeout(() => base.revisarRegalo(), 600);
 
 nuevoMonstruo();
 actualizar();
