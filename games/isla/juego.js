@@ -65,9 +65,23 @@ const estado = cargar(CLAVE, {
     contadores: { exploradas: 0, cofres: 0, tesoros: 0, islas: 0, gemas: 0, cocos: 0 },
 });
 const cont = estado.contadores;
+cont.piratas ??= 0;
 const isla = () => estado.isla.numero;
 const nivel = (id) => estado.isla.edificios[id] ?? 0;
-const energiaMax = () => 20 + nivel("choza") * 5 + estado.brujulas;
+
+// ---------- Objetos del explorador (se compran con gemas y se conservan al zarpar) ----------
+const OBJETOS = [
+    { id: "botas", icono: "🥾", nombre: "Botas de explorador", detalle: (n) => `${n * 12}% de chance de explorar sin gastar energía`, max: 5, costo: (n) => 3 * 2 ** n },
+    { id: "cantimplora", icono: "🫗", nombre: "Cantimplora", detalle: (n) => `+${n * 3} de energía máxima`, max: 5, costo: (n) => 2 * 2 ** n },
+    { id: "linterna", icono: "🔦", nombre: "Linterna", detalle: (n) => `Cuevas y cofres dan +${n * 40}%`, max: 5, costo: (n) => 4 * 2 ** n },
+    { id: "catalejo", icono: "🔭", nombre: "Catalejo", detalle: (n) => `Destellos ${n * 25}% más seguido y +${n * 30}% de botín`, max: 4, costo: (n) => 5 * 2 ** n },
+    { id: "loro", icono: "🦜", nombre: "Loro compañero", detalle: (n) => (n ? `Eventos +${n * 35}% de premio y ${n * 3} s más para reaccionar` : "Mejora los premios de piratas, tormentas y mercaderes"), max: 3, costo: (n) => Math.ceil(8 * 2.5 ** n) },
+];
+estado.objetos ??= {};
+const objeto = (id) => estado.objetos[id] ?? 0;
+const extraLoro = () => 1 + objeto("loro") * 0.35;
+
+const energiaMax = () => 20 + nivel("choza") * 5 + estado.brujulas + objeto("cantimplora") * 3;
 const segundosPorEnergia = () => 30 * 0.86 ** nivel("fogata");
 const multEncontrar = () => (1 + nivel("pala") * 0.25) * (1 + estado.brujulas * 0.1) * (1 + (isla() - 1) * 0.6);
 
@@ -608,6 +622,7 @@ function dibujar(dt) {
         ctx.quadraticCurveTo(bx, by, bx, by - r);
         ctx.fill();
     }
+    dibujarEvento(ctx, m, t);
     // Con los 3 pedazos del mapa, la X del tesoro se ve aunque haya niebla
     const x = casillas().find((k) => k.tipo === "tesoro");
     if (x && estado.isla.fragmentos >= 3 && !estado.isla.tesoroAbierto) {
@@ -672,7 +687,9 @@ function explorar(k) {
         efectos.error();
         return;
     }
-    estado.energia -= costo;
+    // Las botas a veces ahorran la energía
+    if (Math.random() < objeto("botas") * 0.12) avisar("🥾 ¡Explorás sin gastar energía!", 1400);
+    else estado.energia -= costo;
     excavando = k;
     explorador.destino = k;
     efectos.toque();
@@ -710,12 +727,12 @@ function terminarExcavacion() {
         sonidos.descubrir();
     } else if (k.tipo === "cofre") {
         cont.cofres++;
-        dar("monedas", (60 + r() * 60) * mult, p, 0);
+        dar("monedas", (60 + r() * 60) * mult * (1 + objeto("linterna") * 0.4), p, 0);
         if (r() < 0.5) dar("gemas", 1 + Math.floor(r() * 2), p, 1);
         sonidos.cofre();
         avisar("🧰 ¡Un cofre!");
     } else if (k.tipo === "cueva") {
-        dar("gemas", 1 + Math.floor(r() * 3 * Math.sqrt(isla())), p, 0);
+        dar("gemas", (1 + Math.floor(r() * 3 * Math.sqrt(isla()))) * (1 + objeto("linterna") * 0.4), p, 0);
         dar("piedra", (4 + r() * 4) * mult, p, 1);
         sonidos.gema();
     } else if (k.tipo === "ruina") {
@@ -786,7 +803,7 @@ const maxDestellos = () => (porcentajeExplorado() >= 1 ? 5 : 3);
 let relojDestellos = 0;
 function sumarDestello(dt) {
     relojDestellos += dt;
-    const cada = porcentajeExplorado() >= 1 ? 12 : 35;
+    const cada = (porcentajeExplorado() >= 1 ? 12 : 35) / (1 + objeto("catalejo") * 0.25);
     if (relojDestellos < cada) return;
     relojDestellos = 0;
     if (estado.isla.brillos.length >= maxDestellos()) return;
@@ -811,7 +828,7 @@ function tocarDestello(k) {
 function cavarDestello(k) {
     estado.isla.brillos = estado.isla.brillos.filter((i) => i !== indice(k));
     const p = centroCasilla(k);
-    const mult = multEncontrar() * 0.8;
+    const mult = multEncontrar() * 0.8 * (1 + objeto("catalejo") * 0.3);
     const r = Math.random;
     sonidos.cavar();
     chispas.emitir(p.x, p.y, "#fff6b0", 12, 110);
@@ -830,6 +847,197 @@ function cavarDestello(k) {
     refrescar();
 }
 
+// ---------- Eventos: piratas, tormentas y barcos mercantes ----------
+let evento = null;
+let proximoEvento = 80 + Math.random() * 60;
+function revisarEvento(dt) {
+    if (document.hidden) return;
+    if (evento) {
+        if (Date.now() > evento.fin) terminarEvento();
+        else if (evento.tipo === "mercader") pintarEvento();
+        return;
+    }
+    proximoEvento -= dt;
+    if (proximoEvento > 0 || tierras().filter((k) => k.vista).length < 6) return;
+    proximoEvento = 120 + Math.random() * 120;
+    empezarEvento(["piratas", "tormenta", "mercader"][Math.floor(Math.random() * 3)]);
+}
+function empezarEvento(tipo) {
+    const dur = (tipo === "tormenta" ? 14 : tipo === "piratas" ? 12 : 25) + objeto("loro") * 3;
+    evento = { tipo, dur, fin: Date.now() + dur * 1000 };
+    if (tipo === "piratas") {
+        const libres = tierras().filter((k) => k.vista && k.tipo !== "campamento").sort(() => Math.random() - 0.5);
+        evento.piratas = libres.slice(0, 3).map((k) => ({ i: indice(k), vivo: true }));
+        avisar("🏴‍☠️ ¡Desembarcaron piratas! Tocalos antes de que te roben", 3000);
+        sonidos.ola();
+        vibrar([40, 40, 40]);
+    } else if (tipo === "tormenta") {
+        avisar("⛈️ ¡Tormenta! Cuando pase, el mar deja cosas en la playa", 3000);
+        sonidos.ola();
+    } else {
+        evento.oferta = ofertaMercader();
+        avisar("⛵ Llegó un barco mercante", 1800);
+        pintarEvento();
+    }
+}
+// Solo en la compu de desarrollo: permite disparar un evento desde la consola para probarlo
+if (location.hostname === "localhost") window.probarEvento = empezarEvento;
+function ofertaMercader() {
+    const m = multEncontrar();
+    const opciones = [
+        { da: { madera: Math.ceil(15 * m) }, recibe: { monedas: Math.ceil(160 * m) } },
+        { da: { piedra: Math.ceil(12 * m) }, recibe: { monedas: Math.ceil(170 * m) } },
+        { da: { monedas: Math.ceil(400 * m) }, recibe: { gemas: 3 } },
+        { da: { cocos: 4 }, recibe: { madera: Math.ceil(20 * m), piedra: Math.ceil(10 * m) } },
+    ];
+    return opciones[Math.floor(Math.random() * opciones.length)];
+}
+function pintarEvento() {
+    const caja = $("evento");
+    if (evento?.tipo !== "mercader") {
+        caja.hidden = true;
+        return;
+    }
+    const o = evento.oferta;
+    const resto = Math.max(0, (evento.fin - Date.now()) / (evento.dur * 1000));
+    caja.innerHTML = `<strong>⛵ Barco mercante</strong>Te doy ${textoCosto(o.recibe)} por ${textoCosto(o.da)}
+        <div class="botones-evento"><button type="button" data-trato ${puedePagar(o.da) ? "" : "disabled"}>Trato hecho</button><button type="button" class="no" data-no-trato>No, gracias</button></div>
+        <div class="tiempo-evento"><i style="transform:scaleX(${resto.toFixed(2)})"></i></div>`;
+    caja.hidden = false;
+}
+$("evento").addEventListener("click", (e) => {
+    if (evento?.tipo !== "mercader") return;
+    if (e.target.closest("[data-trato]")) {
+        const o = evento.oferta;
+        if (!puedePagar(o.da)) return;
+        for (const [r, n] of Object.entries(o.da)) estado[r] -= n;
+        let k = 0;
+        for (const [r, n] of Object.entries(o.recibe)) dar(r, r === "gemas" ? n : n * extraLoro(), { x: ancho / 2, y: alto * 0.7 }, k++);
+        efectos.monedas();
+        terminarEvento();
+    } else if (e.target.closest("[data-no-trato]")) terminarEvento();
+});
+function terminarEvento() {
+    const ev = evento;
+    evento = null;
+    $("evento").hidden = true;
+    if (ev.tipo === "piratas") {
+        const quedan = ev.piratas.filter((p) => p.vivo).length;
+        if (!quedan) {
+            cont.piratas++;
+            dar("gemas", 1 + objeto("loro"), { x: ancho / 2, y: alto / 2 }, 0);
+            avisar("⚔️ ¡Echaste a todos los piratas!");
+            efectos.fanfarria();
+        } else {
+            const robo = Math.floor(estado.monedas * 0.06 * quedan);
+            estado.monedas -= robo;
+            avisar(robo ? `🏴‍☠️ Los piratas se llevaron ${formatear(robo)} monedas` : "🏴‍☠️ Los piratas se fueron");
+            efectos.error();
+        }
+    } else if (ev.tipo === "tormenta") {
+        const libres = tierras().filter((k) => k.vista && k.tipo !== "campamento" && !estado.isla.brillos.includes(indice(k)));
+        for (let n = 0; n < 4 && libres.length; n++) estado.isla.brillos.push(indice(libres.splice(Math.floor(Math.random() * libres.length), 1)[0]));
+        avisar("✨ La tormenta dejó cosas en la playa: cavá los destellos");
+    }
+    refrescar();
+}
+function tocarPirata(k) {
+    const pirata = evento?.tipo === "piratas" && evento.piratas.find((p) => p.vivo && p.i === indice(k));
+    if (!pirata) return false;
+    pirata.vivo = false;
+    const p = centroCasilla(k);
+    dar("monedas", (30 + Math.random() * 30) * multEncontrar() * extraLoro(), p, 0);
+    chispas.emitir(p.x, p.y, "#e63946", 16, 160);
+    sonidos.cavar();
+    vibrar(25);
+    if (evento.piratas.every((x) => !x.vivo)) terminarEvento();
+    return true;
+}
+function dibujarPirata(c, x, y, l) {
+    c.fillStyle = "#0003";
+    c.beginPath();
+    c.ellipse(x, y + l * 0.3, l * 0.16, l * 0.05, 0, 0, TAU);
+    c.fill();
+    c.fillStyle = "#3d405b";
+    c.fillRect(x - l * 0.08, y + l * 0.1, l * 0.06, l * 0.2);
+    c.fillRect(x + l * 0.02, y + l * 0.1, l * 0.06, l * 0.2);
+    c.fillStyle = "#f8f9fa";
+    c.fillRect(x - l * 0.12, y - l * 0.08, l * 0.24, l * 0.2);
+    c.fillStyle = "#e63946";
+    c.fillRect(x - l * 0.12, y - l * 0.04, l * 0.24, l * 0.04);
+    c.fillRect(x - l * 0.12, y + l * 0.04, l * 0.24, l * 0.04);
+    c.fillStyle = "#f2cc8f";
+    c.beginPath();
+    c.arc(x, y - l * 0.17, l * 0.1, 0, TAU);
+    c.fill();
+    c.fillStyle = "#1b1b1b";
+    c.beginPath();
+    c.moveTo(x - l * 0.18, y - l * 0.2);
+    c.quadraticCurveTo(x, y - l * 0.42, x + l * 0.18, y - l * 0.2);
+    c.fill();
+    c.fillStyle = "#f8f9fa";
+    c.beginPath();
+    c.arc(x, y - l * 0.27, l * 0.03, 0, TAU);
+    c.fill();
+    c.fillStyle = "#1b1b1b";
+    c.fillRect(x + l * 0.02, y - l * 0.2, l * 0.06, l * 0.035);
+    c.strokeStyle = "#ced4da";
+    c.lineWidth = l * 0.03;
+    c.beginPath();
+    c.moveTo(x + l * 0.14, y + l * 0.04);
+    c.lineTo(x + l * 0.3, y - l * 0.18);
+    c.stroke();
+}
+function dibujarEvento(ctx, m, t) {
+    if (!evento) return;
+    const l = m.lado;
+    if (evento.tipo === "piratas") {
+        for (const pi of evento.piratas) {
+            if (!pi.vivo) continue;
+            const p = centroCasilla(casillas()[pi.i], m);
+            dibujarPirata(ctx, p.x, p.y - l * 0.05 + Math.sin(t * 6 + pi.i) * l * 0.04, l);
+        }
+    } else if (evento.tipo === "mercader") {
+        // Barco anclado cerca de la costa
+        const x = ancho * 0.86;
+        const y = 92 + Math.sin(t * 1.5) * 3;
+        ctx.fillStyle = "#6f4518";
+        ctx.beginPath();
+        ctx.moveTo(x - 34, y);
+        ctx.lineTo(x + 34, y);
+        ctx.lineTo(x + 24, y + 16);
+        ctx.lineTo(x - 24, y + 16);
+        ctx.fill();
+        ctx.fillStyle = "#8d5a2b";
+        ctx.fillRect(x - 2, y - 46, 4, 46);
+        ctx.fillStyle = "#f8f9fa";
+        ctx.beginPath();
+        ctx.moveTo(x + 2, y - 44);
+        ctx.quadraticCurveTo(x + 30, y - 26, x + 2, y - 6);
+        ctx.fill();
+        ctx.fillStyle = "#2a9d8f";
+        ctx.fillRect(x - 2, y - 52, 16, 8);
+    } else {
+        // Tormenta: cielo oscuro, lluvia y algún relámpago
+        ctx.fillStyle = "rgba(10,20,45,0.38)";
+        ctx.fillRect(0, 0, ancho, alto);
+        ctx.strokeStyle = "rgba(200,220,255,0.45)";
+        ctx.lineWidth = 1.2;
+        ctx.beginPath();
+        for (let k = 0; k < 60; k++) {
+            const x = ((k * 53 + t * 220) % (ancho + 40)) - 20;
+            const y = ((k * 97 + t * 520) % (alto + 40)) - 20;
+            ctx.moveTo(x, y);
+            ctx.lineTo(x - 5, y + 14);
+        }
+        ctx.stroke();
+        if (Math.sin(t * 1.3) > 0.985) {
+            ctx.fillStyle = "rgba(255,255,255,0.45)";
+            ctx.fillRect(0, 0, ancho, alto);
+        }
+    }
+}
+
 // ---------- Toques ----------
 $("lienzo").addEventListener("pointerdown", (e) => {
     const caja = $("lienzo").getBoundingClientRect();
@@ -839,6 +1047,7 @@ $("lienzo").addEventListener("pointerdown", (e) => {
     if (cx < 0 || cy < 0 || cx >= COLS || cy >= FILAS) return;
     const k = casillas()[cy * COLS + cx];
     if (!k.tierra) return;
+    if (tocarPirata(k)) return;
     if (k.vista) {
         if (tocarTesoroVisto(k) || tocarDestello(k)) return;
         if (!explorador.destino && !excavando) explorador.destino = k; // caminar hasta ahí
@@ -868,6 +1077,14 @@ function pintarPanel() {
             return `<div class="fila-i"><span class="ico-i">${ed.icono}</span><div class="txt"><strong>${ed.nombre}${n ? ` <em>Nv ${n}</em>` : ""}</strong><span>${ed.detalle(n)}</span></div>
                 <button type="button" data-edificio="${ed.id}" ${tope || !puedePagar(costo) ? "disabled" : ""}>${tope ? "Listo" : textoCosto(costo)}</button></div>`;
         }).join("");
+    } else if (pestana === "explorador") {
+        html = OBJETOS.map((o) => {
+            const n = objeto(o.id);
+            const tope = n >= o.max;
+            const costo = o.costo(n);
+            return `<div class="fila-i"><span class="ico-i">${o.icono}</span><div class="txt"><strong>${o.nombre}${n ? ` <em>Nv ${n}</em>` : ""}</strong><span>${o.detalle(tope ? n : Math.max(n, 1))}</span></div>
+                <button type="button" data-objeto="${o.id}" ${tope || estado.gemas < costo ? "disabled" : ""}>${tope ? "Máximo" : `💎${costo}`}</button></div>`;
+        }).join("") + `<p class="ayuda-i">Se compran con gemas 💎 (cuevas, cofres, piratas y mercaderes) y los conservás al zarpar a otra isla.</p>`;
     } else {
         const pct = Math.round(porcentajeExplorado() * 100);
         const nuevas = brujulasAlZarpar();
@@ -888,7 +1105,15 @@ const brujulasAlZarpar = () => Math.floor(porcentajeExplorado() * 3 * isla() + (
 $("panel").addEventListener("click", (e) => {
     const b = e.target.closest("button");
     if (!b || b.disabled) return;
-    if (b.dataset.edificio) {
+    if (b.dataset.objeto) {
+        const o = OBJETOS.find((x) => x.id === b.dataset.objeto);
+        const n = objeto(o.id);
+        if (n >= o.max || estado.gemas < o.costo(n)) return;
+        estado.gemas -= o.costo(n);
+        estado.objetos[o.id] = n + 1;
+        efectos.comprar();
+        avisar(`${o.icono} ${o.nombre} ${n ? `nivel ${n + 1}` : "comprado"}`);
+    } else if (b.dataset.edificio) {
         const ed = EDIFICIOS.find((x) => x.id === b.dataset.edificio);
         const costo = ed.costo(nivel(ed.id));
         if (!puedePagar(costo) || nivel(ed.id) >= ed.max) return;
@@ -986,6 +1211,8 @@ const LOGROS = [
     { id: "zarpar5", icono: "🚢", nombre: "Navegante", detalle: "Visitá 5 islas", meta: 5, valor: () => cont.islas, fichas: 6000 },
     { id: "gemas25", icono: "💎", nombre: "Brillante", detalle: "Juntá 25 gemas", meta: 25, valor: () => cont.gemas, fichas: 1500 },
     { id: "cocos50", icono: "🥥", nombre: "Comecocos", detalle: "Comé 50 cocos", meta: 50, valor: () => cont.cocos, fichas: 600 },
+    { id: "piratas5", icono: "⚔️", nombre: "Terror de los piratas", detalle: "Echá a los piratas 5 veces", meta: 5, valor: () => cont.piratas, fichas: 2500 },
+    { id: "explorador", icono: "🎒", nombre: "Bien equipado", detalle: "Tené los 5 objetos del explorador", meta: OBJETOS.length, valor: () => OBJETOS.filter((o) => objeto(o.id) > 0).length, fichas: 3000 },
     { id: "campamento", icono: "⛺", nombre: "Campamento completo", detalle: "Construí los 7 edificios", meta: EDIFICIOS.length, valor: () => EDIFICIOS.filter((e) => nivel(e.id) > 0).length, fichas: 3000 },
 ];
 const base = crearBase({
@@ -1038,6 +1265,7 @@ bucle((dt) => {
         estado.piedra += p.piedra * segundo;
         estado.monedas += p.monedas * segundo;
         sumarDestello(segundo);
+        revisarEvento(segundo);
         segundo = 0;
         recargarEnergia();
     }
