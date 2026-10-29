@@ -330,9 +330,12 @@ function sumarXP(n) {
 
 function plantar(i, id) {
     const c = cultivo(id);
-    if (!c || estado.monedas < c.semilla) return false;
-    estado.monedas -= c.semilla;
-    estado.parcelas[i] = { cultivo: id, desde: Date.now() };
+    if (!c) return false;
+    // Sin monedas el trigo sale gratis: nunca te quedás sin poder plantar
+    const gratis = c.id === "trigo" && estado.monedas < c.semilla;
+    if (!gratis && estado.monedas < c.semilla) return false;
+    if (!gratis) estado.monedas -= c.semilla;
+    estado.parcelas[i] = gratis ? { cultivo: id, desde: Date.now(), gratis: true } : { cultivo: id, desde: Date.now() };
     rebotes[i] = performance.now();
     return true;
 }
@@ -510,7 +513,7 @@ function sacarConPala(i) {
     const p = estado.parcelas[i];
     if (!p || progreso(p) >= 1) return false;
     const c = cultivo(p.cultivo);
-    const vuelve = Math.floor(c.semilla / 2);
+    const vuelve = p.gratis ? 0 : Math.floor(c.semilla / 2);
     estado.parcelas[i] = null;
     estado.monedas += vuelve;
     rebotes[i] = performance.now();
