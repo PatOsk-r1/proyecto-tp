@@ -46,11 +46,24 @@ function cambiarModo() {
     $("olvide").hidden = creando;
     $("clave").autocomplete = creando ? "new-password" : "current-password";
     $("cambiar-modo").textContent = creando ? "¿Ya tenés cuenta? Entrá" : "¿No tenés cuenta? Creá una";
+    $("modo-entrar").classList.toggle("activo", !creando);
+    $("modo-crear").classList.toggle("activo", creando);
+    $("modo-entrar").setAttribute("aria-selected", !creando);
+    $("modo-crear").setAttribute("aria-selected", creando);
+    document.querySelector(".selector-modo").classList.toggle("crear", creando);
     avisar("");
     ocupado(false);
 }
 
 $("cambiar-modo").addEventListener("click", cambiarModo);
+$("modo-entrar").addEventListener("click", () => creando && cambiarModo());
+$("modo-crear").addEventListener("click", () => !creando && cambiarModo());
+$("ver-clave").addEventListener("click", () => {
+    const ver = $("clave").type === "password";
+    $("clave").type = ver ? "text" : "password";
+    $("ver-clave").classList.toggle("viendo", ver);
+    $("ver-clave").setAttribute("aria-label", ver ? "Ocultar contraseña" : "Mostrar contraseña");
+});
 
 $("formulario").addEventListener("submit", async (evento) => {
     evento.preventDefault();
@@ -109,6 +122,8 @@ if (!configurado) {
     $("con-google").disabled = true;
     $("olvide").disabled = true;
     $("cambiar-modo").disabled = true;
+    $("modo-entrar").disabled = true;
+    $("modo-crear").disabled = true;
 } else if (await usuarioActual()) {
     // Ya tenía la sesión abierta
     location.replace(destinoDespuesDeEntrar());
