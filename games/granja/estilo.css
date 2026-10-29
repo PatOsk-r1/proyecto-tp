@@ -412,6 +412,45 @@
     color: #fff4dc;
 }
 
+.control-fps {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 800;
+    font-size: 0.88rem;
+}
+
+.control-fps input {
+    width: 20px;
+    height: 20px;
+    accent-color: #3f9a2a;
+}
+
+.medidor-fps {
+    position: absolute;
+    left: 6px;
+    top: 6px;
+    z-index: 4;
+    padding: 3px 7px;
+    border-radius: 8px;
+    background: #000b;
+    color: #fff;
+    font: 800 0.68rem ui-monospace, monospace;
+    pointer-events: none;
+}
+
+.medidor-fps.bien {
+    color: #8fff8f;
+}
+
+.medidor-fps.justo {
+    color: #ffd166;
+}
+
+.medidor-fps.mal {
+    color: #ff8a8a;
+}
+
 .version-g {
     text-align: center;
     font-size: 0.7rem;
