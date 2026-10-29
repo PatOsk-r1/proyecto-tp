@@ -18,6 +18,11 @@ if (typeof CanvasRenderingContext2D !== "undefined" && !CanvasRenderingContext2D
 export function crearLienzo(canvas, alCambiarTamano, maxEscala = 2) {
     const ctx = canvas.getContext("2d");
     const datos = { ctx, ancho: 0, alto: 0, escala: 1 };
+    // Para bajar o subir la resolución en marcha (calidad automática según el teléfono)
+    datos.cambiarEscala = (nueva) => {
+        maxEscala = nueva;
+        medir();
+    };
     function medir() {
         const caja = canvas.getBoundingClientRect();
         const escala = Math.min(devicePixelRatio, maxEscala);
