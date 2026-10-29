@@ -259,35 +259,55 @@
 }
 
 /* ---------- Garra de premios ---------- */
-.boton-garra {
+/* Botón de la garra: va en la barra de pestañas, con la cantidad de tiros */
+.pestana-garra {
+    position: relative;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 5px 0 4px;
+    font: inherit;
+    font-size: 1.2rem;
+    color: #fff4dccc;
+    background: #0002;
+    border: none;
+    border-radius: 12px 12px 0 0;
+}
+
+.pestana-garra small {
+    font-size: 0.62rem;
+    font-weight: 900;
+    text-shadow: 0 1px 0 #0006;
+}
+
+.pestana-garra b {
     position: absolute;
-    left: 8px;
-    bottom: calc(24% + 34px);
-    z-index: 2;
+    top: 0;
+    right: 10%;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 4px;
+    border-radius: 999px;
     display: flex;
     align-items: center;
-    gap: 3px;
-    padding: 5px 9px 5px 7px;
-    font-size: 1.3rem;
-    border-radius: 999px;
-    background: var(--crema);
-    border: 2px solid #4a2e17;
-    box-shadow: 0 3px 0 #0005;
-    opacity: 0.75;
-}
-
-.boton-garra b {
-    font-size: 0.8rem;
+    justify-content: center;
+    font-size: 0.7rem;
     font-weight: 900;
-    color: var(--marron);
+    color: #4a2e17;
+    background: #e8dcc2;
+    border: 2px solid #4a2e17;
 }
 
-.boton-garra.hay {
-    opacity: 1;
-    background: linear-gradient(180deg, #ffe066, #f4a261);
+.pestana-garra.hay {
+    color: #fff;
+    background: linear-gradient(180deg, #ffd16655, #f4a26133);
+}
+
+.pestana-garra.hay b {
+    background: #ffd166;
     animation: latido 1.4s ease-in-out infinite;
 }
-
 .fondo-garra {
     position: fixed;
     inset: 0;
@@ -998,5 +1018,170 @@
         flex: 1;
         height: auto;
         min-height: 0;
+    }
+}
+
+/* ---------- Celular: todo más grande y ordenado ---------- */
+@media (max-width: 559px) {
+    /* Barra de arriba en una sola fila: volver, datos y ajustes (el nombre ya está en el cartel) */
+    .barra-granja {
+        flex-wrap: nowrap;
+        gap: 6px;
+        padding: calc(6px + env(safe-area-inset-top)) 8px 7px;
+    }
+
+    .barra-granja h1 {
+        display: none;
+    }
+
+    .barra-granja .boton-volver {
+        flex-shrink: 0;
+        width: 38px;
+        height: 38px;
+        padding: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0;
+        border-radius: 50%;
+    }
+
+    .barra-granja .boton-volver::before {
+        content: "‹";
+        font-size: 1.7rem;
+        line-height: 1;
+        margin-top: -3px;
+    }
+
+    .hud-g {
+        flex: 1;
+        min-width: 0;
+        order: 1;
+        gap: 5px;
+    }
+
+    .boton-ajustes {
+        order: 2;
+        margin-left: 0;
+    }
+
+    .pildora-g {
+        flex: 1 1 auto;
+        min-width: 0;
+        padding: 3px 8px 3px 3px;
+        gap: 4px;
+    }
+
+    .pildora-g strong {
+        font-size: 0.95rem;
+    }
+
+    .nivel-g {
+        min-width: 78px;
+    }
+
+    /* Pestañas más grandes y fáciles de tocar */
+    .pestanas-g {
+        gap: 3px;
+        padding: 6px 4px 0;
+    }
+
+    .pestana-g,
+    .pestana-garra {
+        font-size: 1.5rem;
+        padding: 6px 0 5px;
+    }
+
+    .pestana-g small,
+    .pestana-garra small {
+        font-size: 0.66rem;
+    }
+
+    /* Panel: semillas en una tira de dos filas que se desliza de costado */
+    .panel-g {
+        height: 37vh;
+        padding: 10px 10px calc(12px + env(safe-area-inset-bottom));
+        gap: 10px;
+    }
+
+    .semillas {
+        grid-template-columns: none;
+        grid-auto-flow: column;
+        grid-template-rows: repeat(2, auto);
+        grid-auto-columns: 118px;
+        overflow-x: auto;
+        padding-bottom: 4px;
+        scroll-snap-type: x proximity;
+        scrollbar-width: none;
+    }
+
+    .semilla-c {
+        scroll-snap-align: start;
+        padding: 8px 4px 9px;
+    }
+
+    .semilla-c canvas,
+    .bolsa-abono {
+        width: 54px;
+        height: 54px;
+    }
+
+    .nombre-s {
+        font-size: 0.92rem;
+    }
+
+    .semilla-c small {
+        font-size: 0.72rem;
+    }
+
+    .ayuda-semillas {
+        display: none;
+    }
+
+    /* Filas de animales, mejoras y granero más legibles */
+    .fila-g {
+        padding: 10px 12px;
+        gap: 12px;
+    }
+
+    .fila-g canvas {
+        width: 50px;
+        height: 50px;
+    }
+
+    .fila-g .txt {
+        font-size: 1rem;
+    }
+
+    .fila-g .txt small {
+        font-size: 0.8rem;
+    }
+
+    .boton-verde,
+    .boton-g {
+        font-size: 0.92rem;
+        padding: 10px 14px;
+    }
+
+    .grilla-granero {
+        grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
+    }
+
+    .caja-granero canvas {
+        width: 50px;
+        height: 50px;
+    }
+
+    .item-p canvas {
+        width: 48px;
+        height: 48px;
+    }
+
+    .quien-p {
+        font-size: 1rem;
+    }
+
+    .aviso-granja {
+        font-size: 0.9rem;
     }
 }
