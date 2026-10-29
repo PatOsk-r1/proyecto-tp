@@ -612,6 +612,47 @@ function actualizarAnimal(a, mov, datos, dt, duermen, pos, tam) {
 // Comedero de madera con pasto y bebedero con agua que se mueve
 function dibujarEstablo(ctx, m, tiempo, dt) {
     comida = Math.min(1, comida + dt * 0.01);
+    // Comedero y bebedero se pintan una vez (según cuánto pasto queda) y solo se mueven los brillos del agua
+    const nivel = Math.round(comida * 5) / 5;
+    const fijo = sprite(`establo-${nivel}-${Math.round(m.corralY)}`, ancho, m.corral, (c) => {
+        c.translate(0, -m.corralY);
+        dibujarEstabloFijo(c, m, nivel);
+    });
+    ctx.drawImage(fijo.c, 0, m.corralY, fijo.w, fijo.h);
+    const tam = Math.min(46, m.corral * 0.5);
+    const b = pxCorral(BEBEDERO.x, BEBEDERO.y, m);
+    const bw = Math.min(58, ancho * 0.15);
+    const by = b.y + tam * 0.24;
+    const ax = b.x - bw / 2 + 3;
+    const aw = bw - 6;
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(ax, by, aw, 7);
+    ctx.clip();
+    ctx.strokeStyle = "#ffffffaa";
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    for (let k = 0; k < 3; k++) {
+        const fx = ax + ((tiempo * 12 + (k * aw) / 3) % aw);
+        ctx.moveTo(fx - 5, by + 2 + k * 1.5);
+        ctx.quadraticCurveTo(fx, by + 1 + k * 1.5, fx + 5, by + 2 + k * 1.5);
+    }
+    ctx.stroke();
+    // Ondas cuando un animal toma agua
+    const desde = tiempo - ondas;
+    if (desde >= 0 && desde < 1.2) {
+        for (let k = 0; k < 2; k++) {
+            const r = ((desde + k * 0.4) % 1.2) * 14;
+            ctx.strokeStyle = `rgba(255,255,255,${0.7 - r / 20})`;
+            ctx.beginPath();
+            ctx.ellipse(ax + 8, by + 3.5, r, r * 0.3, 0, 0, TAU);
+            ctx.stroke();
+        }
+    }
+    ctx.restore();
+}
+
+function dibujarEstabloFijo(ctx, m, comida) {
     const tam = Math.min(46, m.corral * 0.5);
     const madera = (x, y, w, h, r = 3) => {
         const g = ctx.createLinearGradient(x, y, x, y + h);
@@ -679,31 +720,6 @@ function dibujarEstablo(ctx, m, tiempo, dt) {
     ctx.beginPath();
     ctx.roundRect(ax, by, aw, 7, 3);
     ctx.fill();
-    ctx.save();
-    ctx.beginPath();
-    ctx.roundRect(ax, by, aw, 7, 3);
-    ctx.clip();
-    ctx.strokeStyle = "#ffffffaa";
-    ctx.lineWidth = 1.2;
-    for (let k = 0; k < 3; k++) {
-        const fx = ax + ((tiempo * 12 + k * aw / 3) % aw);
-        ctx.beginPath();
-        ctx.moveTo(fx - 5, by + 2 + k * 1.5);
-        ctx.quadraticCurveTo(fx, by + 1 + k * 1.5, fx + 5, by + 2 + k * 1.5);
-        ctx.stroke();
-    }
-    // Ondas cuando un animal toma agua
-    const desde = tiempo - ondas;
-    if (desde >= 0 && desde < 1.2) {
-        for (let k = 0; k < 2; k++) {
-            const r = ((desde + k * 0.4) % 1.2) * 14;
-            ctx.strokeStyle = `rgba(255,255,255,${0.7 - r / 20})`;
-            ctx.beginPath();
-            ctx.ellipse(ax + 8, by + 3.5, r, r * 0.3, 0, 0, TAU);
-            ctx.stroke();
-        }
-    }
-    ctx.restore();
     // Borde de madera con brillo
     ctx.strokeStyle = "#4a2e17";
     ctx.lineWidth = 1.5;
@@ -1031,33 +1047,37 @@ function dibujarCielo(ctx, m, luz, tiempo, dt) {
     // Sol de día, luna de noche
     const x = ancho * 0.66;
     const y = m.cielo * (0.95 - Math.max(luz, 0.4) * 0.55);
-    const astro = ctx.createRadialGradient(x, y, 0, x, y, m.cielo * 0.4);
-    if (luz > 0.4) {
-        astro.addColorStop(0, "#fff7c2");
-        astro.addColorStop(0.3, "#ffd166");
-        astro.addColorStop(1, "#ffd16600");
-    } else {
-        astro.addColorStop(0, "#f8f9fa");
-        astro.addColorStop(0.25, "#dee2e6");
-        astro.addColorStop(1, "#dee2e600");
-    }
-    ctx.fillStyle = astro;
-    ctx.beginPath();
-    ctx.arc(x, y, m.cielo * 0.4, 0, TAU);
-    ctx.fill();
+    const radioAstro = m.cielo * 0.4;
+    const dia = luz > 0.4;
+    const astro = sprite(`astro-${dia}`, 64, 64, (c) => {
+        const g = c.createRadialGradient(32, 32, 0, 32, 32, 32);
+        g.addColorStop(0, dia ? "#fff7c2" : "#f8f9fa");
+        g.addColorStop(dia ? 0.3 : 0.25, dia ? "#ffd166" : "#dee2e6");
+        g.addColorStop(1, dia ? "#ffd16600" : "#dee2e600");
+        c.fillStyle = g;
+        c.fillRect(0, 0, 64, 64);
+    });
+    ctx.drawImage(astro.c, x - radioAstro, y - radioAstro, radioAstro * 2, radioAstro * 2);
     for (const n of nubes) {
         n.x += n.v * dt;
         if (n.x > 1.25) n.x = -0.25;
         const llueve = n === nubeLluvia;
-        ctx.fillStyle = llueve ? "#7d8597" : luz > 0.4 ? (esperaLluvia > 0 ? "#ffffffb0" : "#ffffffd9") : "#ffffff30";
+        const color = llueve ? "#7d8597" : "#ffffff";
+        ctx.globalAlpha = llueve ? 1 : dia ? (esperaLluvia > 0 ? 0.7 : 0.85) : 0.19;
+        // Cada nube es un dibujo guardado (según su tamaño y si llueve)
+        const nube = sprite(`nube-${n.s.toFixed(2)}-${color}`, 56 * n.s, 34 * n.s, (c) => {
+            c.fillStyle = color;
+            for (const [dx, dy, r] of [[0, 0, 13], [14, 3, 10], [-14, 3, 9], [6, -6, 9]]) {
+                c.beginPath();
+                c.arc(28 * n.s + dx * n.s, 17 * n.s + dy * n.s, r * n.s, 0, TAU);
+                c.fill();
+            }
+        });
         const cx = n.x * ancho + (llueve ? Math.sin(tiempo * 30) * 0.8 : 0);
         const cy = m.cielo * n.y + 6;
-        for (const [dx, dy, r] of [[0, 0, 13], [14, 3, 10], [-14, 3, 9], [6, -6, 9]]) {
-            ctx.beginPath();
-            ctx.arc(cx + dx * n.s, cy + dy * n.s, r * n.s, 0, TAU);
-            ctx.fill();
-        }
+        ctx.drawImage(nube.c, cx - 28 * n.s, cy - 17 * n.s, nube.w, nube.h);
     }
+    ctx.globalAlpha = 1;
 }
 
 // Lo que no se mueve, pintado una sola vez: colinas, granero, pasto, flores y el corral
@@ -1495,10 +1515,19 @@ function dibujar(dt) {
         const datos = animal(a.tipo);
         const pose = actualizarAnimal(a, mov, datos, dt, duermen, pos, tam);
         const mira = mov.vx >= 0 ? 1 : -1;
-        if (mov.anim?.tipo === "comer" || mov.anim?.tipo === "beber") {
-            dibujarAnimal(ctx, a.tipo, pos.x, pos.y, tam, 0, mira, pose);
+        if (mov.anim) {
+            // Animaciones especiales (comer, caca, producir): se dibujan en vivo
+            const quieto = mov.anim.tipo === "comer" || mov.anim.tipo === "beber";
+            dibujarAnimal(ctx, a.tipo, pos.x, pos.y, tam, quieto ? 0 : mov.fase, mira, pose);
         } else {
-            dibujarAnimal(ctx, a.tipo, pos.x, pos.y, tam, mov.fase, mira, pose);
+            // Caminando o quieto: uno de 8 cuadros del paso, guardado (más los ojos cerrados al parpadear)
+            const cuadro = Math.round(((mov.fase * 4) / Math.PI) * 4) % 8;
+            const parpadea = (performance.now() / 1000 + pos.x * 0.013) % 3.7 < 0.12;
+            const lado = tam * 1.5;
+            const img = sprite(`animal-${a.tipo}-${mira}-${cuadro}-${parpadea ? 1 : 0}-${Math.round(tam)}`, lado, lado, (c) =>
+                dibujarAnimal(c, a.tipo, lado / 2, lado * 0.52, tam, (cuadro * Math.PI) / 16, mira, { ojos: parpadea ? "cerrados" : "abiertos" })
+            );
+            ctx.drawImage(img.c, pos.x - lado / 2, pos.y - lado * 0.52, lado, lado);
         }
         if (duermen && !mov.anim) {
             // Zzz
@@ -1648,7 +1677,50 @@ function dibujar(dt) {
 
 let acumulado = 0;
 let cuadroVisita = false;
+let panelPendiente = false;
+// Medidor de rendimiento (se prende en Ajustes): cuadros por segundo y el cuadro más lento
+const medidor = { prendido: false, cuadros: 0, desde: performance.now(), anterior: performance.now(), peor: 0, trabajo: 0, suma: 0 };
+try {
+    medidor.prendido = localStorage.getItem("granja-fps") === "1";
+} catch {}
+function medirCuadro(inicio) {
+    const ahora = performance.now();
+    medidor.cuadros++;
+    medidor.peor = Math.max(medidor.peor, ahora - medidor.anterior);
+    medidor.trabajo = Math.max(medidor.trabajo, ahora - inicio);
+    medidor.suma += ahora - inicio;
+    medidor.anterior = ahora;
+    if (ahora - medidor.desde < 1000) return;
+    const fps = Math.round((medidor.cuadros * 1000) / (ahora - medidor.desde));
+    // Verde si cada cuadro se dibuja en menos de 11 ms (lo que hace falta para 90 por segundo)
+    const el = $("medidor-fps");
+    const promedio = medidor.suma / medidor.cuadros;
+    el.textContent = `${fps} fps · dibujo ${promedio.toFixed(1)} ms (máx ${medidor.trabajo.toFixed(1)}) · calidad ${calidad.nivel + 1}/3`;
+    el.className = `medidor-fps ${promedio < 8 ? "bien" : promedio < 11 ? "justo" : "mal"}`;
+    Object.assign(medidor, { cuadros: 0, desde: ahora, peor: 0, trabajo: 0, suma: 0 });
+}
+// Calidad automática: si el teléfono tarda en dibujar (más de 8 ms por cuadro durante un rato),
+// se baja la resolución y se sacan efectos de fondo para que siga fluido. No vuelve a subir sola.
+const calidad = { nivel: 2, suma: 0, cuadros: 0, malos: 0 };
+function vigilarCalidad(ms) {
+    calidad.suma += ms;
+    if (++calidad.cuadros < 60) return;
+    const promedio = calidad.suma / calidad.cuadros;
+    calidad.suma = calidad.cuadros = 0;
+    calidad.malos = promedio > 8 ? calidad.malos + 1 : 0;
+    if (calidad.malos >= 2 && calidad.nivel > 0) {
+        calidad.nivel--;
+        calidad.malos = 0;
+        if (calidad.nivel === 1) lienzo.cambiarEscala(1.15);
+        else {
+            lienzo.cambiarEscala(1);
+            luciernagas.length = 12;
+            mariposas.length = 1;
+        }
+    }
+}
 bucle((dt) => {
+    const inicioCuadro = performance.now();
     avanzarLluvia(dt);
     // La persona se dibuja a la mitad de cuadros (alcanza para que se vea fluida)
     cuadroVisita = !cuadroVisita;
@@ -1665,8 +1737,14 @@ bucle((dt) => {
     if (acumulado > 0.5) {
         acumulado = 0;
         pintarDatos();
+        panelPendiente = true;
+    } else if (panelPendiente) {
+        // El panel se actualiza en el cuadro siguiente, para no juntar todo el trabajo en uno solo
+        panelPendiente = false;
         pintarPanel();
     }
+    if (medidor.prendido) medirCuadro(inicioCuadro);
+    vigilarCalidad(performance.now() - inicioCuadro);
 });
 
 // ---------- Toques ----------
@@ -2144,6 +2222,15 @@ $("ajustes").addEventListener("click", () => {
     sonidos.toque();
 });
 $("cerrar-ajustes").addEventListener("click", () => ($("hoja-ajustes").hidden = true));
+$("mostrar-fps").checked = medidor.prendido;
+$("medidor-fps").hidden = !medidor.prendido;
+$("mostrar-fps").addEventListener("change", (e) => {
+    medidor.prendido = e.target.checked;
+    $("medidor-fps").hidden = !medidor.prendido;
+    try {
+        localStorage.setItem("granja-fps", medidor.prendido ? "1" : "0");
+    } catch {}
+});
 $("hoja-ajustes").addEventListener("click", (e) => e.target === $("hoja-ajustes") && ($("hoja-ajustes").hidden = true));
 
 setInterval(() => guardar(CLAVE, estado), 5000);
