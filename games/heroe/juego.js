@@ -4,6 +4,10 @@ import { formatear, cargar, guardar, vibrar } from "../../js/comun3d.js";
 import { crearLienzo, bucle, crearChispas } from "../../js/lienzo2d.js";
 import { crearAudio, MUSICAS } from "../../js/sonido.js";
 import { crearBase, calidadAutomatica } from "../../js/incremental.js";
+import {
+    RAREZAS, rareza, LUGARES, nuevoObjeto, bonusObjeto, costoForja, polvoAlDesarmar, MAX_FORJA, MAX_INVENTARIO,
+    MASCOTAS, mascota, FORMAS_CARTA, NOMBRES_FORMA, BONUS_CARTA,
+} from "./botin.js";
 
 const audio = crearAudio({ musica: MUSICAS.aventura });
 const { nota, golpe, efectos } = audio;
@@ -82,19 +86,38 @@ const cont = estado.contadores;
 for (const r of RELIQUIAS) estado.reliquias[r.id] ??= 0;
 const rel = (id) => estado.reliquias[id];
 
+// Botín, mascotas, cartas y llaves de mazmorra (nada de esto se pierde al renacer)
+estado.botin ??= { inventario: [], equipado: {}, polvo: 0 };
+estado.mascotas ??= { tengo: {}, activa: null, huevos: 0 };
+estado.cartas ??= {};
+estado.llaves ??= 0;
+const objetoPorId = (id) => estado.botin.inventario.find((o) => o.id === id);
+const equipados = () => Object.values(estado.botin.equipado).map(objetoPorId).filter(Boolean);
+const bonusLugar = (lugar) => equipados().filter((o) => o.lugar === lugar).reduce((t, o) => t + bonusObjeto(o), 0) / 100;
+// Nivel de la mascota que llevás (-1 si no es esa)
+const conMascota = (id) => (estado.mascotas.activa === id ? estado.mascotas.tengo[id] ?? 0 : -1);
+const multCartas = () => 1 + (Object.keys(estado.cartas).length * BONUS_CARTA) / 100;
+
 const activa = (h) => (estado.habilidades[h]?.hasta ?? 0) > Date.now();
 const multAlmas = () => 1 + estado.almasTotales * 0.1;
 const hitos = (n) => HITOS.filter((h) => n >= h).length;
 
-const danoToque = () => (1 + estado.heroe) * 2 ** hitos(estado.heroe) * multAlmas() * (1 + rel("espada") * 0.3) * (activa("furia") ? 3 : 1);
+const danoToque = () =>
+    (1 + estado.heroe) * 2 ** hitos(estado.heroe) * multAlmas() * (1 + rel("espada") * 0.3) * (activa("furia") ? 3 : 1) * (1 + bonusLugar("arma")) * multCartas();
 const dpsDe = (e) => e.dps * estado.equipo[e.id] * 2 ** hitos(estado.equipo[e.id]);
-const dpsEquipo = () => EQUIPO.reduce((t, e) => t + dpsDe(e), 0) * multAlmas() * (1 + rel("estandarte") * 0.3) * (activa("tormenta") ? 4 : 1);
-const probCritico = () => 0.05 + rel("ojo") * 0.02;
+const dpsEquipo = () =>
+    EQUIPO.reduce((t, e) => t + dpsDe(e), 0) * multAlmas() * (1 + rel("estandarte") * 0.3) * (activa("tormenta") ? 4 : 1) *
+    (1 + bonusLugar("armadura")) * multCartas() * (conMascota("dragon") >= 0 ? 1.4 + conMascota("dragon") * 0.15 : 1);
+const probCritico = () =>
+    0.05 + rel("ojo") * 0.02 + equipados().reduce((t, o) => t + o.critico, 0) / 100 + (conMascota("hada") >= 0 ? 0.04 + conMascota("hada") * 0.01 : 0);
+const multCritico = () => (conMascota("hada") >= 0 ? 8 : 6);
 
 const esJefe = (s) => s % 5 === 0;
 const vidaEn = (s) => 10 * 1.5 ** (Math.min(s, 120) - 1) * 1.16 ** Math.max(0, s - 120) * (esJefe(s) ? 8 : 1);
-const oroEn = (s) => Math.ceil((vidaEn(s) / 5) * (esJefe(s) ? 0.6 : 1) * (1 + rel("bolsa") * 0.2));
-const tiempoJefe = () => 30 + rel("reloj") * 4;
+const oroEn = (s) =>
+    Math.ceil((vidaEn(s) / 5) * (esJefe(s) ? 0.6 : 1) * (1 + rel("bolsa") * 0.2) * (1 + bonusLugar("amuleto")) * (conMascota("buho") >= 0 ? 1.25 + conMascota("buho") * 0.1 : 1));
+const tiempoJefe = () => 30 + rel("reloj") * 4 + (conMascota("grifo") >= 0 ? 8 + conMascota("grifo") * 2 : 0);
+const probCofre = () => 0.03 * (conMascota("gato") >= 0 ? 2 + conMascota("gato") * 0.3 : 1);
 
 const CRECE_HEROE = 1.075;
 const CRECE_EQUIPO = 1.08;
@@ -111,14 +134,28 @@ function cuantas(base, crece, nivel) {
 // ---------- Monstruo ----------
 let monstruo = null;
 let jefeRestante = 0;
+// Mazmorra: 3 monstruos fuertes seguidos con tiempo; si ganás, botín seguro
+let mazmorra = null; // { oleada, restante }
+const OLEADAS_MAZMORRA = 3;
+const tiempoMazmorra = () => 45 + rel("reloj") * 4;
 function nuevoMonstruo() {
     const s = estado.etapa;
-    const vida = vidaEn(s);
     const bioma = Math.floor((s - 1) / 10) % BIOMAS.length;
+    if (mazmorra) {
+        const vida = vidaEn(Math.max(5, cont.recordEtapa)) * 2.5 * (1 + mazmorra.oleada * 0.6);
+        monstruo = {
+            vida, max: vida, jefe: true, mazmorra: true, bioma,
+            forma: FORMAS[(mazmorra.oleada * 2 + 1) % FORMAS.length],
+            tono: 270 + mazmorra.oleada * 20, golpe: 0, entrada: 1, muerte: 0,
+        };
+        return;
+    }
+    const vida = vidaEn(s);
     monstruo = {
         vida,
         max: vida,
         jefe: esJefe(s),
+        bioma,
         forma: FORMAS[(s * 7 + estado.muertes * 3) % FORMAS.length],
         tono: (bioma * 53 + s * 37 + estado.muertes * 71) % 360,
         golpe: 0,
@@ -136,10 +173,49 @@ function danar(cantidad, critico = false, desdeToque = false) {
     if (monstruo.vida <= 0) matar();
 }
 
+// Botín: un objeto nuevo va al inventario (si está lleno se desarma solo en polvo)
+function darObjeto(obj) {
+    const r = rareza(obj.rareza);
+    if (estado.botin.inventario.length >= MAX_INVENTARIO) {
+        estado.botin.polvo += polvoAlDesarmar(obj);
+        avisar(`🎒 Mochila llena: ${obj.nombre} se convirtió en ✨ polvo`);
+        return;
+    }
+    estado.botin.inventario.push(obj);
+    // Si el lugar está vacío, se equipa solo
+    if (!estado.botin.equipado[obj.lugar]) estado.botin.equipado[obj.lugar] = obj.id;
+    const { x, y } = posMonstruo();
+    flotantes.push({ x, y: y - 80, texto: `${LUGARES[obj.lugar].icono} ${r.nombre}!`, color: r.color, vida: 1.6, total: 1.6, tam: obj.rareza === "comun" ? 15 : 20 });
+    if (obj.rareza !== "comun") efectos.logro();
+    pestanaConNovedad("botin");
+}
+function soltarBotin(jefe, cofre) {
+    const { x, y } = posMonstruo();
+    if ((jefe && Math.random() < 0.6) || (cofre && Math.random() < 0.35)) darObjeto(nuevoObjeto(cont.recordEtapa));
+    if (jefe && Math.random() < 0.15) {
+        estado.mascotas.huevos++;
+        flotantes.push({ x: x - 30, y: y - 110, texto: "🥚 ¡Huevo de mascota!", color: "#fff", vida: 1.8, total: 1.8, tam: 17 });
+        pestanaConNovedad("mascotas");
+    }
+    if (jefe && Math.random() < 0.2) {
+        estado.llaves++;
+        flotantes.push({ x: x + 30, y: y - 130, texto: "🗝️ ¡Llave de mazmorra!", color: "#ffd166", vida: 1.8, total: 1.8, tam: 17 });
+    }
+    // Carta del monstruo (una por forma y bioma)
+    const clave = `${monstruo.bioma}-${monstruo.forma}`;
+    if (!estado.cartas[clave] && Math.random() < (jefe ? 0.12 : 0.015)) {
+        estado.cartas[clave] = true;
+        avisar(`🃏 ¡Carta nueva: ${NOMBRES_FORMA[monstruo.forma]} de ${BIOMAS[monstruo.bioma].nombre}! +${BONUS_CARTA}% de daño`);
+        efectos.logro();
+        pestanaConNovedad("cartas");
+    }
+}
+
 function matar() {
     const s = estado.etapa;
+    if (monstruo.mazmorra) return ganarOleada();
     let oro = oroEn(s) * (activa("oro") ? 3 : 1);
-    const cofre = !monstruo.jefe && Math.random() < 0.03;
+    const cofre = !monstruo.jefe && Math.random() < probCofre();
     if (cofre) oro *= 10;
     estado.oro += oro;
     cont.oroTotal += oro;
@@ -153,6 +229,7 @@ function matar() {
     chispas.emitir(x, y, `hsl(${monstruo.tono},80%,60%)`, monstruo.jefe ? 40 : 16, monstruo.jefe ? 260 : 170);
     for (let i = 0; i < (monstruo.jefe ? 14 : cofre ? 10 : 4); i++) monedas.push({ x, y, vx: (Math.random() - 0.5) * 220, vy: -150 - Math.random() * 200, vida: 1.2 });
     flotantes.push({ x, y: y - 50, texto: `${cofre ? "¡COFRE! " : ""}+${formatear(oro)}`, color: "#ffd166", vida: 1.2, total: 1.2, tam: cofre ? 20 : 15 });
+    soltarBotin(monstruo.jefe, cofre);
     if (monstruo.jefe) {
         vibrar(80);
         avisar(`¡Jefe derrotado! Etapa ${s + 1}`);
@@ -181,6 +258,75 @@ function fallarJefe() {
     actualizar();
 }
 
+// ---------- Mazmorra ----------
+function entrarMazmorra() {
+    if (mazmorra || estado.llaves < 1 || monstruo?.jefe) return;
+    estado.llaves--;
+    mazmorra = { oleada: 0, restante: tiempoMazmorra() };
+    avisar("🗝️ ¡Entraste a la mazmorra! Vencé 3 guardianes antes de que se acabe el tiempo");
+    efectos.abrir();
+    nuevoMonstruo();
+    actualizar();
+}
+function ganarOleada() {
+    const { x, y } = posMonstruo();
+    monstruo.muerte = 0.45;
+    sonidos.muerte();
+    chispas.emitir(x, y, "#b388ff", 40, 260);
+    mazmorra.oleada++;
+    if (mazmorra.oleada < OLEADAS_MAZMORRA) {
+        flotantes.push({ x, y: y - 60, texto: `Guardián ${mazmorra.oleada}/${OLEADAS_MAZMORRA}`, color: "#e0aaff", vida: 1.2, total: 1.2, tam: 18 });
+        return;
+    }
+    // ¡Ganaste! Botín seguro: dos objetos (al menos raros), polvo y quizás un huevo
+    mazmorra = null;
+    efectos.fanfarria();
+    vibrar([60, 40, 120]);
+    for (let k = 0; k < 2; k++) darObjeto(nuevoObjeto(cont.recordEtapa + 5, 1, 1.6));
+    const polvo = 10 + Math.floor(cont.recordEtapa / 3);
+    estado.botin.polvo += polvo;
+    if (Math.random() < 0.5) {
+        estado.mascotas.huevos++;
+        pestanaConNovedad("mascotas");
+    }
+    cont.mazmorras = (cont.mazmorras ?? 0) + 1;
+    avisar(`🏆 ¡Mazmorra superada! 2 objetos y ✨ ${polvo} de polvo`);
+    actualizar();
+}
+function fallarMazmorra() {
+    mazmorra = null;
+    avisar("⏱ Se acabó el tiempo en la mazmorra. ¡Mejorá el equipo y probá con otra llave!");
+    efectos.error();
+    nuevoMonstruo();
+    actualizar();
+}
+
+// ---------- Hordas: cada tanto pasan bichitos corriendo; tocalos para ganar oro ----------
+let horda = null; // { bichos: [{ x, y, v, fase, vivo }], hasta }
+let proximaHorda = 60 + Math.random() * 60;
+function lanzarHorda() {
+    horda = { bichos: Array.from({ length: 10 }, (_, k) => ({ x: 1.05 + k * 0.09 + Math.random() * 0.05, y: 0.55 + Math.random() * 0.22, v: 0.16 + Math.random() * 0.08, fase: Math.random() * 6, vivo: true })), hasta: 9 };
+    avisar("🐜 ¡Una horda! Tocá los bichitos antes de que se escapen");
+    efectos.abrir();
+}
+function tocarHorda(px, py) {
+    if (!horda) return false;
+    for (const b of horda.bichos) {
+        if (!b.vivo) continue;
+        if (Math.hypot(b.x * ancho - px, b.y * alto - py) < 26) {
+            b.vivo = false;
+            const oro = oroEn(Math.max(1, estado.etapa - 1)) * 2;
+            estado.oro += oro;
+            cont.oroTotal += oro;
+            cont.hordas = (cont.hordas ?? 0) + 1;
+            chispas.emitir(b.x * ancho, b.y * alto, "#80ed99", 10, 120);
+            flotantes.push({ x: b.x * ancho, y: b.y * alto - 20, texto: `+${formatear(oro)}`, color: "#ffd166", vida: 0.9, total: 0.9, tam: 14 });
+            sonidos.toque();
+            return true;
+        }
+    }
+    return false;
+}
 // ---------- Dibujo ----------
 const chispas = crearChispas();
 const flotantes = [];
@@ -352,7 +498,7 @@ function dibujarPersonaje(ctx, x, y, tam, color, tipo, anim = 0) {
     }
 }
 
-function dibujarMonstruo(ctx, m, x, y, tam) {
+function dibujarMonstruo(ctx, m, x, y, tam, sinSombra = false) {
     const sx = 1 + m.golpe * 1.5;
     const sy = 1 - m.golpe * 1.5;
     const salto = Math.sin(tiempo * 3) * tam * 0.03;
@@ -371,8 +517,19 @@ function dibujarMonstruo(ctx, m, x, y, tam) {
     g.addColorStop(0.5, color);
     g.addColorStop(1, oscuro);
     ctx.fillStyle = m.golpe > 0 ? "#fff" : g;
+    // Aura violeta de los guardianes de la mazmorra
+    if (m.mazmorra && m.muerte <= 0) {
+        ctx.save();
+        ctx.globalAlpha = 0.25 + Math.sin(tiempo * 5) * 0.1;
+        ctx.fillStyle = "#b388ff";
+        ctx.beginPath();
+        ctx.arc(0, -tam * 0.05, tam * 0.75, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+    }
     // Sombra en el suelo
     ctx.save();
+    if (sinSombra) ctx.globalAlpha = 0;
     ctx.fillStyle = "#0004";
     ctx.beginPath();
     ctx.ellipse(0, suelo() - y + 2, tam * 0.45, tam * 0.08, 0, 0, Math.PI * 2);
@@ -596,7 +753,11 @@ function dibujar(dt) {
             ctx.fillText(t, x, y);
         };
         sombra(`${b.nombre} · etapa ${estado.etapa}`, 10, 22);
-        if (monstruo.jefe) {
+        if (monstruo.mazmorra && mazmorra) {
+            sombra(`🗝️ MAZMORRA ${mazmorra.oleada + 1}/${OLEADAS_MAZMORRA}  ⏱ ${Math.ceil(mazmorra.restante)}s`, 10, 40);
+            ctx.fillStyle = "#b388ff";
+            ctx.fillRect(10, 46, ancho * 0.3 * (mazmorra.restante / tiempoMazmorra()), 4);
+        } else if (monstruo.jefe) {
             sombra(`👑 JEFE  ⏱ ${Math.ceil(jefeRestante)}s`, 10, 40);
             ctx.fillStyle = "#e63946";
             ctx.fillRect(10, 46, ancho * 0.3 * (jefeRestante / tiempoJefe()), 4);
@@ -650,6 +811,53 @@ function dibujar(dt) {
     }
     ctx.globalAlpha = 1;
 
+    // Bichitos de la horda
+    if (horda) {
+        for (const bi of horda.bichos) {
+            if (!bi.vivo) continue;
+            const bx = bi.x * ancho;
+            const by = bi.y * alto - Math.abs(Math.sin(tiempo * 14 + bi.fase)) * 5;
+            const img = sprite("bicho", 34, 30, (c) => {
+                c.fillStyle = "#0004";
+                c.beginPath();
+                c.ellipse(17, 26, 11, 3, 0, 0, Math.PI * 2);
+                c.fill();
+                c.fillStyle = "#52b788";
+                c.beginPath();
+                c.ellipse(17, 16, 12, 9, 0, 0, Math.PI * 2);
+                c.fill();
+                c.fillStyle = "#2d6a4f";
+                for (const dx of [-7, 0, 7]) c.fillRect(17 + dx - 1, 22, 2, 5);
+                c.fillStyle = "#fff";
+                c.beginPath();
+                c.arc(10, 13, 3.4, 0, Math.PI * 2);
+                c.arc(17, 12, 3.4, 0, Math.PI * 2);
+                c.fill();
+                c.fillStyle = "#000";
+                c.beginPath();
+                c.arc(9, 13, 1.6, 0, Math.PI * 2);
+                c.arc(16, 12, 1.6, 0, Math.PI * 2);
+                c.fill();
+            });
+            ctx.drawImage(img.c, bx - 17, by - 15, img.w, img.h);
+        }
+    }
+    // Mascota al lado del héroe (flota; el lobo salta al morder)
+    if (estado.mascotas.activa) {
+        const ma = mascota(estado.mascotas.activa);
+        const hp = posHeroe();
+        const tm = Math.round(tam * 0.42);
+        const img = sprite(`mascota-${ma.id}-${tm}`, tm * 1.3, tm * 1.3, (c) => {
+            c.font = `${tm}px system-ui, "Apple Color Emoji", "Segoe UI Emoji", sans-serif`;
+            c.textAlign = "center";
+            c.textBaseline = "middle";
+            c.fillText(ma.icono, tm * 0.65, tm * 0.7);
+        });
+        const salto = ataqueMascota > 0 ? Math.sin((ataqueMascota / 0.3) * Math.PI) : 0;
+        const mx = hp.x + tam * 0.45 + salto * (posMonstruo().x - hp.x - tam * 0.6);
+        const my = hp.y - tam * 0.95 + Math.sin(tiempo * 2.5) * 4 - salto * 20;
+        ctx.drawImage(img.c, mx - img.w / 2, my - img.h / 2, img.w, img.h);
+    }
     // Tajo del último toque
     if (ataque > 0 && monstruo) {
         const m = posMonstruo();
@@ -663,6 +871,8 @@ function dibujar(dt) {
 
 // ---------- Ciclo ----------
 let acumulado = 0;
+let mordida = 2;
+let ataqueMascota = 0;
 bucle((dt) => {
     const inicioCuadro = performance.now();
     tiempo += dt;
@@ -676,11 +886,36 @@ bucle((dt) => {
         if (m.muerte <= 0) nuevoMonstruo();
     } else if (m.entrada <= 0) {
         danar(dpsEquipo() * dt);
-        if (monstruo.jefe && monstruo.muerte <= 0) {
+        if (mazmorra && monstruo.muerte <= 0) {
+            mazmorra.restante -= dt;
+            if (mazmorra.restante <= 0) fallarMazmorra();
+        } else if (monstruo.jefe && monstruo.muerte <= 0) {
             jefeRestante -= dt;
             if (jefeRestante <= 0) fallarJefe();
         }
+        // El lobo muerde cada 2 segundos
+        if (conMascota("lobo") >= 0) {
+            mordida -= dt;
+            if (mordida <= 0) {
+                mordida = 2;
+                ataqueMascota = 0.3;
+                danar(danoToque() * (5 + conMascota("lobo") * 2), true);
+            }
+        }
     }
+    // Hordas (no durante jefes ni mazmorras)
+    if (horda) {
+        horda.hasta -= dt;
+        for (const b of horda.bichos) b.x -= b.v * dt;
+        if (horda.hasta <= 0 || horda.bichos.every((b) => !b.vivo || b.x < -0.1)) horda = null;
+    } else if (!monstruo.jefe && !mazmorra) {
+        proximaHorda -= dt;
+        if (proximaHorda <= 0) {
+            proximaHorda = 90 + Math.random() * 90;
+            lanzarHorda();
+        }
+    }
+    ataqueMascota = Math.max(0, ataqueMascota - dt);
     dibujar(dt);
     acumulado += dt;
     if (acumulado > 0.2) {
@@ -693,11 +928,13 @@ bucle((dt) => {
     vigilarCalidad(ms);
 });
 
-$("lienzo").addEventListener("pointerdown", () => {
+$("lienzo").addEventListener("pointerdown", (e) => {
+    const caja = $("lienzo").getBoundingClientRect();
+    if (tocarHorda(e.clientX - caja.left, e.clientY - caja.top)) return;
     if (!monstruo || monstruo.muerte > 0 || monstruo.entrada > 0.2) return;
     const critico = Math.random() < probCritico();
     ataque = 0.18;
-    danar(danoToque() * (critico ? 6 : 1), critico, true);
+    danar(danoToque() * (critico ? multCritico() : 1), critico, true);
     if (critico) {
         vibrar(25);
         cont.criticos++;
@@ -794,6 +1031,8 @@ function actualizar() {
     $("por-toque").textContent = formatear(danoToque());
     $("dps").textContent = formatear(dpsEquipo());
     $("almas").textContent = estado.almas;
+    $("llaves").textContent = estado.llaves;
+    $("boton-mazmorra").classList.toggle("sin-llaves", estado.llaves < 1 || Boolean(mazmorra));
     $("abrir-renacer").classList.toggle("listo", almasNuevas() >= Math.max(1, estado.almasTotales * 0.5));
     $("avanzar").hidden = estado.avanzar;
     for (const f of filas) f.pintar(f.el);
@@ -820,14 +1059,163 @@ for (const b of document.querySelectorAll(".cantidad")) {
     });
 }
 
+const PANELES = ["lista", "botin", "mascotas", "cartas", "reliquias"];
+let panelActual = "lista";
+function mostrarPanel(nombre) {
+    panelActual = nombre;
+    for (const x of document.querySelectorAll(".pestana")) {
+        x.classList.toggle("activa", x.dataset.p === nombre);
+        if (x.dataset.p === nombre) x.querySelector(".novedad")?.setAttribute("hidden", "");
+    }
+    for (const id of PANELES) $(id).hidden = id !== nombre;
+    $("comprar-de").hidden = nombre !== "lista";
+    if (nombre === "reliquias") pintarReliquias();
+    if (nombre === "botin") pintarBotin();
+    if (nombre === "mascotas") pintarMascotas();
+    if (nombre === "cartas") pintarCartas();
+}
 for (const p of document.querySelectorAll(".pestana")) {
     p.addEventListener("click", () => {
-        for (const x of document.querySelectorAll(".pestana")) x.classList.toggle("activa", x === p);
-        $("lista").hidden = p.dataset.p !== "equipo";
-        $("reliquias").hidden = p.dataset.p !== "reliquias";
-        if (p.dataset.p === "reliquias") pintarReliquias();
+        efectos.toque();
+        mostrarPanel(p.dataset.p);
     });
 }
+// Puntito en la pestaña cuando hay algo nuevo (objeto, huevo, carta)
+function pestanaConNovedad(nombre) {
+    if (panelActual === nombre) {
+        if (nombre === "botin") pintarBotin();
+        if (nombre === "mascotas") pintarMascotas();
+        if (nombre === "cartas") pintarCartas();
+        return;
+    }
+    document.querySelector(`.pestana[data-p="${nombre}"] .novedad`)?.removeAttribute("hidden");
+}
+
+// ---------- Botín y forja ----------
+const htmlObjeto = (o, extra = "") => {
+    const r = rareza(o.rareza);
+    const L = LUGARES[o.lugar];
+    return `<div class="objeto" style="--r:${r.color}"><span class="ico-objeto">${L.icono}</span>
+        <div class="txt"><strong style="color:${r.color}">${o.nombre}${o.nivel ? ` +${o.nivel}` : ""}</strong>
+        <span>${r.nombre} · +${bonusObjeto(o)}% ${L.texto}${o.critico ? ` · +${o.critico}% crítico` : ""}</span></div>${extra}</div>`;
+};
+function pintarBotin() {
+    const b = estado.botin;
+    const lugares = Object.keys(LUGARES).map((lugar) => {
+        const o = objetoPorId(b.equipado[lugar]);
+        if (!o) return `<div class="objeto vacio"><span class="ico-objeto">${LUGARES[lugar].icono}</span><div class="txt"><strong>${LUGARES[lugar].nombre}</strong><span>Vacío: vencé jefes para conseguir uno</span></div></div>`;
+        const tope = o.nivel >= MAX_FORJA;
+        return htmlObjeto(o, `<button type="button" data-forjar="${o.id}" ${tope || b.polvo < costoForja(o) ? "disabled" : ""}>${tope ? "Máx" : `🔨 ✨${costoForja(o)}`}</button>`);
+    }).join("");
+    const mochila = b.inventario.filter((o) => !Object.values(b.equipado).includes(o.id))
+        .sort((x, y) => RAREZAS.findIndex((r) => r.id === y.rareza) - RAREZAS.findIndex((r) => r.id === x.rareza) || bonusObjeto(y) - bonusObjeto(x));
+    $("botin").innerHTML = `
+        <div class="cabeza-panel"><strong>Equipado</strong><span>✨ ${b.polvo} de polvo</span></div>
+        ${lugares}
+        <div class="cabeza-panel"><strong>Mochila ${b.inventario.length}/${MAX_INVENTARIO}</strong>
+            ${mochila.some((o) => o.rareza === "comun") ? `<button type="button" class="chico" data-desarmar-comunes>Desarmar comunes</button>` : ""}</div>
+        ${mochila.length ? mochila.map((o) => {
+            const actual = objetoPorId(b.equipado[o.lugar]);
+            const dif = bonusObjeto(o) - (actual ? bonusObjeto(actual) : 0);
+            return htmlObjeto(o, `<div class="acciones-objeto"><button type="button" data-equipar="${o.id}">${dif > 0 ? `▲${dif}%` : "Usar"}</button>
+                <button type="button" class="gris" data-desarmar="${o.id}">✨${polvoAlDesarmar(o)}</button></div>`);
+        }).join("") : `<p class="vacio-panel">Los jefes, los cofres y las mazmorras sueltan armas, armaduras y amuletos.</p>`}`;
+}
+$("botin").addEventListener("click", (e) => {
+    const bt = e.target.closest("button");
+    if (!bt || bt.disabled) return;
+    const b = estado.botin;
+    const d = bt.dataset;
+    if (d.forjar) {
+        const o = objetoPorId(d.forjar);
+        if (b.polvo < costoForja(o) || o.nivel >= MAX_FORJA) return;
+        b.polvo -= costoForja(o);
+        o.nivel++;
+        efectos.comprar();
+        sonidos.critico();
+    } else if (d.equipar) {
+        const o = objetoPorId(d.equipar);
+        b.equipado[o.lugar] = o.id;
+        efectos.comprar();
+    } else if (d.desarmar) {
+        const o = objetoPorId(d.desarmar);
+        b.polvo += polvoAlDesarmar(o);
+        b.inventario = b.inventario.filter((x) => x !== o);
+        efectos.monedas();
+    } else if (d.desarmarComunes !== undefined) {
+        const comunes = b.inventario.filter((o) => o.rareza === "comun" && !Object.values(b.equipado).includes(o.id));
+        b.polvo += comunes.reduce((t, o) => t + polvoAlDesarmar(o), 0);
+        b.inventario = b.inventario.filter((o) => !comunes.includes(o));
+        efectos.monedas();
+    }
+    pintarBotin();
+    actualizar();
+});
+
+// ---------- Mascotas ----------
+function pintarMascotas() {
+    const m = estado.mascotas;
+    $("mascotas").innerHTML = `
+        <div class="objeto huevo"><span class="ico-objeto">🥚</span><div class="txt"><strong>Huevos: ${m.huevos}</strong>
+            <span>Salen de jefes y mazmorras. Si sale una repetida, sube de nivel.</span></div>
+            <button type="button" data-incubar ${m.huevos < 1 ? "disabled" : ""}>Abrir</button></div>
+        ${MASCOTAS.map((ma) => {
+            const nivel = m.tengo[ma.id];
+            if (nivel === undefined) return `<div class="objeto vacio"><span class="ico-objeto sombra-mascota">${ma.icono}</span><div class="txt"><strong>???</strong><span>Todavía no la encontraste</span></div></div>`;
+            const lleva = m.activa === ma.id;
+            return `<div class="objeto${lleva ? " llevando" : ""}"><span class="ico-objeto">${ma.icono}</span><div class="txt"><strong>${ma.nombre} <em>Nv ${nivel + 1}</em></strong>
+                <span>${ma.detalle(nivel)}</span></div><button type="button" data-llevar="${ma.id}" ${lleva ? "disabled" : ""}>${lleva ? "Contigo" : "Llevar"}</button></div>`;
+        }).join("")}`;
+}
+$("mascotas").addEventListener("click", (e) => {
+    const bt = e.target.closest("button");
+    if (!bt || bt.disabled) return;
+    const m = estado.mascotas;
+    if (bt.dataset.incubar !== undefined && m.huevos > 0) {
+        m.huevos--;
+        const ma = MASCOTAS[Math.floor(Math.random() * MASCOTAS.length)];
+        const repetida = m.tengo[ma.id] !== undefined;
+        m.tengo[ma.id] = repetida ? m.tengo[ma.id] + 1 : 0;
+        if (!m.activa) m.activa = ma.id;
+        avisar(repetida ? `${ma.icono} ¡${ma.nombre} subió a nivel ${m.tengo[ma.id] + 1}!` : `${ma.icono} ¡Nació un ${ma.nombre}!`);
+        efectos.fanfarria();
+    } else if (bt.dataset.llevar) {
+        m.activa = bt.dataset.llevar;
+        mordida = 2;
+        efectos.comprar();
+    }
+    pintarMascotas();
+    actualizar();
+});
+
+// ---------- Cartas de monstruos ----------
+function pintarCartas() {
+    const total = BIOMAS.length * FORMAS_CARTA.length;
+    const tengo = Object.keys(estado.cartas).length;
+    let html = `<div class="cabeza-panel"><strong>🃏 ${tengo}/${total} cartas</strong><span>Todo pega +${tengo * BONUS_CARTA}%</span></div><div class="grilla-cartas">`;
+    BIOMAS.forEach((b, i) => {
+        for (const forma of FORMAS_CARTA) {
+            const la = estado.cartas[`${i}-${forma}`];
+            html += `<div class="carta${la ? "" : " oculta"}" title="${la ? `${NOMBRES_FORMA[forma]} de ${b.nombre}` : "???"}" style="--c1:${b.cielo[0]};--c2:${b.cielo[1]}">
+                ${la ? `<canvas data-carta="${i}-${forma}" width="120" height="120"></canvas>` : "<span>?</span>"}<small>${la ? NOMBRES_FORMA[forma] : b.nombre}</small></div>`;
+        }
+    });
+    $("cartas").innerHTML = `${html}</div><p class="vacio-panel">Cada monstruo puede soltar su carta (los jefes más seguido). Cada carta distinta suma +${BONUS_CARTA}% de daño para siempre.</p>`;
+    for (const c of $("cartas").querySelectorAll("canvas[data-carta]")) {
+        const [i, forma] = c.dataset.carta.split("-");
+        const ctx = c.getContext("2d");
+        const guardado = tiempo;
+        tiempo = 0;
+        dibujarMonstruo(ctx, { forma, tono: (Number(i) * 53 + 40) % 360, golpe: 0, entrada: 0, muerte: 0 }, 60, 70, 70, true);
+        tiempo = guardado;
+    }
+}
+
+$("boton-mazmorra").addEventListener("click", () => {
+    if (estado.llaves < 1) return avisar("🗝️ Necesitás una llave: la sueltan los jefes a veces");
+    if (monstruo?.jefe) return avisar("Terminá primero con el jefe");
+    entrarMazmorra();
+});
 
 // ---------- Habilidades ----------
 function pintarHabilidades() {
@@ -941,6 +1329,13 @@ const LOGROS = [
     { id: "cofres", icono: "🧰", nombre: "Buscatesoros", detalle: "Encontrá 15 cofres", meta: 15, valor: () => cont.cofres, fichas: 1200 },
     { id: "oro", icono: "💰", nombre: "Millonario", detalle: "Juntá 1M de oro en total", meta: 1e6, valor: () => cont.oroTotal, fichas: 1500 },
     { id: "habilidades", icono: "⚡", nombre: "Mago de batalla", detalle: "Usá habilidades 50 veces", meta: 50, valor: () => cont.habilidades, fichas: 700 },
+    { id: "mazmorra1", icono: "🗝️", nombre: "Explorador de mazmorras", detalle: "Superá una mazmorra", meta: 1, valor: () => cont.mazmorras ?? 0, fichas: 1500 },
+    { id: "mazmorra10", icono: "🏰", nombre: "Señor de las mazmorras", detalle: "Superá 10 mazmorras", meta: 10, valor: () => cont.mazmorras ?? 0, fichas: 8000 },
+    { id: "legendaria", icono: "🌟", nombre: "¡Legendario!", detalle: "Conseguí un objeto legendario", meta: 1, valor: () => estado.botin.inventario.filter((o) => o.rareza === "legendaria").length, fichas: 5000 },
+    { id: "mascotas", icono: "🐾", nombre: "Amigo de los animales", detalle: "Tené 4 mascotas distintas", meta: 4, valor: () => Object.keys(estado.mascotas.tengo).length, fichas: 3000 },
+    { id: "cartas10", icono: "🃏", nombre: "Coleccionista", detalle: "Juntá 10 cartas de monstruos", meta: 10, valor: () => Object.keys(estado.cartas).length, fichas: 2000 },
+    { id: "cartas35", icono: "📚", nombre: "Bestiario completo", detalle: "Juntá las 35 cartas", meta: 35, valor: () => Object.keys(estado.cartas).length, fichas: 25000 },
+    { id: "hordas", icono: "🐜", nombre: "Cazabichos", detalle: "Atrapá 100 bichitos de horda", meta: 100, valor: () => cont.hordas ?? 0, fichas: 1200 },
 ];
 const base = crearBase({
     juego: "heroe",
