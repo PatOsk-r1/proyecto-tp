@@ -1223,6 +1223,76 @@ if (mensajeMudanza) setTimeout(() => avisar(mensajeMudanza, 5000), 900);
 // ---------- Ciclo ----------
 let segundo = 0;
 let acumulado = 0;
+// ---------- Visitantes con pedido ----------
+// Cada tanto llega alguien que quiere ver una especie puntual. Si la tenés en alguna pecera, tocás
+// "Mostrar" y deja un premio; si no, tenés un rato para comprarla. Así hay un objetivo distinto cada vez.
+const VISITANTES = ["Una nena", "Un abuelo", "Una bióloga", "Un turista", "Una escuela", "Un fotógrafo", "Una pareja", "Un coleccionista"];
+let pedido = null; // { quien, esp, resta }
+let proximoPedido = 40 + Math.random() * 40;
+const tengoEspecie = (id) => estado.peceras.some((pc) => pc.peces.some((p) => p.esp === id));
+function nuevoPedido() {
+    // Solo especies que pueden vivir en alguna de tus peceras
+    const aguas = new Set(estado.peceras.map((pc) => TIPOS_PECERA[pc.tipo].agua));
+    const posibles = ESPECIES.filter((e) => e.nivel <= nivelAcuario() && aguas.has(e.agua));
+    if (!posibles.length) return;
+    // A veces piden una que ya tenés (premio rápido) y a veces una nueva (te empuja a variar)
+    const nuevas = posibles.filter((e) => !tengoEspecie(e.id));
+    const lista = nuevas.length && Math.random() < 0.55 ? nuevas : posibles;
+    const e = lista[Math.floor(Math.random() * lista.length)];
+    pedido = { quien: VISITANTES[Math.floor(Math.random() * VISITANTES.length)], esp: e.id, resta: 75 };
+    sonidos.vidrio();
+}
+const premioPedido = (p) => Math.round(especie(p.esp).precio * 1.5 + 30 * nivelAcuario());
+let ultimoPedido = "";
+function pintarPedido() {
+    const b = $("pedido-visita");
+    if (!pedido) {
+        b.hidden = true;
+        ultimoPedido = "";
+        return;
+    }
+    const e = especie(pedido.esp);
+    const tiene = tengoEspecie(pedido.esp);
+    const html = `<span class="quien-a">${pedido.quien} quiere ver un <strong>${e.nombre}</strong></span>
+        <span class="accion-a">${tiene ? `Mostrar · +${formatear(premioPedido(pedido))}` : "Comprálo en Peces"}</span>
+        <i style="width:${(pedido.resta / 75) * 100}%"></i>`;
+    if (html !== ultimoPedido) {
+        b.innerHTML = html;
+        ultimoPedido = html;
+    }
+    b.hidden = false;
+    b.classList.toggle("listo", tiene);
+}
+$("pedido-visita").addEventListener("click", () => {
+    if (!pedido) return;
+    if (!tengoEspecie(pedido.esp)) {
+        avisar(`Buscá el ${especie(pedido.esp).nombre} en la pestaña Peces${especie(pedido.esp).agua !== TIPOS_PECERA[act().tipo].agua ? " de tu otra pecera (tocá 🗄️)" : ""}`);
+        return;
+    }
+    const premio = premioPedido(pedido);
+    estado.monedas += premio;
+    cont.ganado += premio;
+    cont.pedidos = (cont.pedidos ?? 0) + 1;
+    avisar(`${pedido.quien} quedó encantado: +${formatear(premio)} monedas`);
+    efectos.monedas();
+    vibrar([20, 30, 40]);
+    pedido = null;
+    proximoPedido = 50 + Math.random() * 60;
+    pintarPedido();
+    refrescar();
+});
+function avanzarPedido(segundos) {
+    if (pedido) {
+        pedido.resta -= segundos;
+        if (pedido.resta <= 0) {
+            avisar(`${pedido.quien} se cansó de esperar y se fue`, 2000);
+            pedido = null;
+            proximoPedido = 40 + Math.random() * 40;
+        }
+    } else if ((proximoPedido -= segundos) <= 0) nuevoPedido();
+    pintarPedido();
+}
+
 bucle((dt) => {
     const inicio = performance.now();
     moverPeces(dt);
@@ -1244,6 +1314,7 @@ bucle((dt) => {
             revisarCrias(pc, segundo);
         }
         revisarRescate();
+        avanzarPedido(segundo);
         segundo = 0;
     }
     if (acumulado > 0.5) {
