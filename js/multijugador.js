@@ -1159,5 +1159,6 @@ export const JUEGOS_ONLINE = {
     mancala: { nombre: "Mancala", emoji: "🥥", carpeta: "games/mancala/", reglas: "../games/mancala/reglas.js" },
     naval: { nombre: "Batalla naval", emoji: "🚢", carpeta: "games/naval/", reglas: "../games/naval/reglas.js" },
     reversi: { nombre: "Reversi", emoji: "⚪", carpeta: "games/reversi/", reglas: "../games/reversi/reglas.js" },
+    vida: { nombre: "Vidas cruzadas", emoji: "💞", carpeta: "games/vida/", reglas: "../games/vida/reglas.js" },
     cajas: { nombre: "Puntos y cajas", emoji: "🟦", carpeta: "games/cajas/", reglas: "../games/cajas/reglas.js" },
 };
