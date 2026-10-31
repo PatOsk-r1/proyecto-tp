@@ -1498,3 +1498,24 @@
         order: 3;
     }
 }
+/* Botón para cosechar todas las parcelas maduras de una */
+.cosechar-todo-g {
+    position: absolute;
+    left: 50%;
+    bottom: 10px;
+    z-index: 2;
+    transform: translateX(-50%);
+    padding: 9px 18px;
+    font: inherit;
+    font-size: 0.95rem;
+    font-weight: 900;
+    color: #2a1600;
+    background: linear-gradient(180deg, #ffe08a, #ffbf1f);
+    border: 2px solid #4a2e17;
+    border-radius: 999px;
+    box-shadow: 0 4px 0 #0006;
+    animation: aparecer-cosecha 0.25s ease-out;
+}
+.cosechar-todo-g:active { transform: translateX(-50%) translateY(3px); box-shadow: 0 1px 0 #0006; }
+.cosechar-todo-g[hidden] { display: none; }
+@keyframes aparecer-cosecha { from { transform: translateX(-50%) scale(0.7); opacity: 0; } }
