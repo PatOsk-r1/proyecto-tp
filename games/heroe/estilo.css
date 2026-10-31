@@ -642,3 +642,48 @@
         flex: 1;
     }
 }
+/* ---------- Objetivo actual (camino guiado) ---------- */
+.objetivo-h {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 8px 10px 0;
+    padding: 9px 12px 11px;
+    border: 1px solid #ffffff22;
+    border-radius: 14px;
+    background: #ffffff10;
+    color: var(--texto);
+    font: inherit;
+    text-align: left;
+    overflow: hidden;
+}
+.objetivo-h .obj-marca {
+    flex-shrink: 0;
+    padding: 3px 8px;
+    border-radius: 999px;
+    background: #ffffff1c;
+    font-size: 0.68rem;
+    font-weight: 900;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+.objetivo-h .obj-texto { flex: 1; min-width: 0; }
+.objetivo-h strong { display: block; font-size: 0.88rem; line-height: 1.2; }
+.objetivo-h small { display: block; margin-top: 2px; font-size: 0.74rem; color: var(--texto-suave); }
+.objetivo-h .obj-cuenta { flex-shrink: 0; font-size: 0.8rem; font-weight: 900; color: var(--texto-suave); }
+.objetivo-h i {
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    height: 3px;
+    background: #ffd166;
+    transition: width 0.3s;
+}
+.objetivo-h.listo {
+    border-color: #ffd166;
+    background: linear-gradient(90deg, #ffd16633, #ffd16611);
+    animation: latir 1s ease-in-out infinite;
+}
+.objetivo-h.listo .obj-marca { background: #ffd166; color: #2a1600; }
+.pestanas-heroe[hidden], .pestanas-heroe .pestana[hidden], .habilidad[hidden] { display: none; }
