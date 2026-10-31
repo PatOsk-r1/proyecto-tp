@@ -108,7 +108,7 @@ function abrir(id) {
         <p class="objetivo-ayuda">🎯 ${d.objetivo}</p>
         <h3>Paso a paso</h3><ol>${d.como.map((p) => `<li>${p}</li>`).join("")}</ol>
         ${d.consejos.length ? `<h3>Consejos</h3><ul>${d.consejos.map((p) => `<li>${p}</li>`).join("")}</ul>` : ""}
-        ${d.online ? `<p class="nota-ayuda">👥 Podés jugar contra la compu o desafiar a un amigo desde Amigos.</p>` : ""}
+        ${d.online ? `<p class="nota-ayuda">👥 Podés jugar contra la compu o tocar «Jugar con un amigo» y elegir a quién desafiar: cada uno juega desde su celular.</p>` : ""}
         ${d.casino ? `<p class="nota-ayuda">🪙 ${CASINO}</p>` : ""}
         <button type="button" class="entendido">¡Entendido!</button></div>`;
     const cerrar = () => {
