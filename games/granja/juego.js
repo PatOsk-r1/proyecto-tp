@@ -816,7 +816,7 @@ function dibujarPlanta(ctx, id, x, y, tam, prog, tiempo) {
     const vaiven = Math.sin(tiempo * 2 + x) * 0.06;
     ctx.save();
     ctx.translate(x, y);
-    if (prog < 0.2) {
+    if (prog < 0.1) {
         // Montoncito de tierra recién sembrado con las semillas asomando
         ctx.fillStyle = "#4a2e17";
         ctx.beginPath();
@@ -833,53 +833,28 @@ function dibujarPlanta(ctx, id, x, y, tam, prog, tiempo) {
     }
     ctx.rotate(vaiven);
     const verde = "#52b788";
-    if (prog < 1) {
-        // Brote que va creciendo: más alto y con más hojas a medida que avanza
-        const s = 0.45 + prog * 0.55;
-        const hoja = (x, y, rx, ry, giro) => {
-            const g = ctx.createLinearGradient(x - rx, y, x + rx, y);
-            g.addColorStop(0, "#2d6a4f");
-            g.addColorStop(1, "#74c69d");
-            ctx.fillStyle = g;
-            ctx.beginPath();
-            ctx.ellipse(x, y, rx, ry, giro, 0, TAU);
-            ctx.fill();
-        };
+    // Creciendo: se ve el mismo cultivo pero chiquito, y va agrandándose hasta estar listo
+    // (antes era un brote verde igual para todos y en el celular no se distinguía qué crecía)
+    const creciendo = prog < 1;
+    if (creciendo) {
         ctx.fillStyle = "#4a2e17";
         ctx.beginPath();
-        ctx.ellipse(0, tam * 0.2, tam * 0.16, tam * 0.05, 0, 0, TAU);
+        ctx.ellipse(0, tam * 0.2, tam * 0.2, tam * 0.06, 0, 0, TAU);
         ctx.fill();
-        ctx.strokeStyle = "#2d6a4f";
-        ctx.lineWidth = Math.max(2, tam * 0.03);
-        ctx.lineCap = "round";
+        const s = 0.5 + prog * 0.42;
+        ctx.translate(0, tam * 0.2 * (1 - s));
+        ctx.scale(s, s);
+        ctx.globalAlpha = 0.92;
+    } else {
+        // Halo dorado detrás de lo que está listo
+        const halo = ctx.createRadialGradient(0, 0, 0, 0, 0, tam * 0.42);
+        halo.addColorStop(0, "#fff3b066");
+        halo.addColorStop(1, "#fff3b000");
+        ctx.fillStyle = halo;
         ctx.beginPath();
-        ctx.moveTo(0, tam * 0.2);
-        ctx.quadraticCurveTo(tam * 0.03, 0, 0, -tam * 0.2 * s);
-        ctx.stroke();
-        hoja(-tam * 0.1 * s, -tam * 0.02, tam * 0.12 * s, tam * 0.05 * s, 0.5);
-        hoja(tam * 0.1 * s, -tam * 0.06, tam * 0.12 * s, tam * 0.05 * s, -0.5);
-        if (prog >= 0.55) {
-            hoja(-tam * 0.12 * s, -tam * 0.16 * s, tam * 0.1 * s, tam * 0.045 * s, 0.8);
-            hoja(tam * 0.12 * s, -tam * 0.2 * s, tam * 0.1 * s, tam * 0.045 * s, -0.8);
-            // Un adelanto del fruto
-            ctx.fillStyle = c.color;
-            ctx.globalAlpha = (prog - 0.55) * 1.6;
-            ctx.beginPath();
-            ctx.arc(0, -tam * 0.22 * s, tam * 0.04, 0, TAU);
-            ctx.fill();
-            ctx.globalAlpha = 1;
-        }
-        ctx.restore();
-        return;
+        ctx.arc(0, 0, tam * 0.42, 0, TAU);
+        ctx.fill();
     }
-    // Halo dorado detrás de lo que está listo
-    const halo = ctx.createRadialGradient(0, 0, 0, 0, 0, tam * 0.42);
-    halo.addColorStop(0, "#fff3b066");
-    halo.addColorStop(1, "#fff3b000");
-    ctx.fillStyle = halo;
-    ctx.beginPath();
-    ctx.arc(0, 0, tam * 0.42, 0, TAU);
-    ctx.fill();
     ctx.scale(1.12, 1.12);
     // Maduro: cada cultivo con su dibujo
     if (id === "trigo") {
@@ -1552,7 +1527,7 @@ function dibujarParcela(ctx, i, r, tiempo) {
     ctx.drawImage(base.c, r.x, r.y, base.w, base.h);
     if (!p) return;
     // La planta según su etapa (también guardada), con un vaivén suave y el saltito al plantar o cosechar
-    const etapa = prog < 0.2 ? 0 : prog < 1 ? 1 + Math.min(5, Math.floor(prog * 6)) : 9;
+    const etapa = prog < 0.1 ? 0 : prog < 1 ? 1 + Math.min(5, Math.floor(prog * 6)) : 9;
     const lado = r.w * 1.4;
     const planta = sprite(`planta-${p.cultivo}-${etapa}-${Math.round(r.w)}`, lado, lado, (c) => {
         const progEtapa = etapa === 0 ? 0.1 : etapa === 9 ? 1 : Math.min(0.99, etapa / 6);
@@ -1568,7 +1543,7 @@ function dibujarParcela(ctx, i, r, tiempo) {
     ctx.restore();
     if (prog < 1) {
         // Mini indicador: qué está creciendo (dibujito con anillo de progreso) y cuánto falta
-        const rr = Math.max(8, Math.min(12, r.w * 0.12));
+        const rr = Math.max(11, Math.min(16, r.w * 0.16)); // más grande: en el celular se tiene que leer
         const ix = r.x + r.w - rr - 2;
         const iy = r.y + rr + 2;
         ctx.fillStyle = "#00000040";
