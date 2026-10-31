@@ -28,6 +28,11 @@ const JUEGOS = [
     { categoria: "multi", grupo: "Rápidos", nombre: "Ta-te-tí", descripcion: "Tres en línea, rápido y clásico", emoji: "❌", carpeta: "games/tateti/" },
     { categoria: "multi", grupo: "Rápidos", nombre: "Puntos y cajas", descripcion: "Cerrá cajas y jugá de nuevo", emoji: "🟦", carpeta: "games/cajas/" },
 
+    { categoria: "casino", grupo: "Originales", nombre: "Dado", descripcion: "Mové la barra, elegí tu chance y tirá", emoji: "🎲", carpeta: "games/dado/" },
+    { categoria: "casino", grupo: "Originales", nombre: "Limbo", descripcion: "Elegí un multiplicador y superalo", emoji: "📈", carpeta: "games/limbo/" },
+    { categoria: "casino", grupo: "Originales", nombre: "Torre", descripcion: "Subí piso por piso y esquivá las trampas", emoji: "🗼", carpeta: "games/torre/" },
+    { categoria: "casino", grupo: "Originales", nombre: "Cruzar la calle", descripcion: "Cruzá carril por carril sin que te pise un auto", emoji: "🚦", carpeta: "games/calle/" },
+
     { categoria: "casino", grupo: "Tragamonedas y premios", nombre: "Tragamonedas", descripcion: "Pozos acumulados, giros gratis y logros", emoji: "🎰", carpeta: "games/tragamonedas/" },
     { categoria: "casino", grupo: "Tragamonedas y premios", nombre: "Tesoro del faraón", descripcion: "Tragamonedas de Egipto: máscaras, escarabajos y pirámides", emoji: "🏺", carpeta: "games/faraon/" },
     { categoria: "casino", grupo: "Tragamonedas y premios", nombre: "Tesoro pirata", descripcion: "Tragamonedas pirata: doblones, loros y cofres", emoji: "🏴‍☠️", carpeta: "games/pirata/" },
