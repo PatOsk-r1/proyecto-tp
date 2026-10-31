@@ -36,7 +36,7 @@ export async function exigirSesion() {
 
     const usuario = await usuarioActual();
     if (!usuario) {
-        location.replace(`${LOGIN}?volver=${encodeURIComponent(location.pathname)}`);
+        location.replace(`${LOGIN}?volver=${encodeURIComponent(location.pathname + location.search)}`);
         return new Promise(() => {}); // la página se va, no sigue
     }
     document.documentElement.classList.remove("verificando");
@@ -48,6 +48,18 @@ export async function exigirSesion() {
 function montarAyudaDelJuego() {
     const id = location.pathname.match(/\/games\/([^/]+)\//)?.[1];
     if (id) import("./ayuda.js").then((m) => m.montarAyuda(id)).catch(() => {});
+    // "Jugar con un amigo" abre la lista de amigos en el mismo juego en vez de ir a la página de amigos
+    // (dentro de una partida online el mismo botón es "Volver a amigos" y no se toca)
+    if (id && !new URLSearchParams(location.search).has("partida")) {
+        document.addEventListener("click", (e) => {
+            const enlace = e.target.closest(".enlace-amigos");
+            if (!enlace || !auth?.currentUser) return;
+            e.preventDefault();
+            import("./multijugador.js")
+                .then((m) => (m.JUEGOS_ONLINE[id] ? m.elegirAmigoYDesafiar(id) : (location.href = enlace.href)))
+                .catch(() => (location.href = enlace.href));
+        });
+    }
 }
 
 export async function cerrarSesion() {
