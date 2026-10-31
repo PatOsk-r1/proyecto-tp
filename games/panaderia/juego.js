@@ -103,7 +103,8 @@ function medidas() {
         ladoHorno,
         mostrador: { x: ancho * 0.35, y: piso - alto * 0.22, w: ancho * 0.36, h: alto * 0.22 },
         puertaX: ancho * 0.88,
-        filaX: (i) => ancho * (0.76 + i * 0.075),
+        // La fila entra siempre en pantalla: en pantallas angostas se aprietan
+        filaX: (i) => ancho * 0.76 + i * Math.min(ancho * 0.075, (ancho * 0.24 - 22) / 5),
     };
 }
 function rectHorno(i, m = medidas()) {
@@ -680,8 +681,8 @@ function dibujar(dt) {
         }
         ctx.drawImage(img.c, cl.x - 20, m.piso - 76, 40, 80);
         ctx.restore();
-        // Burbuja con lo que quiere y su paciencia
-        if (cl.estado === "espera") {
+        // Burbuja con lo que quiere y su paciencia (en el celular la fila va apretada: solo la del primero)
+        if (cl.estado === "espera" && (ancho >= 600 || enFila.indexOf(cl) === 0)) {
             const bx = cl.x;
             const by = m.piso - 112;
             ctx.fillStyle = "#fff";
