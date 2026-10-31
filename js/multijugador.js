@@ -3,10 +3,10 @@
 import { app, auth } from "./sesion.js";
 import {
     getFirestore, doc, getDoc, collection, query, where, onSnapshot, writeBatch, setDoc, updateDoc, deleteDoc, addDoc,
-    serverTimestamp, deleteField, runTransaction, increment, orderBy, limit,
+    serverTimestamp, deleteField, runTransaction, increment, orderBy, limit, getDocs,
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { fichas, billetera, avisoFichas, regalarFichas } from "./fichas.js";
-import { EMOJIS, REACCIONES, htmlEmojiAnimado, soloEmojis } from "./emojis.js";
+import { EMOJIS, REACCIONES, htmlEmoji, soloEmojis } from "./emojis.js";
 import { nivelDe, progresoNivel, catalogo, anotarXp } from "./experiencia.js";
 
 export { nivelDe };
@@ -345,19 +345,19 @@ function htmlMensaje(m, { nombres, primero, ultimo, visto, activas }) {
         // Si la partida ya terminó (no está entre las que siguen en curso), queda como recuerdo sin botón
         const termino = activas && !activas.has(m.partida);
         clase = "tarjeta";
-        cuerpo = `<div class="tarjeta-msj${termino ? " terminada" : ""}"><span class="grande">${htmlEmojiAnimado(j.emoji)}</span>
+        cuerpo = `<div class="tarjeta-msj${termino ? " terminada" : ""}"><span class="grande">${htmlEmoji(j.emoji)}</span>
             <strong>${mio ? "Desafiaste a" : "¡Te desafió a"} ${j.nombre}${mio ? "" : "!"}</strong>
             <span>${m.apuesta ? `🪙 Apuesta ${formatear(m.apuesta)} cada uno` : "Sin apuesta"}</span>
             ${termino ? `<span class="fin-partida">Partida terminada</span>` : `<a href="${urlJuego(m.juego, m.partida)}">${mio ? "Abrir partida" : "Jugar"}</a>`}</div>`;
     } else if (m.tipo === "regalo") {
         clase = "tarjeta";
-        cuerpo = `<div class="tarjeta-msj regalo"><span class="grande">${htmlEmojiAnimado("🎁")}</span>
+        cuerpo = `<div class="tarjeta-msj regalo"><span class="grande">${htmlEmoji("🎁")}</span>
             <strong>${mio ? "Regalaste" : "¡Te regaló"} 🪙 ${formatear(m.cantidad ?? 0)} fichas${mio ? "" : "!"}</strong></div>`;
     } else {
         const emojis = soloEmojis(m.texto);
         clase = emojis && !m.responde ? "emoji" : "";
         cuerpo = emojis && !m.responde
-            ? `<span class="emojis">${emojis.map((e) => htmlEmojiAnimado(e)).join("")}</span>`
+            ? `<span class="emojis">${emojis.map((e) => htmlEmoji(e)).join("")}</span>`
             : `<span class="texto">${escaparHtml(m.texto)}</span>`;
     }
     const reacciones = Object.values(m.reacciones ?? {});
@@ -487,6 +487,16 @@ export const CSS_CHAT = `
 .hoja-chat .juegos { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; }
 .hoja-chat .juegos button { display: flex; align-items: center; gap: 8px; font: 800 0.95rem system-ui, sans-serif; color: #fff; background: #ffffff10; border: 1px solid #ffffff22; border-radius: 14px; padding: 12px; text-align: left; }
 .hoja-chat .juegos span { font-size: 1.5rem; }
+.hoja-chat .lista-amigos { display: flex; flex-direction: column; gap: 6px; }
+.hoja-chat .fila-amigo { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 14px; border: 1px solid #ffffff22; background: #ffffff10; color: #fff; text-align: left; font: 600 0.95rem system-ui, sans-serif; }
+.hoja-chat .fila-amigo:active { background: #ffffff22; }
+.hoja-chat .fila-amigo strong { display: block; font-weight: 800; }
+.hoja-chat .fila-amigo small { display: block; opacity: 0.65; font-size: 0.8rem; }
+.hoja-chat .avatar-chico { position: relative; width: 40px; height: 40px; flex-shrink: 0; border-radius: 50%; overflow: hidden; display: grid; place-items: center; background: #ffffff18; font-weight: 800; }
+.hoja-chat .avatar-chico > :not(i) { width: 100%; height: 100%; object-fit: cover; display: grid; place-items: center; }
+.hoja-chat .avatar-chico .inicial-avatar { background: var(--c); color: #fff; }
+.hoja-chat .avatar-chico .conexion { position: absolute; right: 0; bottom: 0; width: 11px; height: 11px; border-radius: 50%; background: #777; border: 2px solid #241a5c; }
+.hoja-chat .avatar-chico .conexion.si { background: #3ddc84; }
 .hoja-chat .fila { display: flex; gap: 8px; }
 .hoja-chat input { flex: 1; min-width: 0; font: inherit; font-size: 16px; color: #fff; background: #ffffff12; border: 1px solid #ffffff22; border-radius: 12px; padding: 10px; }
 .hoja-chat .boton { font: 900 0.95rem system-ui, sans-serif; border: none; border-radius: 12px; padding: 10px 14px; background: #ffd166; color: #2a1400; }
@@ -635,7 +645,8 @@ const REGALOS = [100, 500, 1000, 10000, 100000, 1000000];
 
 // Elegir juego y apuesta para desafiar a un amigo. Crea la partida y la manda por el chat.
 // alCrear(id, clave) decide qué hacer después (por defecto, ir a jugar).
-export function hojaDesafio(amigo, miNombre, alCrear = (id, clave) => (location.href = urlJuego(clave, id))) {
+// soloJuego: si se pasa una clave, el desafío es directo a ese juego (sin elegir de la lista)
+export function hojaDesafio(amigo, miNombre, alCrear = (id, clave) => (location.href = urlJuego(clave, id)), soloJuego = null) {
     let apuesta = 0;
     const { fondo, cerrar } = hojaChat(`<h2>⚔️ Desafiar a ${escaparHtml(amigo.nombre)}</h2>
         <span class="suave">Apuesta (cada uno pone, el que gana se lleva todo). Tenés 🪙 ${formatear(fichas())}</span>
@@ -648,6 +659,7 @@ export function hojaDesafio(amigo, miNombre, alCrear = (id, clave) => (location.
         });
     }
     for (const [clave, juego] of Object.entries(JUEGOS_ONLINE)) {
+        if (soloJuego && clave !== soloJuego) continue;
         const b = document.createElement("button");
         b.innerHTML = `<span>${juego.emoji}</span>${juego.nombre}`;
         b.addEventListener("click", async () => {
@@ -668,6 +680,45 @@ export function hojaDesafio(amigo, miNombre, alCrear = (id, clave) => (location.
             }
         });
         fondo.querySelector(".juegos").appendChild(b);
+    }
+}
+
+// Desde la pantalla de un juego: elegir a qué amigo desafiar sin ir a la página de amigos.
+// Los conectados aparecen primero.
+export async function elegirAmigoYDesafiar(clave) {
+    const perfil = await miPerfil();
+    const amigosHref = new URL("../amigos.html", import.meta.url).href;
+    if (!perfil) return (location.href = amigosHref);
+    const snap = await getDocs(query(collection(db, "amistades"), where("uids", "array-contains", yo())));
+    const amigos = snap.docs
+        .map((d) => d.data())
+        .filter((a) => a.estado === "aceptada")
+        .map((a) => {
+            const uid = a.uids.find((u) => u !== yo());
+            return { uid, nombre: a.nombres?.[uid] ?? "Amigo" };
+        });
+    const datos = await Promise.all(amigos.map((a) => getDoc(doc(db, "usuarios", a.uid)).then((d) => d.data()).catch(() => null)));
+    amigos.forEach((a, i) => {
+        a.datos = datos[i];
+        a.nombre = datos[i]?.nombre ?? a.nombre;
+    });
+    amigos.sort((a, b) => enLinea(b.datos) - enLinea(a.datos) || a.nombre.localeCompare(b.nombre));
+
+    const juego = JUEGOS_ONLINE[clave];
+    const { fondo, cerrar } = hojaChat(`<h2>Jugar ${escaparHtml(juego?.nombre ?? "")} con un amigo</h2>
+        ${amigos.length ? `<span class="suave">Elegí a quién desafiar. Le llega al chat y entra desde su celular.</span><div class="lista-amigos"></div>`
+            : `<span class="suave">Todavía no tenés amigos agregados.</span><a class="boton" href="${amigosHref}">Agregar amigos</a>`}`);
+    const lista = fondo.querySelector(".lista-amigos");
+    for (const a of amigos) {
+        const b = document.createElement("button");
+        b.className = "fila-amigo";
+        b.innerHTML = `<span class="avatar-chico">${htmlAvatar(a.datos, escaparHtml(a.nombre))}<i class="conexion${enLinea(a.datos) ? " si" : ""}"></i></span>
+            <span><strong>${escaparHtml(a.nombre)}</strong><small>${escaparHtml(textoConexion(a.datos))}</small></span>`;
+        b.addEventListener("click", () => {
+            cerrar();
+            hojaDesafio(a, perfil.nombre, undefined, clave);
+        });
+        lista?.appendChild(b);
     }
 }
 
@@ -1005,7 +1056,7 @@ function abrirChatPartida(p) {
                 const emojis = soloEmojis(m.texto);
                 if (emojis) {
                     b.className = "burbuja-rival emoji";
-                    b.innerHTML = emojis.map((e) => htmlEmojiAnimado(e)).join("");
+                    b.innerHTML = emojis.map((e) => htmlEmoji(e)).join("");
                 } else {
                     b.className = "burbuja-rival";
                     b.textContent = m.texto;
