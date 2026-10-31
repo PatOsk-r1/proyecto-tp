@@ -967,6 +967,54 @@
             bola(W * 0.8, H * 0.35, H * 0.16, "#2a9d8f");
             bola(W * 0.82, H * 0.72, H * 0.12, "#e63946");
         },
+        dado() {
+            fondo("#0d1117", "#161b26");
+            caja(W * 0.1, H * 0.6, W * 0.8, 10, 5, "#ff4d6a");
+            caja(W * 0.45, H * 0.6, W * 0.45, 10, 5, "#2ee59d");
+            caja(W * 0.45 - 9, H * 0.6 - 7, 18, 24, 5, "#e9edf3");
+            ctx.fillStyle = "#2ee59d";
+            ctx.font = "900 30px system-ui, sans-serif";
+            ctx.textAlign = "center";
+            ctx.fillText("73.42", W / 2, H * 0.42);
+        },
+        limbo() {
+            fondo("#0a0d18", "#1a1638");
+            for (let i = 0; i < 26; i++) {
+                ctx.globalAlpha = 0.2 + (i % 5) * 0.12;
+                ctx.fillStyle = "#b9b0ff";
+                ctx.fillRect((i * 37) % W, (i * 53) % H, 1.5, 8);
+            }
+            ctx.globalAlpha = 1;
+            brillo(W / 2, H * 0.5, H * 0.6, "#8b7bff55");
+            ctx.fillStyle = "#fff";
+            ctx.font = "900 34px system-ui, sans-serif";
+            ctx.textAlign = "center";
+            ctx.fillText("12.80×", W / 2, H * 0.6);
+        },
+        torre() {
+            fondo("#1b140c", "#0f0b07");
+            const filas = 5;
+            const hF = (H * 0.8) / filas;
+            for (let f = 0; f < filas; f++) for (let c = 0; c < 3; c++) {
+                const y = H * 0.9 - (f + 1) * hF;
+                const color = f < 2 ? (c === (f === 0 ? 1 : 2) ? "#1d6b4d" : "#3b2c1c") : f === 2 ? "#6b4a26" : "#3b2c1c";
+                caja(W * 0.2 + c * W * 0.21, y + 2, W * 0.19, hF - 4, 4, color);
+            }
+            caja(W * 0.04, H * 0.9 - 3 * hF + 2, W * 0.13, hF - 4, 4, "#ffb547");
+        },
+        calle() {
+            fondo("#2b2f36", "#30353d");
+            const h = H / 4;
+            caja(0, H - h, W, h, 0, "#8d939c");
+            for (let i = 1; i < 4; i++) {
+                ctx.fillStyle = "#f1f3f588";
+                for (let x = 0; x < W; x += 30) ctx.fillRect(x, H - h * i - 1, 15, 2);
+            }
+            caja(W * 0.08, H - h * 2.5 - 9, 52, 18, 6, "#e63946");
+            caja(W * 0.62, H - h * 3.5 - 9, 52, 18, 6, "#3a86ff");
+            circulo(W * 0.5, H - h * 1.55, 7, "#e0ac69");
+            caja(W * 0.5 - 7, H - h * 1.55 + 6, 14, 16, 5, "#4fc3ff");
+        },
         plinko() {
             fondo("#240046", "#5a189a");
             for (let f = 0; f < 5; f++) for (let c = 0; c <= f + 3; c++) circulo(W / 2 + (c - (f + 3) / 2) * 16, H * 0.14 + f * H * 0.14, 2.6, "#e0aaff");
