@@ -967,6 +967,47 @@
             bola(W * 0.8, H * 0.35, H * 0.16, "#2a9d8f");
             bola(W * 0.82, H * 0.72, H * 0.12, "#e63946");
         },
+        vida() {
+            fondo("#252c4c", "#141829");
+            // Dos caminos que se cruzan y dos personas
+            ctx.strokeStyle = "#ffffff26";
+            ctx.lineWidth = 2;
+            ctx.setLineDash([5, 7]);
+            ctx.beginPath();
+            ctx.moveTo(0, H * 0.95);
+            ctx.bezierCurveTo(W * 0.4, H * 0.85, W * 0.45, H * 0.3, W, H * 0.1);
+            ctx.moveTo(W, H * 0.95);
+            ctx.bezierCurveTo(W * 0.6, H * 0.85, W * 0.55, H * 0.3, 0, H * 0.1);
+            ctx.stroke();
+            ctx.setLineDash([]);
+            const persona = (x, piel, pelo, ropa, largo) => {
+                const s = H / 130;
+                ctx.save();
+                ctx.translate(x, H);
+                ctx.scale(s, s);
+                ctx.fillStyle = pelo;
+                if (largo) {
+                    ctx.beginPath();
+                    ctx.roundRect(-28, -120, 56, 70, 26);
+                    ctx.fill();
+                }
+                ctx.fillStyle = ropa;
+                ctx.beginPath();
+                ctx.roundRect(-34, -58, 68, 62, 26);
+                ctx.fill();
+                ctx.fillStyle = piel;
+                ctx.beginPath();
+                ctx.ellipse(0, -92, 23, 26, 0, 0, TAU);
+                ctx.fill();
+                ctx.fillStyle = pelo;
+                ctx.beginPath();
+                ctx.ellipse(0, -100, 25, 20, 0, Math.PI, TAU);
+                ctx.fill();
+                ctx.restore();
+            };
+            persona(W * 0.36, "#e6b48f", "#4a2f22", "#ff7a6b", true);
+            persona(W * 0.64, "#9a6440", "#1e1a19", "#6c8cff", false);
+        },
         dado() {
             fondo("#0d1117", "#161b26");
             // En el destacado (tarjeta ancha) el dibujo va a la derecha, para no tapar el título
