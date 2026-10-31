@@ -27,3 +27,6 @@ obj/
 *.log
 .env
 privado/
+
+# Configuración local de Claude
+.claude/
