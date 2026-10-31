@@ -1082,3 +1082,10 @@ $("continuar").addEventListener("click", () => {
 // Al salir de la página en medio de una oleada se guarda lo último entre oleadas (no se pierde nada construido antes)
 prepararMapa(desbloqueado(estado.mapa) ? estado.mapa : 0);
 abrirMenu();
+
+// Sin desvanecido cuando ya se ve la última torre
+const tiendaT = $("torres-tienda");
+const revisarFinTienda = () => tiendaT.classList.toggle("al-final", tiendaT.scrollLeft + tiendaT.clientWidth >= tiendaT.scrollWidth - 4);
+tiendaT.addEventListener("scroll", revisarFinTienda, { passive: true });
+addEventListener("resize", revisarFinTienda);
+setTimeout(revisarFinTienda, 300);
