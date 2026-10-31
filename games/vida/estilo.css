@@ -202,3 +202,23 @@
 
 .aviso-v { position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: 70; max-width: 90vw; padding: 10px 16px; border-radius: 14px; background: #eef0f7; color: #12152a; font-size: 0.88rem; font-weight: 700; text-align: center; box-shadow: 0 10px 30px #0008; }
 .aviso-v[hidden] { display: none; }
+
+/* ---------- Escena ilustrada ---------- */
+.escena-v { position: relative; flex-shrink: 0; border-radius: 18px; overflow: hidden; border: 1px solid var(--borde); background: #12152a; }
+.escena-v canvas { display: block; width: 100%; height: clamp(190px, 30vh, 260px); }
+.escena-v p {
+    position: absolute;
+    left: 10px;
+    right: 10px;
+    bottom: 10px;
+    margin: 0;
+    padding: 7px 12px;
+    border-radius: 12px;
+    background: #0f1220d9;
+    color: var(--texto);
+    font-size: 0.85rem;
+    font-weight: 700;
+    line-height: 1.3;
+    text-align: center;
+}
+.escena-v p:empty { display: none; }
