@@ -133,12 +133,13 @@ const nubesPlaneta = new THREE.Mesh(
     new THREE.SphereGeometry(1.56, 32, 24),
     new THREE.MeshStandardMaterial({
         map: texturaCanvas(512, 256, (x, w, h) => {
-            for (let k = 0; k < 90; k++) {
+            // Nubes más finas y separadas: que se vean los continentes
+            for (let k = 0; k < 55; k++) {
                 const cx = Math.random() * w;
                 const cy = h * 0.15 + Math.random() * h * 0.7;
-                const r = 8 + Math.random() * 26;
+                const r = 6 + Math.random() * 18;
                 const g = x.createRadialGradient(cx, cy, 0, cx, cy, r);
-                g.addColorStop(0, "rgba(255,255,255,0.75)");
+                g.addColorStop(0, "rgba(255,255,255,0.55)");
                 g.addColorStop(1, "rgba(255,255,255,0)");
                 x.fillStyle = g;
                 x.fillRect(cx - r * 2, cy - r, r * 4, r * 2);
