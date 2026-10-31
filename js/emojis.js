@@ -1,10 +1,10 @@
-// Emojis del chat. Los mensajes que son solo emojis se muestran grandes y animados
-// (Noto Animated Emoji de Google); si un emoji no tiene versión animada se usa la imagen fija.
+// Emojis del chat. Los mensajes que son solo emojis se muestran grandes, con la imagen fija
+// de Noto Emoji de Google (sin animación).
 const codigo = (e) => [...e].map((c) => c.codePointAt(0).toString(16)).join("_");
 const urlEmoji = (e, formato) => `https://fonts.gstatic.com/s/e/notoemoji/latest/${codigo(e)}/${formato}`;
 
-export const htmlEmojiAnimado = (e, clase = "") =>
-    `<img class="${clase}" src="${urlEmoji(e, "512.webp")}" alt="${e}" loading="lazy" draggable="false" onerror="this.onerror=null;this.src='${urlEmoji(e, "512.png")}'">`;
+export const htmlEmoji = (e, clase = "") =>
+    `<img class="${clase}" src="${urlEmoji(e, "512.png")}" alt="${e}" loading="lazy" draggable="false" onerror="this.replaceWith(this.alt)">`;
 
 export const EMOJIS = [
     "😀", "😂", "🤣", "😅", "😊", "😍", "🥰", "😘", "😜", "🤪", "😎", "🤓", "🥳", "🤩", "😏", "😒",
