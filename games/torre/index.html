@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="es" class="verificando">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>Torre · Proyecto TP</title>
+    <meta name="theme-color" content="#0d1117">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="../../icons/icon-180.png">
+    <link rel="manifest" href="../../manifest.webmanifest">
+
+    <link rel="stylesheet" href="../../css/estilos.css">
+    <link rel="stylesheet" href="../../css/juegos3d.css">
+    <link rel="stylesheet" href="../../css/originales.css">
+    <style>
+        .tema-torre { --acento: #ffb547; --fondo-2: #2a1d10; }
+        .torre {
+            flex: 1;
+            min-height: 0;
+            display: flex;
+            flex-direction: column-reverse;
+            gap: 6px;
+            padding: 10px;
+            border-radius: 18px;
+            background: linear-gradient(180deg, #1b140c, #0f0b07);
+            border: 1px solid var(--borde);
+            box-shadow: inset 0 0 30px #000a;
+            overflow: hidden;
+        }
+        .piso {
+            flex: 1;
+            min-height: 0;
+            display: flex;
+            align-items: stretch;
+            gap: 6px;
+            opacity: 0.45;
+            transition: opacity 0.25s;
+        }
+        .piso.actual { opacity: 1; }
+        .piso.pasado { opacity: 0.8; }
+        .piso .valor {
+            width: 64px;
+            flex-shrink: 0;
+            display: grid;
+            place-items: center;
+            border-radius: 9px;
+            font-size: 0.78rem;
+            font-weight: 900;
+            color: var(--texto-suave);
+            background: #ffffff06;
+        }
+        .piso.actual .valor { color: #1d1204; background: var(--acento); }
+        .puerta {
+            flex: 1;
+            position: relative;
+            border: none;
+            border-radius: 9px;
+            padding: 0;
+            font: inherit;
+            background: linear-gradient(180deg, #3b2c1c, #2a1f14);
+            box-shadow: inset 0 1px 0 #ffffff1a, 0 3px 0 #120c06;
+            display: grid;
+            place-items: center;
+            transition: transform 0.12s, background 0.2s;
+        }
+        .piso.actual .puerta:not(:disabled) {
+            background: linear-gradient(180deg, #6b4a26, #4a3219);
+            box-shadow: inset 0 1px 0 #ffffff33, 0 3px 0 #1d1204, 0 0 14px #ffb54733;
+        }
+        .piso.actual .puerta:not(:disabled):active { transform: translateY(2px); }
+        .puerta svg { width: min(42%, 30px); height: auto; }
+        .puerta.segura { background: linear-gradient(180deg, #1d6b4d, #114433); box-shadow: inset 0 0 0 2px #2ee59d88; }
+        .puerta.trampa { background: linear-gradient(180deg, #8a1f30, #4d0d18); box-shadow: inset 0 0 0 2px #ff4d6a; }
+        .puerta.revelada { opacity: 0.55; }
+        .torre.temblor { animation: temblor 0.4s; }
+        @keyframes temblor { 20%,60% { transform: translateX(-6px); } 40%,80% { transform: translateX(6px); } }
+    </style>
+</head>
+<body class="pantalla-3d tema-casino tema-original tema-torre">
+    <header class="barra-juego">
+        <a class="boton-volver" href="../../">‹ Juegos</a>
+        <h1>Torre</h1>
+        <div id="fichas" class="fichas-total"></div>
+    </header>
+
+    <main class="zona-original">
+        <div class="datos-o">
+            <div>Multiplicador<strong id="multi">1.00×</strong></div>
+            <div>Próximo<strong id="proximo">—</strong></div>
+            <div>Ganancia<strong id="ganancia">0</strong></div>
+        </div>
+        <div id="torre" class="torre"></div>
+        <div class="segmentos" id="dificultad">
+            <button data-d="facil" type="button">Fácil</button>
+            <button data-d="medio" class="activo" type="button">Medio</button>
+            <button data-d="dificil" type="button">Difícil</button>
+            <button data-d="experto" type="button">Experto</button>
+        </div>
+    </main>
+
+    <div class="controles-casino">
+        <div class="apuesta-fila">
+            <button id="menos" class="redondo" type="button">−</button>
+            <div class="apuesta">Apuesta<strong id="apuesta">10</strong></div>
+            <button id="mas" class="redondo" type="button">+</button>
+        </div>
+        <button id="accion" class="accion" type="button">Empezar</button>
+        <button id="recargar" class="accion secundaria" type="button" hidden>Recargar fichas</button>
+    </div>
+
+    <script type="module">
+        import { exigirSesion } from "../../js/sesion.js";
+        exigirSesion();
+    </script>
+    <script type="module" src="juego.js"></script>
+</body>
+</html>
