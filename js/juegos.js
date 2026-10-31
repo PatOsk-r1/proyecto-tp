@@ -18,6 +18,8 @@ const JUEGOS = [
     { categoria: "solo", grupo: "Arcade", nombre: "Apilar", descripcion: "Soltá cada bloque justo encima del anterior", emoji: "🧱", carpeta: "games/apilar/" },
     { categoria: "solo", grupo: "Arcade", nombre: "Espiral", descripcion: "Girá la torre y hacé caer la pelota", emoji: "🌀", carpeta: "games/espiral/" },
 
+    { categoria: "multi", grupo: "Simulación", nombre: "Vidas cruzadas", descripcion: "Viví tu vida, cruzate con tu amigo y armen una historia", emoji: "💞", carpeta: "games/vida/" },
+
     { categoria: "multi", grupo: "Habilidad", nombre: "Pool", descripcion: "Bola 8 contra un amigo o la compu", emoji: "🎱", carpeta: "games/pool/" },
     { categoria: "multi", grupo: "Habilidad", nombre: "Tiro con arco", descripcion: "Duelo de 5 rondas con viento", emoji: "🏹", carpeta: "games/arco/" },
     { categoria: "multi", grupo: "Tablero", nombre: "Damas", descripcion: "Comé todas las fichas del rival", emoji: "⚫", carpeta: "games/damas/" },
