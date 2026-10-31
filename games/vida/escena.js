@@ -451,6 +451,7 @@ const POSES = { trabajo: "compu", facultad: "libro", gimnasio: "pesas", cafe: "t
 // escena: { lugar, momento, personas: [{ p, pose }], hijos: [p], texto, festejo }
 export function crearEscena(canvas, alTexto) {
     const ctx = canvas.getContext("2d");
+    dibujarUna.ctx = ctx;
     let W = 0;
     let H = 0;
     let actual = null;
@@ -474,48 +475,32 @@ export function crearEscena(canvas, alTexto) {
         const t = ahora / 1000;
         const entra = Math.min(1, (ahora - desde) / 700);
         const e = actual;
-        const fondo = FONDOS[e.lugar] ?? FONDOS.plaza;
         ctx.save();
-        const piso = fondo(ctx, W, H, e.momento, t);
-        const s = (H * 0.56) / 130;
-        const n = e.personas.length;
-        // Lugares en la escena: uno al centro o dos enfrentados
-        const xs = n === 1 ? [W * 0.5] : [W * 0.38, W * 0.62];
-        const centro = W * 0.5;
-        // Hijos (en casa)
-        (e.hijos ?? []).forEach((h, i) => {
-            const x = W * (0.16 + i * 0.12);
-            dibujarPersonaEn(ctx, x, piso, s * 0.62, h, "parado", t + i);
-        });
-        e.personas.forEach(({ p, pose }, i) => {
-            // Entran caminando desde el costado
-            const destino = xs[i];
-            const origen = i === 0 && n === 1 ? -W * 0.15 : i === 0 ? -W * 0.15 : W * 1.15;
-            const x = origen + (destino - origen) * (1 - (1 - entra) ** 3);
-            const caminando = entra < 1;
-            const mira = n === 2 ? (i === 0 ? 1 : -1) : 1;
-            const yPose = pose === "dormir" ? piso - H * 0.16 : piso;
-            dibujarPersonaEn(ctx, x, yPose, s, p, caminando ? "caminar" : pose, t + i * 0.7, mira);
-        });
-        // Muebles que van adelante de las personas
-        if (e.lugar === "trabajo") FONDOS.trabajoFrente(ctx, W, H, centro);
-        if (e.lugar === "cafe" && n === 2) FONDOS.cafeFrente(ctx, W, H, centro);
-        if (e.lugar === "cine") FONDOS.cineFrente(ctx, W, H);
-        if (e.lugar === "restaurante") FONDOS.restauranteFrente(ctx, W, H, centro, t);
-        // Luz según la hora (adentro se nota menos)
-        const tinte = LUZ[e.momento]?.tinte;
-        if (tinte && !["bar", "cine", "restaurante", "boda"].includes(e.lugar)) {
-            ctx.fillStyle = e.lugar === "plaza" ? tinte : tinte.replace(/0\.\d+\)$/, (v) => `${(parseFloat(v) * 0.5).toFixed(2)})`);
-            ctx.fillRect(0, 0, W, H);
-        }
-        // Corazones cuando están juntos y bien
-        if (e.corazones) {
-            for (let k = 0; k < 3; k++) {
-                const f = (t * 0.5 + k / 3) % 1;
-                ctx.globalAlpha = 1 - f;
-                corazon(ctx, centro + Math.sin(f * 6 + k) * 14, H * 0.42 - f * H * 0.3, 7 + f * 4);
-            }
-            ctx.globalAlpha = 1;
+        if (e.dividida) {
+            // Cada uno en su lugar: la pantalla partida al medio, con el nombre arriba
+            e.dividida.forEach((parte, i) => {
+                ctx.save();
+                ctx.beginPath();
+                ctx.rect(i * W / 2, 0, W / 2, H);
+                ctx.clip();
+                ctx.translate(i * W / 2, 0);
+                dibujarUna(parte, W / 2, H, t, entra, i === 0 ? -1 : 1);
+                ctx.font = "800 12px system-ui, sans-serif";
+                const w = ctx.measureText(parte.etiqueta).width + 16;
+                ctx.fillStyle = "#0f1220cc";
+                ctx.beginPath();
+                ctx.roundRect(W / 4 - w / 2, 8, w, 22, 11);
+                ctx.fill();
+                ctx.fillStyle = "#eef0f7";
+                ctx.textAlign = "center";
+                ctx.textBaseline = "middle";
+                ctx.fillText(parte.etiqueta, W / 4, 19.5);
+                ctx.restore();
+            });
+            ctx.fillStyle = "#0f1220";
+            ctx.fillRect(W / 2 - 1.5, 0, 3, H);
+        } else {
+            dibujarUna(e, W, H, t, entra, -1);
         }
         // Papelitos en la boda o en un nacimiento
         if (e.festejo) {
@@ -547,6 +532,43 @@ export function crearEscena(canvas, alTexto) {
             medir();
         },
     };
+}
+
+// Dibuja una escena en un ancho W (la escena entera o una mitad de la pantalla partida)
+function dibujarUna(e, W, H, t, entra, desdeLado) {
+    const ctx = dibujarUna.ctx;
+    const fondo = FONDOS[e.lugar] ?? FONDOS.plaza;
+    const piso = fondo(ctx, W, H, e.momento, t);
+    const s = (H * 0.56) / 130;
+    const n = e.personas.length;
+    const xs = n === 1 ? [W * 0.5] : [W * 0.36, W * 0.64];
+    const centro = W * 0.5;
+    (e.hijos ?? []).forEach((h, i) => dibujarPersonaEn(ctx, W * (0.14 + i * 0.12), piso, s * 0.62, h, "parado", t + i));
+    e.personas.forEach(({ p, pose }, i) => {
+        const destino = xs[i];
+        const origen = n === 1 ? (desdeLado < 0 ? -W * 0.2 : W * 1.2) : i === 0 ? -W * 0.2 : W * 1.2;
+        const x = origen + (destino - origen) * (1 - (1 - entra) ** 3);
+        const mira = n === 2 ? (i === 0 ? 1 : -1) : 1;
+        const yPose = pose === "dormir" ? piso - H * 0.16 : piso;
+        dibujarPersonaEn(ctx, x, yPose, s, p, entra < 1 ? "caminar" : pose, t + i * 0.7, mira);
+    });
+    if (e.lugar === "trabajo") FONDOS.trabajoFrente(ctx, W, H, centro);
+    if (e.lugar === "cafe" && n === 2) FONDOS.cafeFrente(ctx, W, H, centro);
+    if (e.lugar === "cine") FONDOS.cineFrente(ctx, W, H);
+    if (e.lugar === "restaurante") FONDOS.restauranteFrente(ctx, W, H, centro, t);
+    const tinte = LUZ[e.momento]?.tinte;
+    if (tinte && !["bar", "cine", "restaurante", "boda"].includes(e.lugar)) {
+        ctx.fillStyle = e.lugar === "plaza" ? tinte : tinte.replace(/0\.\d+\)$/, (v) => `${(parseFloat(v) * 0.5).toFixed(2)})`);
+        ctx.fillRect(0, 0, W, H);
+    }
+    if (e.corazones) {
+        for (let k = 0; k < 3; k++) {
+            const f = (t * 0.5 + k / 3) % 1;
+            ctx.globalAlpha = 1 - f;
+            corazon(ctx, centro + Math.sin(f * 6 + k) * 14, H * 0.42 - f * H * 0.3, 7 + f * 4);
+        }
+        ctx.globalAlpha = 1;
+    }
 }
 
 function corazon(ctx, x, y, r) {
