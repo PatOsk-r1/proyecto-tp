@@ -4,10 +4,10 @@ import { formatear, textoFlotante, vibrar } from "../../js/comun3d.js";
 import { fichas, cambiarFichas } from "../../js/fichas.js";
 import { selectorApuesta, pintarSaldo, conectarRecarga } from "../../js/casino.js";
 import { crearLienzo, bucle, crearChispas } from "../../js/lienzo2d.js";
-import { TABLAS } from "./tablas.js";
+import { TABLAS, INERCIA } from "./tablas.js";
 
 const $ = (id) => document.getElementById(id);
-const TIEMPO_FILA = 0.13;
+const TIEMPO_FILA = 0.15;
 
 let filas = 12;
 let riesgo = "medio";
@@ -50,8 +50,9 @@ function soltar() {
     cambiarFichas(-valor);
     pintarSaldo($("fichas"));
     revisarRecarga();
-    // Camino sorteado: true = derecha
-    const camino = Array.from({ length: filas }, () => Math.random() < 0.5);
+    // Camino sorteado: true = derecha. Con inercia tiende a seguir para el mismo lado.
+    const camino = [];
+    for (let i = 0; i < filas; i++) camino.push(Math.random() < (i === 0 ? 0.5 : camino[i - 1] ? INERCIA : 1 - INERCIA));
     bolas.push({ camino, t: 0, apuesta: valor, filas, riesgo, estela: [], hue: Math.random() * 360 });
     vibrar(8);
 }
@@ -72,8 +73,9 @@ function posicion(b) {
     const y0 = yFila(r) - s * 0.32;
     const y1 = yFila(r + 1) - s * 0.32;
     const x = x0 + (x1 - x0) * p;
-    // Pequeño rebote hacia arriba y después cae
-    const y = y0 + (y1 - y0) * p * p - Math.sin(p * Math.PI) * sepY() * 0.3;
+    // Rebote hacia arriba y después cae (más alto si sigue para el mismo lado que venía)
+    const sigue = r > 0 && b.camino[r] === b.camino[r - 1];
+    const y = y0 + (y1 - y0) * p * p - Math.sin(p * Math.PI) * sepY() * (sigue ? 0.55 : 0.4);
     return { x, y, fila: r, indice: derechas + 1 };
 }
 
