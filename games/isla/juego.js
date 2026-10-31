@@ -55,6 +55,8 @@ const EDIFICIOS = [
     { id: "cantera", icono: "🏗️", nombre: "Cantera", detalle: (n) => (n ? `Saca ${formatear(produccion().piedra * 60)} piedra y ${formatear(produccion().monedas * 60)} monedas por minuto` : "Saca piedra y monedas de las rocas sola"), max: 20, costo: (n) => ({ madera: Math.ceil(25 * 1.8 ** n), monedas: Math.ceil(150 * 1.9 ** n) }) },
     { id: "muelle", icono: "⚓", nombre: "Muelle", detalle: () => "Para zarpar a una isla nueva", max: 1, costo: () => ({ madera: 80 * isla(), piedra: 50 * isla(), monedas: 600 * isla() }) },
 ];
+// Mejoras cuyo texto en nivel 0 diría "0%": se muestra lo que da el primer nivel
+const SIN_EFECTO_EN_0 = ["fogata", "choza", "pala"];
 const ICONOS_RECURSO = { monedas: "🪙", madera: "🪵", piedra: "🪨", cocos: "🥥", gemas: "💎" };
 
 // ---------- Estado ----------
@@ -648,7 +650,7 @@ function dibujar(dt) {
             explorador.casilla = explorador.destino;
             explorador.destino = null;
             // Solo cava si fue a explorar (si no, solo caminó hasta ahí)
-            explorador.cavando = excavando ? 0.7 : 0;
+            explorador.cavando = excavando ? 0.45 : 0;
         } else {
             explorador.x += (dx / largo) * vel * dt;
             explorador.y += (dy / largo) * vel * dt;
@@ -658,6 +660,22 @@ function dibujar(dt) {
         if (Math.random() < dt * 20) chispas.emitir(explorador.x + l * 0.15, explorador.y + l * 0.25, "#c9a26b", 2, 60);
         if (explorador.cavando <= 0) terminarExcavacion();
     }
+    // Si está libre, sigue con la próxima casilla que tocaste
+    if (!explorador.destino && !excavando && explorador.cavando <= 0 && cola.length) seguirCola();
+    // Marcas de las casillas en espera (1, 2, 3…)
+    cola.forEach((k, i) => {
+        const p = centroCasilla(k, m);
+        ctx.fillStyle = "#0b4f6ccc";
+        ctx.beginPath();
+        ctx.arc(p.x + l * 0.28, p.y - l * 0.28, l * 0.17, 0, TAU);
+        ctx.fill();
+        ctx.fillStyle = "#fff";
+        ctx.font = `900 ${Math.round(l * 0.2)}px system-ui, sans-serif`;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(i + 1, p.x + l * 0.28, p.y - l * 0.27);
+    });
+    ctx.textBaseline = "alphabetic";
     dibujarExplorador(ctx, explorador.x, explorador.y - l * 0.1, l * 0.9, t);
     chispas.dibujar(ctx, dt);
     for (let i = textos.length - 1; i >= 0; i--) {
@@ -679,6 +697,36 @@ function dibujar(dt) {
 
 // ---------- Explorar ----------
 let excavando = null;
+// Casillas tocadas mientras el explorador camina o cava: las explora en orden
+const cola = [];
+const MAX_COLA = 8;
+const energiaEnCola = () => cola.reduce((t, k) => t + (k.vista ? 1 : TERRENOS[k.tipo].costo), 0);
+const pegadas = (a, b) => Math.abs(a.x - b.x) + Math.abs(a.y - b.y) === 1;
+function ponerEnCola(k) {
+    if (cola.includes(k)) {
+        cola.splice(cola.indexOf(k), 1); // tocarla de nuevo la saca de la lista
+        return;
+    }
+    if (cola.length >= MAX_COLA) return avisar("Ya tenés muchas casillas en espera", 1200);
+    const costo = k.vista ? 1 : TERRENOS[k.tipo].costo;
+    if (estado.energia < energiaEnCola() + costo) {
+        avisar(`No te alcanza la energía para tantas (⚡${energiaEnCola() + costo})`, 1400);
+        efectos.error();
+        return;
+    }
+    cola.push(k);
+    efectos.toque();
+}
+function seguirCola() {
+    while (cola.length) {
+        const k = cola.shift();
+        if (k.vista) {
+            if (tocarDestello(k)) return;
+            continue;
+        }
+        if (explorable(k)) return explorar(k);
+    }
+}
 function explorar(k) {
     if (excavando || explorador.destino) return;
     const costo = TERRENOS[k.tipo].costo;
@@ -1048,15 +1096,20 @@ $("lienzo").addEventListener("pointerdown", (e) => {
     const k = casillas()[cy * COLS + cx];
     if (!k.tierra) return;
     if (tocarPirata(k)) return;
+    const ocupado = Boolean(explorador.destino || excavando || explorador.cavando > 0);
     if (k.vista) {
+        if (ocupado && estado.isla.brillos.includes(indice(k))) return ponerEnCola(k);
         if (tocarTesoroVisto(k) || tocarDestello(k)) return;
-        if (!explorador.destino && !excavando) explorador.destino = k; // caminar hasta ahí
+        if (!ocupado) explorador.destino = k; // caminar hasta ahí
         return;
     }
-    if (!explorable(k)) {
+    // Se puede encolar una casilla pegada a otra que ya está en la lista
+    const alcanzable = explorable(k) || cola.some((q) => !q.vista && pegadas(q, k));
+    if (!alcanzable) {
         avisar("Explorá primero las casillas de al lado (las que brillan)");
         return;
     }
+    if (ocupado || cola.length) return ponerEnCola(k);
     explorar(k);
 });
 
@@ -1074,7 +1127,7 @@ function pintarPanel() {
             const n = nivel(ed.id);
             const tope = n >= ed.max;
             const costo = ed.costo(n);
-            return `<div class="fila-i"><span class="ico-i">${ed.icono}</span><div class="txt"><strong>${ed.nombre}${n ? ` <em>Nv ${n}</em>` : ""}</strong><span>${ed.detalle(n)}</span></div>
+            return `<div class="fila-i"><span class="ico-i">${ed.icono}</span><div class="txt"><strong>${ed.nombre}${n ? ` <em>Nv ${n}</em>` : ""}</strong><span>${n || !SIN_EFECTO_EN_0.includes(ed.id) ? ed.detalle(n) : `Al construirla: ${ed.detalle(1)}`}</span></div>
                 <button type="button" data-edificio="${ed.id}" ${tope || !puedePagar(costo) ? "disabled" : ""}>${tope ? "Listo" : textoCosto(costo)}</button></div>`;
         }).join("");
     } else if (pestana === "explorador") {
