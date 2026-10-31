@@ -59,7 +59,7 @@ const ESTACIONES = [
     { id: "primavera", icono: "🌸", nombre: "Primavera", cultivos: ["zanahoria", "frutilla"], pasto: ["#8fd88f", "#55a865"] },
     { id: "verano", icono: "☀️", nombre: "Verano", cultivos: ["tomate", "maiz", "uva"], pasto: ["#9ccc65", "#5a9a3c"] },
     { id: "otono", icono: "🍂", nombre: "Otoño", cultivos: ["calabaza", "trigo"], pasto: ["#c5b358", "#8a8a3c"] },
-    { id: "invierno", icono: "❄️", nombre: "Invierno", cultivos: [], pasto: ["#dfe9e8", "#a9c1bd"] },
+    { id: "invierno", icono: "❄️", nombre: "Invierno", cultivos: [], pasto: ["#cfe2dc", "#7fa89c"] },
 ];
 const DURACION_ESTACION = 4 * 8 * 60 * 1000;
 const estacion = () => ESTACIONES[Math.floor(Date.now() / DURACION_ESTACION) % 4];
@@ -1642,11 +1642,19 @@ function dibujar(dt) {
     for (let i = 0; i < lotesVisibles(); i++) dibujarParcela(ctx, i, rectParcela(i, m), tiempo);
 
     if (!estado.animales.length) {
-        ctx.fillStyle = "#1b433288";
+        // Cartelito legible sobre el corral vacío
+        const texto = estado.nivel >= 2 ? "Comprá animales en la pestaña Animales" : "Los animales se destraban en el nivel 2";
         ctx.font = "800 13px sans-serif";
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
-        ctx.fillText(estado.nivel >= 2 ? "Comprá animales en la pestaña 🐔" : "Los animales se destraban en el nivel 2", ancho / 2, m.corralY + m.corral / 2 + 8);
+        const ty = m.corralY + m.corral / 2 + 8;
+        const tw = ctx.measureText(texto).width + 22;
+        ctx.fillStyle = "#1b4332cc";
+        ctx.beginPath();
+        ctx.roundRect(ancho / 2 - tw / 2, ty - 13, tw, 26, 13);
+        ctx.fill();
+        ctx.fillStyle = "#fff";
+        ctx.fillText(texto, ancho / 2, ty + 1);
     }
     const tam = Math.min(46, m.corral * 0.5);
     dibujarEstablo(ctx, m, tiempo, dt);
@@ -1808,7 +1816,7 @@ function dibujar(dt) {
     const prendido = Math.max(0, Math.min(1, (0.7 - luz) / 0.4));
     const luces = posicionesFaroles(m).map(([x, y], k) => dibujarFarol(ctx, x, y, prendido, tiempo, k));
     if (luz < 1) {
-        ctx.fillStyle = `rgba(10, 16, 55, ${(1 - luz) * 0.5})`;
+        ctx.fillStyle = `rgba(10, 16, 55, ${(1 - luz) * 0.3})`; // suave: los cultivos se tienen que ver igual
         ctx.fillRect(0, m.cielo, ancho, alto - m.cielo);
         if (prendido > 0) {
             // Luz cálida de cada farol que ilumina alrededor
@@ -2567,6 +2575,26 @@ function abrirMision() {
     sonidos.toque();
 }
 $("boton-mision").addEventListener("click", abrirMision);
+
+// Botón "Cosechar todo": aparece cuando hay 2 o más parcelas maduras
+const maduras = () => estado.parcelas.map((p, i) => (p && progreso(p) >= 1 && i < lotesVisibles() ? i : -1)).filter((i) => i >= 0);
+let ultimasMaduras = -1;
+function pintarCosecharTodo() {
+    const n = maduras().length;
+    if (n === ultimasMaduras) return;
+    ultimasMaduras = n;
+    $("cosechar-todo").hidden = n < 2;
+    $("cosechar-todo").textContent = `Cosechar todo (${n})`;
+}
+$("cosechar-todo").addEventListener("click", () => {
+    const lista = maduras();
+    lista.forEach((i, k) => setTimeout(() => cosechar(i), k * 70));
+    setTimeout(() => {
+        ultimasMaduras = -1;
+        refrescar();
+    }, lista.length * 70 + 50);
+});
+setInterval(pintarCosecharTodo, 400);
 
 // ---------- Garra de premios ----------
 function premioGarra(p) {
