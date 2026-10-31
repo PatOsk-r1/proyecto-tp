@@ -6,6 +6,7 @@
 import { exigirSesion } from "../../js/sesion.js";
 import { cargar, guardar, vibrar } from "../../js/comun3d.js";
 import { MOMENTOS, LUGARES, PASOS, ESTADOS, CITAS, CHANCE_EMBARAZO, CHANCE_CON_PROTECCION, DIAS_EMBARAZO, datosIniciales } from "./reglas.js";
+import { crearEscena, dibujarPersonaEn, POSES } from "./escena.js";
 
 const $ = (id) => document.getElementById(id);
 const usuario = await exigirSesion();
@@ -69,81 +70,9 @@ function cambiar(cambios, extra = {}) {
 
 // ---------- Dibujo de personas ----------
 function dibujarPersona(cv, p, { escala = 1, x = 0.5 } = {}) {
-    const ctx = cv.getContext("2d");
     if (!p) return;
-    const s = Math.min(cv.width / 100, cv.height / 130) * escala;
-    ctx.save();
-    ctx.translate(cv.width * x, cv.height);
-    ctx.scale(s, s);
-    // Pelo de atrás (largo)
-    ctx.fillStyle = p.pelo;
-    if (p.peinado === "largo") {
-        ctx.beginPath();
-        ctx.roundRect(-28, -120, 56, 70, 26);
-        ctx.fill();
-    }
-    // Cuerpo
-    ctx.fillStyle = p.ropa;
-    ctx.beginPath();
-    ctx.roundRect(-34, -58, 68, 62, [26, 26, 6, 6]);
-    ctx.fill();
-    ctx.fillStyle = "#00000022";
-    ctx.beginPath();
-    ctx.roundRect(-34, -20, 68, 24, 6);
-    ctx.fill();
-    // Cuello y cabeza
-    ctx.fillStyle = p.piel;
-    ctx.beginPath();
-    ctx.roundRect(-8, -70, 16, 16, 4);
-    ctx.fill();
-    ctx.beginPath();
-    ctx.ellipse(0, -92, 23, 26, 0, 0, Math.PI * 2);
-    ctx.fill();
-    // Pelo de adelante
-    ctx.fillStyle = p.pelo;
-    if (p.peinado === "rulos") {
-        for (const [dx, dy, r] of [[-18, -104, 10], [-6, -114, 11], [8, -113, 11], [19, -103, 10], [-22, -92, 8], [23, -92, 8]]) {
-            ctx.beginPath();
-            ctx.arc(dx, dy, r, 0, Math.PI * 2);
-            ctx.fill();
-        }
-    } else {
-        ctx.beginPath();
-        ctx.ellipse(0, -100, 25, 20, 0, Math.PI, Math.PI * 2);
-        ctx.fill();
-        ctx.beginPath();
-        ctx.moveTo(-25, -100);
-        ctx.quadraticCurveTo(-8, p.peinado === "corto" ? -96 : -92, 6, -101);
-        ctx.quadraticCurveTo(16, -95, 25, -100);
-        ctx.lineTo(25, -104);
-        ctx.lineTo(-25, -104);
-        ctx.fill();
-        if (p.peinado === "recogido") {
-            ctx.beginPath();
-            ctx.arc(0, -123, 10, 0, Math.PI * 2);
-            ctx.fill();
-        }
-        if (p.peinado === "largo") {
-            ctx.beginPath();
-            ctx.roundRect(-26, -100, 7, 34, 4);
-            ctx.roundRect(19, -100, 7, 34, 4);
-            ctx.fill();
-        }
-    }
-    // Cara
-    ctx.fillStyle = "#1d1d2b";
-    for (const dx of [-8, 8]) {
-        ctx.beginPath();
-        ctx.ellipse(dx, -90, 2.4, 3, 0, 0, Math.PI * 2);
-        ctx.fill();
-    }
-    ctx.strokeStyle = "#00000070";
-    ctx.lineWidth = 2;
-    ctx.lineCap = "round";
-    ctx.beginPath();
-    ctx.arc(0, -84, 6, 0.2 * Math.PI, 0.8 * Math.PI);
-    ctx.stroke();
-    ctx.restore();
+    const s = Math.min(cv.width / 100, cv.height / 135) * escala;
+    dibujarPersonaEn(cv.getContext("2d"), cv.width * x, cv.height - 2, s, p, "parado");
 }
 function limpiar(cv) {
     cv.getContext("2d").clearRect(0, 0, cv.width, cv.height);
@@ -179,6 +108,48 @@ function fundido(texto) {
     $("fundido-texto").textContent = texto;
     $("fundido").hidden = false;
     setTimeout(() => ($("fundido").hidden = true), 3300);
+}
+
+// ---------- Escena ilustrada ----------
+const escena = crearEscena($("escena"), (t) => ($("texto-escena").textContent = t));
+let ultimaEscena = null;
+const QUE_HACE = {
+    trabajo: (p) => `${p.nombre} trabaja de ${puesto(p).toLowerCase()}`,
+    facultad: (p) => `${p.nombre} estudia en la facultad`,
+    gimnasio: (p) => `${p.nombre} entrena en el gimnasio`,
+    cafe: (p) => `${p.nombre} toma un café`,
+    plaza: (p) => `${p.nombre} pasea por la plaza`,
+    bar: (p) => `${p.nombre} baila en el bar`,
+    casa: (p, m) => {
+        const quien = juntos() && otroP() ? `${p.nombre} y ${otroP().nombre}` : p.nombre;
+        const varios = quien !== p.nombre;
+        return m === 2 ? `${quien} ${varios ? "duermen" : "duerme"}` : `${quien} ${varios ? "descansan" : "descansa"} en casa`;
+    },
+};
+function verEscena(e) {
+    ultimaEscena = e;
+    escena.mostrar(e);
+}
+// Escena de casa: aparecen la pareja (si viven juntos) y los hijos
+function escenaCasa(momento, texto, extra = {}) {
+    const p = yoP();
+    const pose = momento === 2 ? "dormir" : "sentado";
+    const personas = [{ p, pose }];
+    if (juntos() && otroP()) personas.push({ p: otroP(), pose });
+    const chicos = hijos().map((h) => ({ ...h, ropa: h.genero === "mujer" ? "#ff8fab" : "#6c8cff", peinado: h.genero === "mujer" ? "largo" : "corto" }));
+    return { lugar: "casa", momento, personas, hijos: chicos, texto, corazones: personas.length > 1, ...extra };
+}
+function escenaPorDefecto() {
+    const p = yoP();
+    const orden = (k) => k.slice(1).split("m").map(Number);
+    const ultima = Object.entries(p.agenda ?? {}).sort((a, b) => {
+        const [da, ma] = orden(a[0]);
+        const [db, mb] = orden(b[0]);
+        return db - da || mb - ma;
+    })[0];
+    if (!ultima || ultima[1] === "casa") return escenaCasa(p.momento, QUE_HACE.casa(p, p.momento));
+    const m = Number(ultima[0].split("m")[1]);
+    return { lugar: ultima[1], momento: m, personas: [{ p, pose: POSES[ultima[1]] }], texto: QUE_HACE[ultima[1]](p, m) };
 }
 
 // ---------- Vida diaria ----------
@@ -226,9 +197,16 @@ function hacer(id) {
     // ¿Se cruzaron? Los dos en el mismo lugar, el mismo día y momento
     const o = otroP();
     const cruce = L.social && o?.agenda?.[clave] === id;
+    const momento = p.momento;
     avanzarMomento(cambios, p);
     cambiar(cambios);
-    if (cruce) encuentro(id);
+    const yoAhora = yoP();
+    if (cruce) {
+        const enamorados = ["saliendo", "pareja", "convivencia", "casados"].includes(mundo.relacion.estado);
+        verEscena({ lugar: id, momento, personas: [{ p: yoAhora, pose: "saludo" }, { p: o, pose: POSES[id] }], texto: `${yoAhora.nombre} se cruza con ${o.nombre}`, corazones: enamorados });
+        encuentro(id);
+    } else if (id === "casa") verEscena(escenaCasa(momento, QUE_HACE.casa(yoAhora, momento)));
+    else verEscena({ lugar: id, momento, personas: [{ p: yoAhora, pose: POSES[id] }], texto: QUE_HACE[id](yoAhora, momento) });
 }
 
 function avanzarMomento(cambios, p) {
@@ -286,6 +264,7 @@ function nacer(cambios, madre) {
     cambios[`hijos.${id}`] = { nombre: nombreHijo, genero, dia: mundo.personajes[madre].dia + 1, piel: azar([mundo.personajes[madre].piel, otroDe(madre)?.piel ?? PIELES[1]]), pelo: azar([mundo.personajes[madre].pelo, otroDe(madre)?.pelo ?? PELOS[0]]) };
     cambios.embarazo = null;
     historia(cambios, `Nació ${nombreHijo}. ${genero === "mujer" ? "Es una nena" : "Es un nene"} y tiene los ojos de los dos.`);
+    if (madre === yo || !refPartida) setTimeout(() => verEscena(escenaCasa(1, `Llegó ${nombreHijo} a la familia`, { festejo: true })), 300);
     if (madre === yo || !refPartida) setTimeout(() => {
         ventana(`<h3>¡Nació ${nombreHijo}!</h3><p>${genero === "mujer" ? "Es una nena" : "Es un nene"}. A partir de ahora suma alegría cada día, y también gastos.</p>
             <button class="boton-v principal" type="button">Bienvenido al mundo</button>`, (v) => v.querySelector("button").addEventListener("click", cerrarVentana));
@@ -409,6 +388,7 @@ function responder(id, acepta, quien = yo) {
     const A = nombre(de);
     const B = nombre(quien);
     const cambios = { [`propuestas.${id}`]: BORRAR };
+    let escenaDespues = null;
     if (!acepta) {
         cambios["relacion.nivel"] = inc(-3);
         historia(cambios, `${B} le dijo que no a ${A}.`);
@@ -425,6 +405,9 @@ function responder(id, acepta, quien = yo) {
         cambios[`personajes.${quien}.animo`] = inc(8);
         historia(cambios, `${A} y ${B} fueron ${c.frase}. ${suma >= 12 ? "La pasaron bárbaro." : suma >= 7 ? "La pasaron bien." : "Estuvo un poco incómodo."}`);
         revisarAmistad(cambios);
+        const pose = { cafe: "taza", cine: "sentado", restaurante: "comer" }[pr.lugar];
+        const queHacen = { cafe: "toman un café", cine: "están en el cine", restaurante: "cenan afuera" }[pr.lugar];
+        escenaDespues = { lugar: pr.lugar, momento: 2, personas: [{ p: mundo.personajes[de], pose }, { p: mundo.personajes[quien], pose }], texto: `${A} y ${B} ${queHacen}`, corazones: suma >= 7 };
     } else if (pr.tipo === "noche") {
         cambios["relacion.nivel"] = inc(6);
         historia(cambios, `${A} y ${B} pasaron la noche juntos.`);
@@ -437,12 +420,14 @@ function responder(id, acepta, quien = yo) {
             historia(cambios, `¡${nombre(madre)} está embarazada! El bebé llega en ${DIAS_EMBARAZO} días.`);
         }
         if (quien === yo || de === yo) setTimeout(() => fundido(`${A} y ${B} pasaron la noche juntos.`), 150);
+        escenaDespues = { lugar: "casa", momento: 2, personas: [{ p: mundo.personajes[de], pose: "dormir" }, { p: mundo.personajes[quien], pose: "dormir" }], texto: `${A} y ${B} duermen juntos`, corazones: true };
     } else if (pr.tipo === "adoptar") {
         const genero = Math.random() < 0.5 ? "mujer" : "hombre";
         const n = azar(NOMBRES[genero]);
         cambios[`hijos.${nuevoId()}`] = { nombre: n, genero, dia: mundo.personajes[quien].dia, piel: azar(PIELES), pelo: azar(PELOS) };
         cambios["relacion.nivel"] = inc(5);
         historia(cambios, `${A} y ${B} adoptaron a ${n}.`);
+        escenaDespues = "familia";
     } else {
         cambios["relacion.estado"] = PASOS[pr.tipo].a;
         cambios["relacion.nivel"] = inc(pr.tipo === "casarse" ? 8 : 5);
@@ -453,8 +438,20 @@ function responder(id, acepta, quien = yo) {
             casarse: `${A} y ${B} se casaron.`,
         }[pr.tipo]);
         if (pr.tipo === "casarse" && (quien === yo || de === yo)) setTimeout(() => fundido(`${A} y ${B} se casaron. Fue una fiesta hermosa.`), 150);
+        const [pA, pB] = [mundo.personajes[de], mundo.personajes[quien]];
+        escenaDespues = {
+            salir: { lugar: "plaza", momento: 1, personas: [{ p: pA, pose: "abrazo" }, { p: pB, pose: "saludo" }], texto: `${A} y ${B} empiezan a salir`, corazones: true },
+            pareja: { lugar: "plaza", momento: 2, personas: [{ p: pA, pose: "abrazo" }, { p: pB, pose: "abrazo" }], texto: `${A} y ${B} son pareja`, corazones: true },
+            mudarse: "familia",
+            casarse: { lugar: "boda", momento: 1, personas: [{ p: pA, pose: "parado" }, { p: pB, pose: "parado" }], texto: `${A} y ${B} se casan`, corazones: true, festejo: true },
+        }[pr.tipo];
     }
     cambiar(cambios, { turno: null });
+    // Si yo estoy en la escena, se ve lo que pasó (después del fundido, si hay)
+    if (escenaDespues && (quien === yo || de === yo)) {
+        const e = escenaDespues === "familia" ? escenaCasa(1, `La casa de ${A} y ${B}`, { festejo: pr.tipo === "adoptar" }) : escenaDespues;
+        setTimeout(() => verEscena(e), pr.tipo === "noche" || pr.tipo === "casarse" ? 1800 : 0);
+    }
 }
 
 // ---------- Personaje de la compu (modo práctica) ----------
@@ -588,6 +585,7 @@ $("nacer").addEventListener("click", () => {
 let firmaAvatares = "";
 function pintarJuego() {
     const p = yoP();
+    if (!ultimaEscena) verEscena(escenaPorDefecto());
     const o = otroP();
     const firma = JSON.stringify([p.piel, p.pelo, p.peinado, p.ropa, o?.piel, o?.pelo, o?.peinado, o?.ropa, mundo.relacion.estado]);
     if (firma !== firmaAvatares) {
