@@ -412,10 +412,51 @@ function dibujarCliente(c, k, paso) {
     c.fillStyle = "#111";
     c.fillRect(-5, -61, 2.5, 2.5);
 }
-const clientes = []; // { k, x, quiere, paciencia, max, estado: "entra" | "espera" | "sale", feliz }
+// Detalle de ropa según el tipo: el apurado lleva reloj, el del pedido grande una bolsa y el crítico boina y libreta
+function dibujarAccesorio(c, tipo) {
+    if (tipo === "apurado") {
+        c.fillStyle = "#ffd166";
+        c.beginPath();
+        c.arc(10, -34, 3.5, 0, TAU);
+        c.fill();
+    } else if (tipo === "grande") {
+        c.fillStyle = "#c08552";
+        c.fillRect(8, -36, 10, 12);
+        c.fillStyle = "#8d5a2b";
+        c.fillRect(10, -39, 6, 3);
+    } else if (tipo === "critico") {
+        c.fillStyle = "#1d1d1d";
+        c.beginPath();
+        c.ellipse(0, -69, 12, 4, -0.15, 0, TAU);
+        c.fill();
+        c.fillRect(-3, -73, 3, 3);
+        c.fillStyle = "#f1f1f1";
+        c.fillRect(9, -42, 8, 10);
+    }
+}
+const clientes = []; // { k, x, quiere, cant, tipo, paciencia, max, estado: "entra" | "espera" | "sale", feliz }
 let proximoCliente = 2;
 const pacienciaMax = () => 22 * (1 + mejora("deco") * 0.15);
-const cadaCuanto = () => Math.max(1.6, 6 * 0.9 ** mejora("deco"));
+const cadaCuanto = () => Math.max(1.6, 6 * 0.9 ** mejora("deco")) / (horaPico.resta > 0 ? 2.2 : 1);
+
+// Clientes distintos para que no sea siempre lo mismo:
+// apurado (poca paciencia, paga casi el doble), pedido grande (lleva varios), crítico (si lo atendés rápido, premio grande)
+const TIPOS_CLIENTE = {
+    normal: { paciencia: 1, paga: 1 },
+    apurado: { paciencia: 0.5, paga: 1.8, nombre: "Apurado" },
+    grande: { paciencia: 1.7, paga: 1.3, nombre: "Pedido grande" },
+    critico: { paciencia: 0.9, paga: 1, nombre: "Crítico" },
+};
+function tipoAlAzar() {
+    const r = Math.random();
+    if (estado.nivel >= 4 && r < 0.05) return "critico";
+    if (estado.nivel >= 2 && r < 0.2) return "apurado";
+    if (estado.nivel >= 3 && r < 0.33) return "grande";
+    return "normal";
+}
+
+// Hora pico: cada tanto entra mucha gente junta y paga 50% más
+const horaPico = { resta: 0, proxima: 120 + Math.random() * 90 };
 function nuevoCliente() {
     const opciones = recetasDisponibles();
     // Piden más seguido lo barato, pero también lo nuevo
@@ -426,19 +467,33 @@ function nuevoCliente() {
         quiere = opciones[i].id;
         break;
     }
-    clientes.push({ k: Math.floor(Math.random() * 1000), x: ancho + 20, quiere, paciencia: pacienciaMax(), max: pacienciaMax(), estado: "entra", feliz: false });
+    const tipo = tipoAlAzar();
+    const cant = tipo === "grande" ? 3 + Math.floor(Math.random() * 2) : 1;
+    const paciencia = pacienciaMax() * TIPOS_CLIENTE[tipo].paciencia;
+    clientes.push({ k: Math.floor(Math.random() * 1000), x: ancho + 20, quiere, cant, tipo, paciencia, max: paciencia, estado: "entra", feliz: false });
+    if (tipo === "critico") avisar("Entró un crítico gastronómico: atendelo rápido", 2400);
     if (clientes.length === 1) sonidos.campana();
 }
 
 function venderAlPrimero() {
     const c = clientes.find((x) => x.estado === "espera" && clientes.filter((y) => y.estado !== "sale").indexOf(x) === 0);
     if (!c) return false;
-    if (enVitrina(c.quiere) < 1) return false;
-    estado.vitrina[c.quiere]--;
+    const cant = c.cant ?? 1;
+    if (enVitrina(c.quiere) < cant) return false;
+    estado.vitrina[c.quiere] -= cant;
     const r = receta(c.quiere);
+    const tipo = TIPOS_CLIENTE[c.tipo ?? "normal"];
     // Propina si lo atendiste rápido
-    const propina = c.paciencia > c.max * 0.6 ? 1.2 : 1;
-    const plata = Math.round(precioDe(r) * propina);
+    const rapido = c.paciencia > c.max * 0.6;
+    const propina = rapido ? 1.2 : 1;
+    let plata = Math.round(precioDe(r) * cant * propina * tipo.paga * (horaPico.resta > 0 ? 1.5 : 1));
+    // El crítico atendido rápido escribe una buena reseña: premio grande
+    if (c.tipo === "critico" && rapido) {
+        plata += Math.round(precioDe(recetasDisponibles().at(-1)) * 12);
+        cont.criticos = (cont.criticos ?? 0) + 1;
+        avisar("¡Reseña de 5 estrellas! El crítico dejó un premio", 2600);
+        efectos.fanfarria();
+    }
     estado.monedas += plata;
     estado.ganadoVida += plata;
     cont.ganado += plata;
@@ -447,7 +502,7 @@ function venderAlPrimero() {
     c.estado = "sale";
     c.feliz = true;
     const m = medidas();
-    textos.push({ x: m.filaX(0), y: m.piso - 90, t: `+${formatear(plata)}${propina > 1 ? " 💕" : ""}`, color: "#ffd166", vida: 1.3 });
+    textos.push({ x: m.filaX(0), y: m.piso - 90, t: `+${formatear(plata)}${propina > 1 ? " ¡rápido!" : ""}`, color: "#ffd166", vida: 1.3 });
     chispas.emitir(m.filaX(0), m.piso - 70, "#ffd166", 10, 120);
     sonidos.caja();
     return true;
@@ -611,9 +666,11 @@ function dibujar(dt) {
             sonidos.enojo();
         }
         const paso = Math.abs(dx) > 2 ? Math.sin(cl.paso ?? 0) : 0;
-        const img = sprite(`cliente-${cl.k % 35}-${paso > 0.3 ? 1 : paso < -0.3 ? 2 : 0}`, 40, 80, (c) => {
+        const tipoCl = cl.tipo ?? "normal";
+        const img = sprite(`cliente-${cl.k % 35}-${tipoCl}-${paso > 0.3 ? 1 : paso < -0.3 ? 2 : 0}`, 40, 80, (c) => {
             c.translate(20, 76);
             dibujarCliente(c, cl.k % 35, paso > 0.3 ? 1 : paso < -0.3 ? -1 : 0);
+            dibujarAccesorio(c, tipoCl);
         });
         ctx.save();
         if (cl.estado !== "sale") {
@@ -634,14 +691,41 @@ function dibujar(dt) {
             ctx.lineTo(bx, by + 18);
             ctx.lineTo(bx + 4, by + 12);
             ctx.fill();
+            // Borde de color según el tipo de cliente
+            const colorTipo = { apurado: "#ff4d6d", grande: "#3a86ff", critico: "#8338ec" }[cl.tipo];
+            if (colorTipo) {
+                ctx.strokeStyle = colorTipo;
+                ctx.lineWidth = 2.5;
+                ctx.beginPath();
+                ctx.roundRect(bx - 18, by - 18, 36, 30, 10);
+                ctx.stroke();
+            }
             const ip = imgProducto(cl.quiere, 26);
             ctx.drawImage(ip.c, bx - ip.w / 2, by - 15, ip.w, ip.h);
+            if ((cl.cant ?? 1) > 1) {
+                ctx.fillStyle = "#3a86ff";
+                ctx.beginPath();
+                ctx.arc(bx + 16, by - 16, 9, 0, TAU);
+                ctx.fill();
+                ctx.fillStyle = "#fff";
+                ctx.font = "900 10px system-ui, sans-serif";
+                ctx.textAlign = "center";
+                ctx.textBaseline = "middle";
+                ctx.fillText(`×${cl.cant}`, bx + 16, by - 15.5);
+                ctx.textBaseline = "alphabetic";
+            }
+            if (cl.tipo === "apurado") {
+                ctx.fillStyle = "#ff4d6d";
+                ctx.font = "900 13px system-ui, sans-serif";
+                ctx.textAlign = "center";
+                ctx.fillText("!", bx - 17, by - 10);
+            }
             const p = Math.max(0, cl.paciencia / cl.max);
             ctx.fillStyle = "#0003";
             ctx.fillRect(bx - 16, by + 8, 32, 3);
             ctx.fillStyle = p > 0.5 ? "#8fd14f" : p > 0.25 ? "#ffd166" : "#ff4d6d";
             ctx.fillRect(bx - 16, by + 8, 32 * p, 3);
-            if (enVitrina(cl.quiere) > 0 && enFila.indexOf(cl) === 0) {
+            if (enVitrina(cl.quiere) >= (cl.cant ?? 1) && enFila.indexOf(cl) === 0) {
                 ctx.strokeStyle = `rgba(143,209,79,${0.6 + Math.sin(t * 6) * 0.3})`;
                 ctx.lineWidth = 2;
                 ctx.beginPath();
@@ -651,6 +735,20 @@ function dibujar(dt) {
         }
     }
     for (let i = clientes.length - 1; i >= 0; i--) if (clientes[i].estado === "sale" && clientes[i].x > ancho + 30) clientes.splice(i, 1);
+    if (horaPico.resta > 0) {
+        const texto = `HORA PICO · todo +50% · ${Math.ceil(horaPico.resta)} s`;
+        ctx.font = "900 13px system-ui, sans-serif";
+        const w = ctx.measureText(texto).width + 24;
+        ctx.fillStyle = `rgba(230, 57, 70, ${0.85 + Math.sin(t * 6) * 0.1})`;
+        ctx.beginPath();
+        ctx.roundRect(ancho / 2 - w / 2, 8, w, 26, 13);
+        ctx.fill();
+        ctx.fillStyle = "#fff";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(texto, ancho / 2, 21.5);
+        ctx.textBaseline = "alphabetic";
+    }
     chispas.dibujar(ctx, dt);
     for (let i = textos.length - 1; i >= 0; i--) {
         const tx = textos[i];
@@ -686,7 +784,7 @@ $("lienzo").addEventListener("pointerdown", (e) => {
     if (x > m.mostrador.x && y > m.piso - alto * 0.5) {
         if (!venderAlPrimero()) {
             const primero = clientes.find((c) => c.estado === "espera");
-            if (primero) avisar(`Quiere ${receta(primero.quiere).nombre}: horneá y pasalo a la vitrina`);
+            if (primero) avisar(`Quiere ${(primero.cant ?? 1) > 1 ? `${primero.cant} de ` : ""}${receta(primero.quiere).nombre}: horneá y pasalo a la vitrina`);
         }
         refrescar();
     }
@@ -820,6 +918,7 @@ const LOGROS = [
     { id: "cajera", icono: "💁‍♀️", nombre: "Atención al cliente", detalle: "Contratá a la cajera", meta: 1, valor: () => (estado.cajera ? 1 : 0), fichas: 600 },
     { id: "tarta", icono: "🍓", nombre: "Pastelera", detalle: "Desbloqueá la tarta de frutillas", meta: 10, valor: () => estado.nivel, fichas: 2500 },
     { id: "sucursal", icono: "🏬", nombre: "Cadena de panaderías", detalle: "Abrí otra sucursal", meta: 1, valor: () => cont.sucursales, fichas: 3000 },
+    { id: "critico", icono: "📝", nombre: "Cinco estrellas", detalle: "Atendé rápido a 3 críticos", meta: 3, valor: () => cont.criticos ?? 0, fichas: 2500 },
     { id: "ganado", icono: "💰", nombre: "Gran negocio", detalle: "Ganá 100K en total", meta: 100000, valor: () => cont.ganado, fichas: 5000 },
 ];
 const base = crearBase({
@@ -866,6 +965,15 @@ let acumulado = 0;
 let cajeraEspera = 0;
 bucle((dt) => {
     const inicio = performance.now();
+    // Hora pico cada 2 a 4 minutos, dura 25 segundos
+    if (horaPico.resta > 0) horaPico.resta -= dt;
+    else if ((horaPico.proxima -= dt) <= 0) {
+        horaPico.resta = 25;
+        horaPico.proxima = 120 + Math.random() * 120;
+        avisar("¡Hora pico! Llega mucha gente y todo se vende 50% más caro", 2600);
+        sonidos.campana();
+        vibrar([30, 40, 30]);
+    }
     // Llegan clientes (como mucho 6 en la fila)
     proximoCliente -= dt;
     if (proximoCliente <= 0) {
