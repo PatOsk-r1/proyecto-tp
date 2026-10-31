@@ -352,6 +352,8 @@
     align-items: center;
     gap: 6px;
     font-weight: 800;
+    /* Deja lugar al nivel ("Nv 3", "0/6") de la esquina para que no se encimen */
+    padding-right: 34px;
 }
 
 .mejora .titulo .icono-svg {
