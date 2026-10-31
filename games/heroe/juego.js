@@ -144,7 +144,7 @@ const tiempoJefe = () => 30 + rel("reloj") * 4 + (conMascota("grifo") >= 0 ? 8 +
 const probCofre = () => 0.03 * (conMascota("gato") >= 0 ? 2 + conMascota("gato") * 0.3 : 1) * (1 + tal("cazatesoros") * 0.2);
 const CRECE_HEROE = 1.075;
 const CRECE_EQUIPO = 1.08;
-const costoSerie = (base, crece, nivel, n) => (base * crece ** nivel * (crece ** n - 1)) / (crece - 1);
+const costoSerie = (base, crece, nivel, n) => Math.ceil((base * crece ** nivel * (crece ** n - 1)) / (crece - 1));
 const costoHeroe = (n) => costoSerie(5, CRECE_HEROE, estado.heroe, n);
 const costoEquipo = (e, n) => costoSerie(e.costo, CRECE_EQUIPO, estado.equipo[e.id], n);
 
@@ -322,6 +322,7 @@ function matar() {
         chispas.emitir(posMonstruo().x, posMonstruo().y, "#ff4d6d", 60, 300);
         return terminarSemanal(true);
     }
+    cont.vencidos = (cont.vencidos ?? 0) + 1;
     let oro = oroEn(s) * (activa("oro") ? 3 * (1 + tal("lluvia") * 0.2) : 1);
     const cofre = !monstruo.jefe && Math.random() < probCofre();
     if (cofre) oro *= 10;
@@ -1159,6 +1160,121 @@ function actualizar() {
     $("abrir-renacer").classList.toggle("listo", almasNuevas() >= Math.max(1, estado.almasTotales * 0.5));
     $("avanzar").hidden = estado.avanzar;
     for (const f of filas) f.pintar(f.el);
+    revisarDesbloqueos();
+    pintarObjetivo();
+}
+
+// ---------- Objetivos: un camino que va mostrando cada parte del juego, con premio ----------
+// premio.oro se multiplica por el oro de un monstruo de tu récord, así siempre sirve.
+const OBJETIVOS = [
+    { texto: "Tocá al monstruo y vencé a 5", meta: 5, valor: () => cont.vencidos ?? 0, premio: { oro: 4 } },
+    { texto: "Subí al Héroe a nivel 5", meta: 5, valor: () => estado.heroe, premio: { oro: 5 } },
+    { texto: "Contratá a la Arquera: pelea sola", meta: 1, valor: () => estado.equipo.arquera, premio: { oro: 8 } },
+    { texto: "Llegá a la etapa 5 y vencé al jefe", meta: 1, valor: () => cont.jefes, premio: { oro: 10 } },
+    { texto: "Usá una habilidad (Furia)", meta: 1, valor: () => cont.habilidades, premio: { oro: 10 } },
+    { texto: "Subí al Héroe a nivel 10 (pega el doble)", meta: 10, valor: () => estado.heroe, premio: { oro: 12 } },
+    { texto: "Contratá al Mago", meta: 1, valor: () => estado.equipo.mago, premio: { oro: 15 } },
+    { texto: "Conseguí un objeto: los jefes los sueltan", meta: 1, valor: () => estado.botin.inventario.length, premio: { oro: 15 } },
+    { texto: "Llegá a la etapa 10", meta: 10, valor: () => cont.recordEtapa, premio: { oro: 20, llaves: 1 } },
+    { texto: "Repartí un punto en Talentos", meta: 1, valor: () => puntosUsados(), premio: { oro: 20 } },
+    { texto: "Entrá a la mazmorra con la llave y ganala", meta: 1, valor: () => cont.mazmorras ?? 0, premio: { oro: 25, huevos: 1 } },
+    { texto: "Abrí un huevo y llevá una mascota", meta: 1, valor: () => (estado.mascotas.activa ? 1 : 0), premio: { oro: 25 } },
+    { texto: "Contratá al Caballero", meta: 1, valor: () => estado.equipo.caballero, premio: { oro: 30 } },
+    { texto: "Llegá a la etapa 20", meta: 20, valor: () => cont.recordEtapa, premio: { oro: 30, llaves: 1 } },
+    { texto: "Atacá al jefe semanal", meta: 1, valor: () => ((cont.semanales ?? 0) > 0 || (estado.semanal?.dano ?? 0) > 0 ? 1 : 0), premio: { oro: 30 } },
+    { texto: "Llegá a la etapa 25", meta: 25, valor: () => cont.recordEtapa, premio: { oro: 40 } },
+    { texto: "Renacé: perdés el oro pero ganás almas para siempre", meta: 1, valor: () => cont.renacimientos, premio: { llaves: 2, huevos: 1 } },
+    { texto: "Comprá una reliquia con almas", meta: 1, valor: () => Object.values(estado.reliquias).reduce((a, b) => a + b, 0), premio: { oro: 40 } },
+    { texto: "Juntá 5 cartas de monstruos", meta: 5, valor: () => Object.keys(estado.cartas).length, premio: { oro: 50, llaves: 1 } },
+    { texto: "Contratá al Druida", meta: 1, valor: () => estado.equipo.druida, premio: { oro: 50 } },
+    { texto: "Llegá a la etapa 50", meta: 50, valor: () => cont.recordEtapa, premio: { oro: 60, huevos: 1 } },
+    { texto: "Renacé 3 veces", meta: 3, valor: () => cont.renacimientos, premio: { llaves: 3 } },
+    { texto: "Contratá al Ninja", meta: 1, valor: () => estado.equipo.ninja, premio: { oro: 60 } },
+    { texto: "Llegá a la etapa 75", meta: 75, valor: () => cont.recordEtapa, premio: { oro: 80, llaves: 2 } },
+    { texto: "Contratá al Dragón", meta: 1, valor: () => estado.equipo.dragon, premio: { oro: 80, huevos: 1 } },
+    { texto: "Llegá a la etapa 100", meta: 100, valor: () => cont.recordEtapa, premio: { oro: 100, llaves: 3, huevos: 2 } },
+];
+// Después de la lista: superar el récord de a 10 etapas, para siempre
+function objetivoActual() {
+    estado.objetivo ??= 0;
+    if (estado.objetivo < OBJETIVOS.length) return OBJETIVOS[estado.objetivo];
+    estado.metaRecord = Math.max(estado.metaRecord ?? 0, (Math.floor(cont.recordEtapa / 10) + 1) * 10);
+    const m = estado.metaRecord;
+    return { texto: `Nuevo récord: llegá a la etapa ${m}`, meta: m, valor: () => cont.recordEtapa, premio: { oro: 60, llaves: 1 } };
+}
+const oroPremio = (p) => oroEn(Math.max(estado.etapa, cont.recordEtapa)) * p.oro;
+function textoPremio(p) {
+    const partes = [];
+    if (p.oro) partes.push(`${formatear(oroPremio(p))} de oro`);
+    if (p.llaves) partes.push(`${p.llaves} llave${p.llaves > 1 ? "s" : ""}`);
+    if (p.huevos) partes.push(`${p.huevos} huevo${p.huevos > 1 ? "s" : ""}`);
+    return partes.join(" + ");
+}
+let ultimoObjetivo = "";
+function pintarObjetivo() {
+    const o = objetivoActual();
+    const v = Math.min(o.meta, o.valor());
+    const listo = v >= o.meta;
+    const html = `<span class="obj-marca">${listo ? "¡Listo!" : "Objetivo"}</span>
+        <span class="obj-texto"><strong>${o.texto}</strong><small>${listo ? "Tocá para cobrar: " : "Premio: "}${textoPremio(o.premio)}</small></span>
+        <span class="obj-cuenta">${o.meta > 1 ? `${formatear(v)}/${formatear(o.meta)}` : ""}</span>
+        <i style="width:${(v / o.meta) * 100}%"></i>`;
+    if (html === ultimoObjetivo) return;
+    ultimoObjetivo = html;
+    $("objetivo").innerHTML = html;
+    $("objetivo").classList.toggle("listo", listo);
+}
+$("objetivo").addEventListener("click", () => {
+    const o = objetivoActual();
+    if (o.valor() < o.meta) return avisar(o.texto);
+    const p = o.premio;
+    if (p.oro) {
+        estado.oro += oroPremio(p);
+        cont.oroTotal += oroPremio(p);
+    }
+    if (p.llaves) estado.llaves += p.llaves;
+    if (p.huevos) estado.mascotas.huevos += p.huevos;
+    avisar(`Objetivo cumplido: +${textoPremio(p)}`);
+    if (estado.objetivo < OBJETIVOS.length) estado.objetivo++;
+    else estado.metaRecord += 10;
+    efectos.logro();
+    vibrar([30, 40, 60]);
+    guardarProgreso();
+    actualizar();
+    if (p.huevos) pestanaConNovedad("mascotas");
+});
+
+// ---------- Desbloqueos: cada pestaña y botón aparece cuando empieza a servir ----------
+const DESBLOQUEOS = {
+    botin: () => estado.botin.inventario.length > 0,
+    mascotas: () => estado.mascotas.huevos > 0 || Object.keys(estado.mascotas.tengo).length > 0,
+    cartas: () => Object.keys(estado.cartas).length > 0,
+    talentos: () => puntosTalento() > 0,
+    reliquias: () => estado.almasTotales > 0 || cont.recordEtapa >= 25,
+    mazmorra: () => estado.llaves > 0 || (cont.mazmorras ?? 0) > 0,
+    semanal: () => cont.recordEtapa >= 20,
+};
+const NOMBRES_DESBLOQUEO = { botin: "el Botín", mascotas: "Mascotas", cartas: "Cartas", talentos: "Talentos", reliquias: "Reliquias", mazmorra: "la Mazmorra", semanal: "el Jefe semanal" };
+estado.desbloqueado ??= {};
+let primeraRevision = true;
+function revisarDesbloqueos() {
+    for (const [id, abierto] of Object.entries(DESBLOQUEOS)) {
+        if (!estado.desbloqueado[id] && abierto()) {
+            estado.desbloqueado[id] = true;
+            if (!primeraRevision) {
+                avisar(`¡Se desbloqueó ${NOMBRES_DESBLOQUEO[id]}!`);
+                efectos.logro();
+                if (document.querySelector(`.pestana[data-p="${id}"]`)) pestanaConNovedad(id);
+            }
+        }
+        const pestana = document.querySelector(`.pestana[data-p="${id}"]`);
+        if (pestana) pestana.hidden = !estado.desbloqueado[id];
+    }
+    // Con una sola pestaña no hace falta la barra
+    document.querySelector(".pestanas-heroe").hidden = !Object.keys(DESBLOQUEOS).some((id) => estado.desbloqueado[id] && document.querySelector(`.pestana[data-p="${id}"]`));
+    $("boton-mazmorra").hidden = !estado.desbloqueado.mazmorra;
+    $("boton-semanal").hidden = !estado.desbloqueado.semanal;
+    primeraRevision = false;
 }
 
 function avisar(texto) {
