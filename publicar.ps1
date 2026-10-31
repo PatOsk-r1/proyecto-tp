@@ -11,7 +11,7 @@ $raiz = $PSScriptRoot
 
 # Nunca se publican: el repo es publico y cualquiera puede leerlo.
 # Guarda datos privados en la carpeta "privado" o con alguno de estos nombres.
-$noPublicar = @("privado/*", "*.env", ".env*", "*.pem", "*.key", "*.p12", "*.pfx", "*secret*", "*password*", "node_modules/*")
+$noPublicar = @("privado/*", "*.env", ".env*", "*.pem", "*.key", "*.p12", "*.pfx", "*secret*", "*password*", "node_modules/*", ".git/*", ".claude/*")
 $sha1 = [System.Security.Cryptography.SHA1]::Create()
 
 # Mismo calculo que usa Git para identificar el contenido de un archivo
