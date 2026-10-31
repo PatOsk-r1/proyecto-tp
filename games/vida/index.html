@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="es" class="verificando">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>Vidas cruzadas · Proyecto TP</title>
+    <meta name="theme-color" content="#0f1220">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="../../icons/icon-180.png">
+    <link rel="manifest" href="../../manifest.webmanifest">
+
+    <link rel="stylesheet" href="../../css/estilos.css">
+    <link rel="stylesheet" href="../../css/juegos3d.css">
+    <link rel="stylesheet" href="estilo.css">
+</head>
+<body class="pantalla-3d tema-vida">
+    <header class="barra-juego">
+        <a class="boton-volver" href="../../">‹ Juegos</a>
+        <h1>Vidas cruzadas</h1>
+        <span id="reloj" class="reloj-v"></span>
+    </header>
+
+    <!-- Inicio: jugar con un amigo o practicar con un personaje de la compu -->
+    <section id="inicio" class="pantalla-v inicio-v" hidden>
+        <canvas id="portada" class="portada-v" width="320" height="200"></canvas>
+        <h2>Dos vidas, un mismo barrio</h2>
+        <p>Cada uno vive su vida a su ritmo: trabaja, estudia, sale. Si las decisiones los llevan al mismo lugar el mismo día, se cruzan. Lo que pase después depende de ustedes.</p>
+        <div id="en-curso" class="en-curso-v"></div>
+        <a class="enlace-amigos boton-v principal" href="../../amigos.html">Jugar con un amigo</a>
+        <button id="practica" class="boton-v" type="button">Probar con un personaje de la compu</button>
+    </section>
+
+    <!-- Crear el personaje -->
+    <section id="crear" class="pantalla-v" hidden>
+        <h2>Tu personaje</h2>
+        <div class="crear-v">
+            <canvas id="vista-previa" class="previa-v" width="160" height="220"></canvas>
+            <div class="campos-v">
+                <label>Nombre<input id="nombre" maxlength="16" autocomplete="off" placeholder="Cómo se llama"></label>
+                <div class="grupo-v"><span>Nace como</span>
+                    <div class="segmento-v" id="genero">
+                        <button type="button" data-v="mujer">Mujer</button>
+                        <button type="button" data-v="hombre">Hombre</button>
+                    </div>
+                </div>
+                <div class="grupo-v"><span>Piel</span><div class="muestras-v" id="piel"></div></div>
+                <div class="grupo-v"><span>Pelo</span><div class="muestras-v" id="pelo"></div></div>
+                <div class="grupo-v"><span>Peinado</span><div class="segmento-v" id="peinado"></div></div>
+                <div class="grupo-v"><span>Ropa</span><div class="muestras-v" id="ropa"></div></div>
+            </div>
+        </div>
+        <button id="nacer" class="boton-v principal" type="button">Empezar la vida</button>
+    </section>
+
+    <!-- El juego -->
+    <main id="juego" class="pantalla-v juego-v" hidden>
+        <section class="tarjeta-v yo-v">
+            <canvas id="avatar-yo" class="avatar-v" width="96" height="120"></canvas>
+            <div class="datos-yo">
+                <strong id="nombre-yo"></strong>
+                <span id="detalle-yo"></span>
+                <div class="barra-v"><span>Energía</span><i><b id="b-energia"></b></i></div>
+                <div class="barra-v animo"><span>Ánimo</span><i><b id="b-animo"></b></i></div>
+                <div class="numeros-v"><span>Plata <strong id="plata"></strong></span><span>Estudio <strong id="estudio"></strong></span><span>Físico <strong id="fisico"></strong></span></div>
+            </div>
+        </section>
+
+        <section id="tarjeta-relacion" class="tarjeta-v relacion-v"></section>
+        <section id="propuestas" class="propuestas-v"></section>
+
+        <h3 class="titulo-v">¿A dónde vas? <small id="momento-texto"></small></h3>
+        <div id="lugares" class="lugares-v"></div>
+
+        <h3 class="titulo-v">Diario</h3>
+        <ol id="diario" class="diario-v"></ol>
+    </main>
+
+    <!-- Ventanas -->
+    <div id="capa" class="capa-v" hidden><div id="ventana" class="ventana-v"></div></div>
+    <div id="fundido" class="fundido-v" hidden><p id="fundido-texto"></p></div>
+    <div id="aviso" class="aviso-v" hidden></div>
+
+    <script type="module">
+        import { exigirSesion } from "../../js/sesion.js";
+        exigirSesion();
+    </script>
+    <script type="module" src="juego.js"></script>
+</body>
+</html>
