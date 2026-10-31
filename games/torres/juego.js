@@ -735,6 +735,22 @@ function dibujar(dt) {
             ctx.stroke();
         }
         dibujarTorre(ctx, t, aX(t.x), aY(t.y), celda, true);
+        // Cartelito: en el celular no es obvio que hay que tocar dos veces
+        const ocupada = mapa.casillas.has(`${fantasma.c},${fantasma.f}`);
+        const texto = ocupada ? "Lugar ocupado" : libre ? `Tocá de nuevo para construir · ${costoTorre(fantasma.tipo)}` : `Te falta oro (${costoTorre(fantasma.tipo)})`;
+        ctx.font = "800 12px system-ui, sans-serif";
+        const w = ctx.measureText(texto).width + 18;
+        const x = Math.min(Math.max(aX(t.x), w / 2 + 4), aX(COLUMNAS) + origenX - w / 2 - 4);
+        const y = Math.max(aY(t.y) - celda * 0.95, 14);
+        ctx.fillStyle = libre ? "#0b1a0ee0" : "#5a0d0de0";
+        ctx.beginPath();
+        ctx.roundRect(x - w / 2, y - 11, w, 22, 11);
+        ctx.fill();
+        ctx.fillStyle = "#fff";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(texto, x, y + 0.5);
+        ctx.textBaseline = "alphabetic";
     }
 
     for (const t of juego.torres) {
