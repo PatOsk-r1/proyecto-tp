@@ -42,10 +42,19 @@
     gap: 6px;
     overflow-x: auto;
     scrollbar-width: none;
+    /* El borde derecho se desvanece: así se nota que hay más torres deslizando */
+    -webkit-mask-image: linear-gradient(to right, #000 82%, transparent);
+    mask-image: linear-gradient(to right, #000 82%, transparent);
+    padding-right: 24px;
+}
+
+.torres-tienda.al-final {
+    -webkit-mask-image: none;
+    mask-image: none;
 }
 
 .torre-btn {
-    flex: 0 0 64px;
+    flex: 0 0 58px;
     display: flex;
     flex-direction: column;
     align-items: center;
