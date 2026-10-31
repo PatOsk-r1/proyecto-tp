@@ -222,3 +222,36 @@
     text-align: center;
 }
 .escena-v p:empty { display: none; }
+
+/* ---------- Turno compartido y decisiones ---------- */
+.turno-v { display: flex; flex-direction: column; gap: 8px; padding: 10px 12px; border-radius: 14px; background: #ffffff0a; font-size: 0.85rem; line-height: 1.4; color: var(--texto-suave); }
+.turno-v:empty { display: none; }
+.turno-v b { color: var(--texto); }
+.turno-v button { align-self: flex-start; padding: 8px 14px; border-radius: 999px; border: 1px solid var(--borde); background: var(--tarjeta); color: var(--texto); font: inherit; font-weight: 800; }
+.cita-turno { color: var(--acento); font-weight: 700; }
+.decisiones-v { display: flex; flex-direction: column; gap: 10px; }
+.decisiones-v:empty { display: none; }
+.decision-v { position: relative; padding: 14px; border-radius: 18px; background: linear-gradient(160deg, #262d52, #1a1f35); border: 1px solid #6c8cff55; animation: aparecer-dec 0.35s ease-out; }
+.decision-v.juntos { background: linear-gradient(160deg, #4a2433, #1a1f35); border-color: #ff7a6b77; }
+.decision-v p { margin: 0 0 4px; font-weight: 700; color: var(--texto); line-height: 1.4; }
+.decision-v .sub-v { font-weight: 600; font-size: 0.8rem; color: var(--texto-suave); margin-bottom: 8px; }
+.marca-v { display: inline-block; margin-bottom: 6px; padding: 2px 9px; border-radius: 999px; background: #6c8cff33; color: #a9bbff; font-size: 0.68rem; font-weight: 900; letter-spacing: 0.05em; text-transform: uppercase; }
+.decision-v.juntos .marca-v { background: #ff7a6b33; color: var(--acento); }
+.opciones-dec { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
+.opciones-dec button { padding: 12px 14px; border-radius: 12px; border: 1px solid var(--borde); background: #0f1324; color: var(--texto); font: inherit; font-weight: 700; text-align: left; }
+.opciones-dec button:active { background: #ff7a6b33; }
+@keyframes aparecer-dec { from { transform: translateY(8px); opacity: 0; } }
+.lugar-v.elegido { border-color: var(--acento); box-shadow: 0 0 0 2px #ff7a6b55 inset; opacity: 1; }
+
+/* Las dos fichas, lado a lado */
+.fichas-v { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.ficha-v { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 10px; border-radius: 16px; background: var(--tarjeta); border: 1px solid var(--borde); text-align: center; }
+.ficha-v.mia { border-color: #ff7a6b55; }
+.ficha-v > div { width: 100%; display: flex; flex-direction: column; gap: 4px; }
+.ficha-v strong { font-size: 0.95rem; }
+.ficha-v span { font-size: 0.7rem; color: var(--texto-suave); }
+.ficha-v .avatar-v { width: 56px; height: 70px; }
+.ficha-v .barra-v span { width: 40px; text-align: left; }
+.plata-v { font-weight: 700; }
+.estado-turno { align-self: center; padding: 2px 9px; border-radius: 999px; background: #ffffff10; font-weight: 800; }
+.estado-turno.listo { background: #5ad1c233; color: var(--acento-2) !important; }
