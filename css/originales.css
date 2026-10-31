@@ -1,0 +1,136 @@
+/* Estilo compartido de los juegos de casino "originales" (Dado, Limbo, Torre y Cruzar la calle):
+   pantalla oscura y sobria, números grandes y un color de acento por juego. */
+.tema-original {
+    --fondo: #0d1117;
+    --fondo-2: #161b26;
+    --texto: #eef1f6;
+    --texto-suave: #8b96a8;
+    --borde: #ffffff14;
+    --panel: #0b0f15f2;
+    --gana: #2ee59d;
+    --pierde: #ff4d6a;
+    --acento: #2ee59d;
+    background: radial-gradient(120% 70% at 50% 0%, var(--fondo-2), var(--fondo));
+    font-variant-numeric: tabular-nums;
+}
+
+.zona-original {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 10px 14px;
+}
+
+/* Fila de últimos resultados */
+.historial-o {
+    display: flex;
+    gap: 5px;
+    min-height: 26px;
+    overflow-x: auto;
+    scrollbar-width: none;
+}
+.historial-o::-webkit-scrollbar { display: none; }
+.historial-o span {
+    flex-shrink: 0;
+    padding: 4px 9px;
+    border-radius: 7px;
+    font-size: 0.75rem;
+    font-weight: 800;
+    background: #ffffff0d;
+    color: var(--texto-suave);
+    animation: entrar-historial 0.25s ease-out;
+}
+.historial-o span.gano { color: #04140d; background: var(--gana); }
+@keyframes entrar-historial { from { transform: translateX(-12px); opacity: 0; } }
+
+/* Tarjetas de datos (multiplicador, chance, ganancia) */
+.datos-o {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+}
+.datos-o > div, .dato-o {
+    padding: 8px 10px;
+    border-radius: 12px;
+    background: #ffffff08;
+    border: 1px solid var(--borde);
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--texto-suave);
+}
+.datos-o strong, .dato-o strong {
+    display: block;
+    margin-top: 2px;
+    font-size: 1.05rem;
+    letter-spacing: 0;
+    text-transform: none;
+    color: var(--texto);
+}
+
+/* Selector segmentado (dificultad, modo) */
+.segmentos {
+    display: flex;
+    padding: 3px;
+    border-radius: 12px;
+    background: #ffffff0a;
+    border: 1px solid var(--borde);
+}
+.segmentos button {
+    flex: 1;
+    padding: 8px 4px;
+    border: none;
+    border-radius: 9px;
+    font: inherit;
+    font-size: 0.82rem;
+    font-weight: 800;
+    color: var(--texto-suave);
+    background: none;
+    transition: background 0.15s, color 0.15s;
+}
+.segmentos button.activo { color: #04140d; background: var(--acento); }
+.segmentos button:disabled:not(.activo) { opacity: 0.4; }
+
+/* Botón principal y "cobrar" */
+.tema-original .accion {
+    color: #04140d;
+    background: linear-gradient(180deg, color-mix(in srgb, var(--acento) 80%, #fff), var(--acento));
+    box-shadow: 0 4px 0 color-mix(in srgb, var(--acento) 45%, #000), 0 8px 24px color-mix(in srgb, var(--acento) 25%, transparent);
+    letter-spacing: 0.02em;
+}
+.tema-original .accion.cobrar {
+    background: linear-gradient(180deg, #fff3c4, #ffc93c);
+    box-shadow: 0 4px 0 #9a6b00, 0 8px 24px #ffc93c40;
+}
+.tema-original .accion.secundaria { color: var(--texto); background: #ffffff10; box-shadow: none; }
+
+.fila-botones {
+    display: flex;
+    gap: 8px;
+}
+
+/* Interruptor de apuesta automática */
+.auto-o {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--texto-suave);
+}
+.auto-o button {
+    padding: 6px 12px;
+    border-radius: 999px;
+    border: 1px solid var(--borde);
+    font: inherit;
+    font-weight: 800;
+    color: var(--texto-suave);
+    background: #ffffff08;
+}
+.auto-o button.activo { color: #04140d; background: var(--acento); border-color: transparent; }
+
+.gano-texto { color: var(--gana) !important; }
+.pierde-texto { color: var(--pierde) !important; }
