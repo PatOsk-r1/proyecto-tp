@@ -168,6 +168,11 @@ export function crearBase({ juego, barra, logros = [], regaloDiario = null, audi
         if (!regaloDiario) return false;
         const d = leer(claveDiario, { ultimo: "", racha: 0 });
         if (d.ultimo === hoy()) return false;
+        // Si está abierta la ayuda de "Cómo jugar", el regalo espera a que se cierre (nunca dos ventanas juntas)
+        if (document.querySelector(".capa-ayuda")) {
+            setTimeout(revisarRegalo, 500);
+            return true;
+        }
         const racha = d.ultimo === ayer() ? (d.racha % 7) + 1 : 1;
         const premios = Array.from({ length: 7 }, (_, i) => regaloDiario(i + 1));
         const { fondo, cerrar } = ventana(`<h2>🎁 Regalo del día</h2>
