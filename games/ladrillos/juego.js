@@ -107,6 +107,7 @@ function armarNivel() {
     juego.poderes = {};
     if (mejora("laser")) activar("laser");
     juego.cartel = 1.8;
+    juego.tiempoPocos = 0;
     pintarDatos();
 }
 
@@ -197,7 +198,18 @@ function paso(dt) {
     }
     juego.caidas = juego.caidas.filter((c) => !c.tomada && c.y < alto + 20);
 
-    if (juego.ladrillos.every((l) => l.golpes <= 0 || l.tipo === "metal")) pasarNivel();
+    if (juego.ladrillos.every((l) => l.golpes <= 0 || l.tipo === "metal")) return pasarNivel();
+
+    // Ayuda del final: si quedan 3 ladrillos o menos y pasa un rato sin terminar, llega un láser
+    const quedan = juego.ladrillos.filter((l) => l.golpes > 0 && l.tipo !== "metal").length;
+    const enJuego = juego.pelotas.some((p) => !p.pegada);
+    if (quedan <= 3 && enJuego) juego.tiempoPocos = (juego.tiempoPocos ?? 0) + dt;
+    else if (quedan > 3) juego.tiempoPocos = 0;
+    if ((juego.tiempoPocos ?? 0) > 12 && !activo("laser")) {
+        juego.tiempoPocos = 0;
+        texto(ancho / 2, alto * 0.5, "¡Láser de ayuda!", PODERES.laser.color, 20);
+        activar("laser");
+    }
 }
 
 function moverPelota(p, dt, px, pw, py) {
@@ -516,10 +528,17 @@ function dibujar(dt) {
     if (!juego) return ctx.restore();
     const e = estilo();
 
+    // Con pocos ladrillos, los que faltan laten para encontrarlos rápido
+    const pocos = juego.ladrillos.filter((l) => l.golpes > 0 && l.tipo !== "metal").length <= 3;
     for (const l of juego.ladrillos) {
         if (l.golpes <= 0) continue;
         l.brillo = Math.max(0, l.brillo - dt);
         dibujarLadrillo(ctx, l);
+        if (pocos && l.tipo !== "metal") {
+            ctx.strokeStyle = `rgba(255, 255, 255, ${0.45 + Math.sin(performance.now() / 180) * 0.35})`;
+            ctx.lineWidth = 2;
+            ctx.strokeRect(l.x - 2, l.y - 2, l.w + 4, l.h + 4);
+        }
     }
 
     for (const r of juego.restos) {
