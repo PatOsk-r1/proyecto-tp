@@ -426,6 +426,23 @@ function dibujar(dt) {
             }
         });
     }
+    // Sin arrastrar: un brillo suave marca los magos que tienen pareja para fusionar
+    if (!arrastre) {
+        const cuenta = {};
+        for (const m of juego.magos) if (m && m.nivel < MAX_NIVEL) cuenta[`${m.tipo}-${m.nivel}`] = (cuenta[`${m.tipo}-${m.nivel}`] ?? 0) + 1;
+        const pulso = 0.35 + Math.sin(performance.now() / 260) * 0.25;
+        juego.magos.forEach((m, i) => {
+            if (!m || (cuenta[`${m.tipo}-${m.nivel}`] ?? 0) < 2) return;
+            const c = centroCasilla(i);
+            ctx.globalAlpha = pulso;
+            ctx.strokeStyle = TIPOS[m.tipo].color;
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.roundRect(c.x - s / 2 + 3, c.y - s / 2 + 3, s - 6, s - 6, 10);
+            ctx.stroke();
+            ctx.globalAlpha = 1;
+        });
+    }
     juego.magos.forEach((m, i) => {
         if (!m || arrastre?.desde === i) return;
         m.dispara = Math.max(0, (m.dispara ?? 0) - dt);
