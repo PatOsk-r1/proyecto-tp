@@ -969,13 +969,20 @@
         },
         dado() {
             fondo("#0d1117", "#161b26");
-            caja(W * 0.1, H * 0.6, W * 0.8, 10, 5, "#ff4d6a");
-            caja(W * 0.45, H * 0.6, W * 0.45, 10, 5, "#2ee59d");
-            caja(W * 0.45 - 9, H * 0.6 - 7, 18, 24, 5, "#e9edf3");
+            // En el destacado (tarjeta ancha) el dibujo va a la derecha, para no tapar el título
+            const ancha = W > H * 1.8;
+            const t = Math.min(ancha ? W * 0.45 : W, H * 1.6);
+            const cx = ancha ? W * 0.74 : W / 2;
+            const x0 = cx - t * 0.38;
+            caja(x0, H * 0.74, t * 0.76, t * 0.05, t * 0.025, "#ff4d6a");
+            caja(cx - t * 0.05, H * 0.74, t * 0.43, t * 0.05, t * 0.025, "#2ee59d");
+            caja(cx - t * 0.1, H * 0.74 - t * 0.035, t * 0.1, t * 0.12, t * 0.025, "#e9edf3");
             ctx.fillStyle = "#2ee59d";
-            ctx.font = "900 30px system-ui, sans-serif";
+            ctx.font = `900 ${Math.round(t * 0.2)}px system-ui, sans-serif`;
             ctx.textAlign = "center";
-            ctx.fillText("73.42", W / 2, H * 0.42);
+            ctx.textBaseline = "middle";
+            ctx.fillText("73.42", cx, H * 0.48);
+            ctx.textBaseline = "alphabetic";
         },
         limbo() {
             fondo("#0a0d18", "#1a1638");
@@ -985,11 +992,14 @@
                 ctx.fillRect((i * 37) % W, (i * 53) % H, 1.5, 8);
             }
             ctx.globalAlpha = 1;
-            brillo(W / 2, H * 0.5, H * 0.6, "#8b7bff55");
+            brillo(W > H * 1.8 ? W * 0.74 : W / 2, H * 0.5, H * 0.6, "#8b7bff55");
             ctx.fillStyle = "#fff";
-            ctx.font = "900 34px system-ui, sans-serif";
+            const ancha = W > H * 1.8;
+            ctx.font = `900 ${Math.round(Math.min(ancha ? W * 0.45 : W, H * 1.6) * 0.2)}px system-ui, sans-serif`;
             ctx.textAlign = "center";
-            ctx.fillText("12.80×", W / 2, H * 0.6);
+            ctx.textBaseline = "middle";
+            ctx.fillText("12.80×", ancha ? W * 0.74 : W / 2, H * 0.55);
+            ctx.textBaseline = "alphabetic";
         },
         torre() {
             fondo("#1b140c", "#0f0b07");
