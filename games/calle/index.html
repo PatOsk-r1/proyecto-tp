@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="es" class="verificando">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>Cruzar la calle · Proyecto TP</title>
+    <meta name="theme-color" content="#0d1117">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="../../icons/icon-180.png">
+    <link rel="manifest" href="../../manifest.webmanifest">
+
+    <link rel="stylesheet" href="../../css/estilos.css">
+    <link rel="stylesheet" href="../../css/juegos3d.css">
+    <link rel="stylesheet" href="../../css/originales.css">
+    <style>
+        .tema-calle { --acento: #4fc3ff; --fondo-2: #13202e; }
+        .escenario-calle {
+            position: relative;
+            flex: 1;
+            min-height: 0;
+            border-radius: 18px;
+            overflow: hidden;
+            border: 1px solid var(--borde);
+            background: #2b2f36;
+        }
+        .escenario-calle canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+        .cartel-calle {
+            position: absolute;
+            left: 50%;
+            top: 14px;
+            transform: translateX(-50%);
+            padding: 6px 14px;
+            border-radius: 999px;
+            background: #0b0f15d9;
+            font-size: 0.85rem;
+            font-weight: 800;
+            white-space: nowrap;
+            pointer-events: none;
+        }
+        #accion.avanzar { flex: 1.4; }
+    </style>
+</head>
+<body class="pantalla-3d tema-casino tema-original tema-calle">
+    <header class="barra-juego">
+        <a class="boton-volver" href="../../">‹ Juegos</a>
+        <h1>Cruzar la calle</h1>
+        <div id="fichas" class="fichas-total"></div>
+    </header>
+
+    <main class="zona-original">
+        <div class="datos-o">
+            <div>Multiplicador<strong id="multi">1.00×</strong></div>
+            <div>Próximo<strong id="proximo">—</strong></div>
+            <div>Ganancia<strong id="ganancia">0</strong></div>
+        </div>
+        <div class="escenario-calle">
+            <canvas id="lienzo"></canvas>
+            <div id="cartel" class="cartel-calle">Elegí la dificultad y empezá</div>
+        </div>
+        <div class="segmentos" id="dificultad">
+            <button data-d="facil" type="button">Fácil</button>
+            <button data-d="medio" class="activo" type="button">Medio</button>
+            <button data-d="dificil" type="button">Difícil</button>
+            <button data-d="extremo" type="button">Extremo</button>
+        </div>
+    </main>
+
+    <div class="controles-casino">
+        <div class="apuesta-fila">
+            <button id="menos" class="redondo" type="button">−</button>
+            <div class="apuesta">Apuesta<strong id="apuesta">10</strong></div>
+            <button id="mas" class="redondo" type="button">+</button>
+        </div>
+        <div class="fila-botones">
+            <button id="cobrar" class="accion cobrar" type="button" hidden>Cobrar</button>
+            <button id="accion" class="accion" type="button">Empezar</button>
+        </div>
+        <button id="recargar" class="accion secundaria" type="button" hidden>Recargar fichas</button>
+    </div>
+
+    <script type="module">
+        import { exigirSesion } from "../../js/sesion.js";
+        exigirSesion();
+    </script>
+    <script type="module" src="juego.js"></script>
+</body>
+</html>
