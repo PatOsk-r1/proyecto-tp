@@ -147,7 +147,8 @@ const vigilarCalidad = calidadAutomatica((n) => {
     burbujasMax = 10;
 });
 const arena = () => alto * 0.86;
-const largoPez = (p) => Math.min(ancho, 560) * 0.19 * especie(p.esp).tam * (0.45 + p.crece * 0.55);
+// En el celular la pecera es angosta: hay un mínimo para que los peces no queden diminutos
+const largoPez = (p) => Math.max(Math.min(ancho, 560) * 0.19, 100) * especie(p.esp).tam * (0.45 + p.crece * 0.55);
 
 // Fondo fijo: agua con profundidad, rayos de luz, rocas lejanas con niebla, arena con textura y decoraciones
 function pintarFondo() {
