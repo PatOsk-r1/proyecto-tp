@@ -324,11 +324,16 @@
 
 .enlace-amigos {
     pointer-events: auto;
-    font-size: 1rem;
+    font-size: 1.05rem;
     font-weight: 800;
-    color: #fff;
+    color: #14110f;
     text-decoration: none;
-    padding: 8px 14px;
+    padding: 13px 24px;
     border-radius: 999px;
-    background: #0007;
+    background: #fff;
+    box-shadow: 0 6px 18px #0006;
+}
+
+.enlace-amigos:active {
+    transform: scale(0.97);
 }
