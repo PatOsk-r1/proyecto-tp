@@ -674,3 +674,33 @@
         height: auto;
     }
 }
+
+/* Visitante con pedido: tarjeta arriba de la pecera */
+.pedido-a {
+    position: absolute;
+    bottom: 80px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 3;
+    width: min(92%, 420px);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 12px 11px;
+    border: 2px solid #48cae4;
+    border-radius: 14px;
+    background: #012a4aee;
+    color: #fff;
+    font: inherit;
+    text-align: left;
+    overflow: hidden;
+    animation: entrar-pedido 0.3s ease-out;
+}
+.pedido-a[hidden] { display: none; }
+.pedido-a .quien-a { flex: 1; font-size: 0.82rem; font-weight: 700; line-height: 1.25; }
+.pedido-a .quien-a strong { color: #90e0ef; }
+.pedido-a .accion-a { flex-shrink: 0; padding: 5px 10px; border-radius: 999px; background: #ffffff1c; font-size: 0.75rem; font-weight: 900; }
+.pedido-a.listo { border-color: #ffd166; }
+.pedido-a.listo .accion-a { background: #ffd166; color: #2a1600; }
+.pedido-a i { position: absolute; left: 0; bottom: 0; height: 3px; background: #48cae4; transition: width 1s linear; }
+@keyframes entrar-pedido { from { transform: translate(-50%, 20px); opacity: 0; } }
