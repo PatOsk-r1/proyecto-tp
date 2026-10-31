@@ -2,7 +2,7 @@
 // que rota, la fila "Seguir jugando" y los juegos en filas deslizables por grupo.
 const lista = document.getElementById("lista-juegos");
 const pestanas = document.querySelectorAll(".pestana");
-const NUEVOS = ["games/faraon/", "games/pirata/", "games/acuario/", "games/isla/"];
+const NUEVOS = ["games/dado/", "games/limbo/", "games/torre/", "games/calle/"];
 
 function leer(clave, porDefecto) {
     try {
