@@ -539,9 +539,9 @@ function dibujarUna(e, W, H, t, entra, desdeLado) {
     const ctx = dibujarUna.ctx;
     const fondo = FONDOS[e.lugar] ?? FONDOS.plaza;
     const piso = fondo(ctx, W, H, e.momento, t);
-    const s = (H * 0.56) / 130;
+    const s = Math.min(H * 0.5, W * 1.1) / 130;
     const n = e.personas.length;
-    const xs = n === 1 ? [W * 0.5] : [W * 0.36, W * 0.64];
+    const xs = n === 1 ? [W * 0.5] : [W * 0.33, W * 0.67];
     const centro = W * 0.5;
     (e.hijos ?? []).forEach((h, i) => dibujarPersonaEn(ctx, W * (0.14 + i * 0.12), piso, s * 0.62, h, "parado", t + i));
     e.personas.forEach(({ p, pose }, i) => {
