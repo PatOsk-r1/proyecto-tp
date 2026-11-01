@@ -611,89 +611,152 @@ function pintar() {
     if (!mundo) return pintarInicio();
     if (!p) return pintarCrear();
     pintarEscena();
-    pintarTurno();
-    pintarDecisiones();
-    pintarFichas();
-    pintarRelacion();
-    pintarPropuestas();
-    pintarLugares();
-    pintarHistoria();
+    pintarPildoras();
+    pintarPanel();
+    if (!$("hoja").hidden) pintarHoja();
 }
 
-function pintarTurno() {
+// Arriba de la escena: los dos con su energía y ánimo, y la relación en el medio
+function pintarPildoras() {
     const v = mundo;
+    const pil = (per) => `<span class="pildora-v"><strong>${per.nombre}</strong><span class="mini"><i><b style="width:${limitar(per.energia)}%"></b></i><i><b style="width:${limitar(per.animo)}%"></b></i></span></span>`;
     const o = otroP();
-    const mia = v.elecciones[yo];
-    let html = "";
-    if (!o) html = `<span>${otro === BOT ? "" : `${nombresCuenta[otro] ?? "Tu amigo"} todavía no creó su personaje. Cuando entre, empiezan a vivir el mismo día.`}</span>`;
-    else if (mia) {
-        const espera = Date.now() - (v.eligio?.[yo] ?? Date.now());
-        html = `<span>Elegiste ${EN_LUGAR[mia]}. Esperando que ${o.nombre} elija…</span>${espera > ESPERA_MAXIMA ? '<button type="button" id="sin-esperar">Seguir sin esperar</button>' : ""}`;
-    } else html = `<span><b>${MOMENTOS[v.reloj.momento]} del día ${v.reloj.dia}.</b> ${v.elecciones[otro] ? `${o.nombre} ya eligió.` : `${o.nombre} está eligiendo.`} ¿A dónde vas vos?</span>`;
-    if (v.cita && v.cita.dia === v.reloj.dia && v.cita.momento === v.reloj.momento) html += `<span class="cita-turno">Ahora tienen la cita: elijan cualquier lugar y van los dos ${CITAS[v.cita.lugar].frase}.</span>`;
-    $("turno").innerHTML = html;
-    $("sin-esperar")?.addEventListener("click", seguirSinEsperar);
+    $("pildoras").innerHTML = pil(yoP()) + (o ? `<span class="pildora-v rel"><strong>${limitar(v.relacion.nivel)}</strong><small>${ESTADOS[v.relacion.estado]}</small></span>` + pil(o) : "");
 }
-// Revisa cada tanto si ya se puede seguir sin esperar
-setInterval(() => mundo && yoP() && mundo.elecciones?.[yo] && pintarTurno(), 5000);
+$("pildoras").addEventListener("click", () => {
+    pintarHoja();
+    $("hoja").hidden = false;
+});
+$("cerrar-hoja").addEventListener("click", () => ($("hoja").hidden = true));
+$("hoja").addEventListener("click", (e) => e.target === $("hoja") && ($("hoja").hidden = true));
 
-function pintarDecisiones() {
+// Las opciones de a dónde ir cambian con la hora del día
+const OPCIONES_LUGAR = [
+    ["trabajo", "facultad", "gimnasio", "cafe"],
+    ["trabajo", "facultad", "plaza", "cafe"],
+    ["bar", "plaza", "casa", "gimnasio"],
+];
+const ACCION_LUGAR = { trabajo: "Ir a trabajar", facultad: "Ir a la facultad", gimnasio: "Entrenar", cafe: "Tomar un café", plaza: "Pasear por la plaza", bar: "Salir al bar", casa: "Quedarse en casa" };
+const ESTA = ["esta mañana", "esta tarde", "esta noche"];
+
+function botonLugar(id, p) {
+    const L = LUGARES[id];
+    const sinEnergia = L.energia < 0 && p.energia + L.energia < 0;
+    const sinPlata = (L.plata ?? 0) < 0 && p.plata + L.plata < 0;
+    const efecto = id === "trabajo" ? `+$${sueldo(p)}` : id === "casa" ? "Recuperás energía" : id === "facultad" ? "Estudiás" : id === "gimnasio" ? "Más físico" : L.plata ? `$${-L.plata} · +ánimo` : "+ánimo";
+    return `<button type="button" data-lugar="${id}" ${sinEnergia || sinPlata ? "disabled" : ""}>${id === "casa" && mundo.reloj.momento === 2 ? "Dormir temprano" : ACCION_LUGAR[id]}<small>${sinEnergia ? "Sin energía" : sinPlata ? "Sin plata" : efecto}</small></button>`;
+}
+
+function pintarPanel() {
     const v = mundo;
-    let html = "";
+    const p = yoP();
+    const o = otroP();
+    const tarjetas = [];
+    if (!o) {
+        tarjetas.push(`<div class="pregunta-v"><div class="esperando-v"><i></i><h2>Esperando a ${nombresCuenta[otro] ?? "tu amigo"}</h2></div><p>Cuando cree su personaje, empiezan a vivir el mismo día.</p></div>`);
+        $("panel").innerHTML = tarjetas.join("");
+        return;
+    }
+    // 1. Propuestas que me hicieron
+    const propuesta = Object.entries(v.propuestas).filter(([, pr]) => pr.de !== yo).sort((a, b) => a[1].ts - b[1].ts)[0];
+    if (propuesta) {
+        tarjetas.push(`<div class="pregunta-v propuesta"><h2>${textoPropuesta(propuesta[1])}</h2><p>Relación: ${limitar(v.relacion.nivel)} · ${ESTADOS[v.relacion.estado]}</p>
+            <div class="elecciones-v"><button type="button" data-no="${propuesta[0]}">No<small>Prefiero que no</small></button><button class="si" type="button" data-si="${propuesta[0]}">Sí<small>Acepto</small></button></div></div>`);
+    }
+    // 2. Momento juntos
     const c = v.compartido;
     if (c && c.uids.includes(yo)) {
         const def = COMPARTIDOS[c.clave];
         const ya = c.respuestas[yo];
-        html += `<div class="decision-v juntos"><span class="marca-v">Juntos</span><p>${def.t(nombre(c.uids[0]), nombre(c.uids[1]), c.lugar)}</p>
-            ${ya === undefined ? `<p class="sub-v">¿Qué hacés? ${nombre(otro)} también elige.</p><div class="opciones-dec">${def.o.map(([t], i) => `<button type="button" data-comp="${i}">${t}</button>`).join("")}</div>` : `<p class="sub-v">Elegiste: ${def.o[ya][0]}. Esperando a ${nombre(otro)}…</p>`}</div>`;
+        tarjetas.push(ya === undefined
+            ? `<div class="pregunta-v juntos"><h2>${def.t(nombre(c.uids[0]), nombre(c.uids[1]), c.lugar)}</h2><p>¿Qué hace ${p.nombre}? ${o.nombre} también elige, sin saber qué elegiste.</p>
+                <div class="elecciones-v una-columna">${def.o.map(([t], i) => `<button type="button" data-comp="${i}">${t}</button>`).join("")}</div></div>`
+            : `<div class="pregunta-v juntos"><div class="esperando-v"><i></i><h2>Elegiste: ${def.o[ya][0]}</h2></div><p>Esperando qué hace ${o.nombre}…</p></div>`);
     }
+    // 3. Situación personal
     const pe = v.pendientes[yo];
     if (pe) {
         const ev = PERSONALES[pe.lugar][pe.i];
-        html += `<div class="decision-v"><span class="marca-v">Decidí</span><p>${ev.t}</p><div class="opciones-dec">${ev.o.map(([t], i) => `<button type="button" data-pers="${i}">${t}</button>`).join("")}</div></div>`;
+        tarjetas.push(`<div class="pregunta-v"><h2>${ev.t}</h2><p>¿Qué hace ${p.nombre}?</p><div class="elecciones-v">${ev.o.map(([t], i) => `<button type="button" data-pers="${i}">${t}</button>`).join("")}</div></div>`);
     }
-    $("decisiones").innerHTML = html;
+    const ocupadoConAlgo = pe || (c && c.respuestas[yo] === undefined) || propuesta;
+    // 4. A dónde ir (o esperar al otro)
+    if (!ocupadoConAlgo) {
+        const cita = v.cita && v.cita.dia === v.reloj.dia && v.cita.momento === v.reloj.momento;
+        if (v.elecciones[yo]) {
+            const espera = Date.now() - (v.eligio?.[yo] ?? Date.now());
+            tarjetas.push(`<div class="pregunta-v"><div class="esperando-v"><i></i><h2>${p.nombre} va a ${EN_LUGAR[v.elecciones[yo]]}</h2></div><p>Esperando que ${o.nombre} decida qué hace ${ESTA[v.reloj.momento]}…</p>
+                ${espera > ESPERA_MAXIMA ? '<div class="elecciones-v una-columna"><button type="button" data-accion="sin-esperar">Seguir sin esperar<small>Hace lo de siempre</small></button></div>' : ""}</div>`);
+        } else if (cita) {
+            tarjetas.push(`<div class="pregunta-v juntos"><h2>Llegó la hora de la cita</h2><p>${p.nombre} y ${o.nombre} van ${CITAS[v.cita.lugar].frase}.</p>
+                <div class="elecciones-v una-columna"><button type="button" data-lugar="casa">Ir a la cita<small>Se juega cuando estén los dos</small></button></div></div>`);
+        } else {
+            const opciones = [...OPCIONES_LUGAR[v.reloj.momento]];
+            if (p.energia < 30 && !opciones.includes("casa")) opciones[3] = "casa";
+            // Con el otro: lo que se puede proponer ahora (hasta dos cosas)
+            const conOtro = [];
+            if (v.relacion.estado !== "desconocidos") {
+                const nivel = limitar(v.relacion.nivel);
+                const pendiente = (tipo) => Object.values(v.propuestas).some((pr) => pr.de === yo && pr.tipo === tipo);
+                const pasos = Object.entries(PASOS).filter(([tipo, paso]) => paso.desde.includes(v.relacion.estado) && nivel >= paso.nivel && !pendiente(tipo) && tipo !== "adoptar");
+                const siguiente = pasos.filter(([, paso]) => paso.a).at(-1);
+                const citaPaso = pasos.find(([tipo]) => tipo === "cita");
+                for (const paso of [siguiente, citaPaso]) if (paso) conOtro.push(`<button class="con-otro" type="button" data-paso="${paso[0]}">${paso[1].nombre.replace("Invitar a una cita", `Invitar a ${o.nombre} a una cita`)}<small>Con ${o.nombre}</small></button>`);
+            }
+            tarjetas.push(`<div class="pregunta-v"><h2>¿Qué hace ${p.nombre} ${ESTA[v.reloj.momento]}?</h2><p>Día ${v.reloj.dia}. ${v.elecciones[otro] ? `${o.nombre} ya decidió.` : `${o.nombre} está decidiendo.`}${v.relacion.estado === "desconocidos" ? " Si eligen el mismo lugar con gente, se cruzan." : ""}</p>
+                <div class="elecciones-v">${opciones.map((id) => botonLugar(id, p)).join("")}${conOtro.join("")}</div></div>`);
+        }
+    }
+    // Mis propuestas esperando respuesta
+    for (const pr of Object.values(v.propuestas).filter((pr) => pr.de === yo)) {
+        tarjetas.push(`<div class="pregunta-v"><div class="esperando-v"><i></i><h2>Esperando respuesta</h2></div><p>${o.nombre} todavía no contestó: ${PASOS[pr.tipo].nombre.toLowerCase()}${pr.tipo === "cita" ? ` (${CITAS[pr.lugar].frase})` : ""}.</p></div>`);
+    }
+    const html = tarjetas.join("");
+    if ($("panel").innerHTML !== html) $("panel").innerHTML = html;
 }
-$("decisiones").addEventListener("click", (e) => {
+$("panel").addEventListener("click", (e) => {
     const b = e.target.closest("button");
-    if (!b) return;
-    if (b.dataset.comp !== undefined) responderCompartido(Number(b.dataset.comp));
-    if (b.dataset.pers !== undefined) responderPersonal(Number(b.dataset.pers));
+    if (!b || b.disabled) return;
+    const d = b.dataset;
+    if (d.lugar) elegir(d.lugar);
+    else if (d.comp !== undefined) responderCompartido(Number(d.comp));
+    else if (d.pers !== undefined) responderPersonal(Number(d.pers));
+    else if (d.si) responder(d.si, true);
+    else if (d.no) responder(d.no, false);
+    else if (d.paso) pedirPaso(d.paso);
+    else if (d.accion === "sin-esperar") seguirSinEsperar();
 });
+// Revisa cada tanto si ya se puede seguir sin esperar
+setInterval(() => mundo && yoP() && mundo.elecciones?.[yo] && pintarPanel(), 5000);
 
+// ---------- Hoja: fichas, relación e historia ----------
+function pintarHoja() {
+    pintarFichas();
+    pintarRelacion();
+    pintarHistoria();
+}
 function ficha(uid, p) {
     const v = mundo;
-    const listo = v.elecciones[uid] ? "Ya eligió" : "Eligiendo";
     return `<div class="ficha-v${uid === yo ? " mia" : ""}"><canvas data-avatar="${uid}" class="avatar-v" width="96" height="120"></canvas>
         <div><strong>${p.nombre}</strong><span>${edad(v)} años · ${puesto(p)}</span>
         <div class="barra-v"><span>Energía</span><i><b style="width:${limitar(p.energia)}%"></b></i></div>
         <div class="barra-v animo"><span>Ánimo</span><i><b style="width:${limitar(p.animo)}%"></b></i></div>
-        <span class="plata-v">$${Math.round(p.plata)} · Est. ${p.estudio} · Fís. ${p.fisico}</span>
-        <span class="estado-turno ${v.elecciones[uid] ? "listo" : ""}">${listo}</span></div></div>`;
+        <span class="plata-v">$${Math.round(p.plata)} · Est. ${p.estudio} · Fís. ${p.fisico}</span></div></div>`;
 }
-let firmaFichas = "";
 function pintarFichas() {
-    const p = yoP();
     const o = otroP();
-    const html = ficha(yo, p) + (o ? ficha(otro, o) : "");
-    if (html === firmaFichas) return;
-    firmaFichas = html;
-    $("fichas-v").innerHTML = html;
+    $("fichas-v").innerHTML = ficha(yo, yoP()) + (o ? ficha(otro, o) : "");
     for (const cv of $("fichas-v").querySelectorAll("[data-avatar]")) dibujarPersona(cv, mundo.personajes[cv.dataset.avatar]);
 }
-
 function pintarRelacion() {
     const v = mundo;
     const o = otroP();
     const t = $("tarjeta-relacion");
     const rel = v.relacion;
-    if (!o) {
-        t.hidden = true;
-        return;
-    }
+    if (!o) return (t.hidden = true);
     t.hidden = false;
     if (rel.estado === "desconocidos") {
-        t.innerHTML = `<p class="nota-rel"><b>${o.nombre} y vos todavía no se conocen.</b> Si eligen el mismo lugar con gente (facultad, gimnasio, café, plaza o bar) en el mismo momento, se cruzan. Pueden ponerse de acuerdo por el chat.</p>`;
+        t.innerHTML = `<p class="nota-rel"><b>${o.nombre} y vos todavía no se conocen.</b> Si eligen el mismo lugar con gente en el mismo momento, se cruzan. Pueden ponerse de acuerdo por el chat.</p>`;
         return;
     }
     const nivel = limitar(rel.nivel);
@@ -717,56 +780,11 @@ function pintarRelacion() {
 $("tarjeta-relacion").addEventListener("click", (e) => {
     const b = e.target.closest("button");
     if (!b || b.disabled) return;
+    $("hoja").hidden = true;
     if (b.dataset.accion === "mensaje") return mandarMensaje();
     if (b.dataset.accion === "terminar") return terminarRelacion();
     if (b.dataset.paso) pedirPaso(b.dataset.paso);
 });
-
-function pintarPropuestas() {
-    const lista = Object.entries(mundo.propuestas).sort((a, b) => a[1].ts - b[1].ts);
-    $("propuestas").innerHTML = lista
-        .map(([id, pr]) => (pr.de === yo
-            ? `<div class="propuesta-v mia"><p>Esperando que ${nombre(otro)} responda: ${PASOS[pr.tipo].nombre.toLowerCase()}${pr.tipo === "cita" ? ` (${CITAS[pr.lugar].frase})` : ""}.</p></div>`
-            : `<div class="propuesta-v"><p>${textoPropuesta(pr)}</p><div class="botones-v"><button type="button" data-no="${id}">No</button><button class="si" type="button" data-si="${id}">Sí</button></div></div>`))
-        .join("");
-}
-$("propuestas").addEventListener("click", (e) => {
-    const b = e.target.closest("button");
-    if (!b) return;
-    if (b.dataset.si) responder(b.dataset.si, true);
-    if (b.dataset.no) responder(b.dataset.no, false);
-});
-
-const ICONOS = {
-    trabajo: '<path d="M4 8h16v11H4zM9 8V5h6v3M4 13h16"/>',
-    facultad: '<path d="M2 9l10-5 10 5-10 5zM6 11v5c3 2 9 2 12 0v-5"/>',
-    gimnasio: '<path d="M3 12h18M6 8v8M18 8v8M3 10v4M21 10v4"/>',
-    cafe: '<path d="M4 9h12v5a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5zM16 11h2a2 2 0 0 1 0 4h-2M8 3v3M12 3v3"/>',
-    plaza: '<path d="M12 3v6M8 9h8l-1 4H9zM12 13v8M6 21h12"/>',
-    bar: '<path d="M6 4h12l-6 8zM12 12v7M8 20h8"/>',
-    casa: '<path d="M3 11l9-7 9 7M5 10v10h14V10M10 20v-6h4v6"/>',
-};
-const icono = (id) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${ICONOS[id]}</svg>`;
-function pintarLugares() {
-    const v = mundo;
-    const p = yoP();
-    const bloqueado = Boolean(v.elecciones[yo] || v.pendientes[yo] || (v.compartido && v.compartido.respuestas[yo] === undefined) || !otroP());
-    $("momento-texto").textContent = v.pendientes[yo] || (v.compartido && v.compartido.respuestas[yo] === undefined) ? "Primero decidí arriba" : `${MOMENTOS[v.reloj.momento]} del día ${v.reloj.dia}`;
-    $("lugares").innerHTML = Object.entries(LUGARES)
-        .map(([id, L]) => {
-            const sinEnergia = L.energia < 0 && p.energia + L.energia < 0;
-            const sinPlata = (L.plata ?? 0) < 0 && p.plata + L.plata < 0;
-            const efectos = [id === "trabajo" ? `+$${sueldo(p)}` : L.plata ? `-$${-L.plata}` : "", L.energia > 0 ? `+${L.energia} energía` : `${L.energia} energía`, L.animo > 0 ? `+${L.animo} ánimo` : ""].filter(Boolean).join(" · ");
-            const elegido = v.elecciones[yo] === id ? " elegido" : "";
-            return `<button class="lugar-v${elegido}" type="button" data-lugar="${id}" ${bloqueado || sinEnergia || sinPlata ? "disabled" : ""}>${icono(id)}<strong>${L.nombre}</strong><small>${L.detalle}</small><span class="efectos-v">${efectos}</span></button>`;
-        })
-        .join("");
-}
-$("lugares").addEventListener("click", (e) => {
-    const b = e.target.closest("[data-lugar]");
-    if (b && !b.disabled) elegir(b.dataset.lugar);
-});
-
 function pintarHistoria() {
     const items = Object.values(mundo.historia).sort((a, b) => b.ts - a.ts).slice(0, 30);
     $("diario").innerHTML = items.map((d) => `<li class="${d.especial ? "especial" : ""}">${d.t}</li>`).join("");
