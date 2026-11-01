@@ -255,3 +255,68 @@
 .plata-v { font-weight: 700; }
 .estado-turno { align-self: center; padding: 2px 9px; border-radius: 999px; background: #ffffff10; font-weight: 800; }
 .estado-turno.listo { background: #5ad1c233; color: var(--acento-2) !important; }
+
+/* ---------- Escenario: solo la escena y las decisiones ---------- */
+.escenario-v {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 10px 12px calc(14px + env(safe-area-inset-bottom));
+    overflow-y: auto;
+}
+.escenario-v[hidden] { display: none; }
+.escenario-v .escena-v canvas { height: clamp(260px, 50vh, 460px); }
+.pildoras-v {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0;
+    border: none;
+    background: none;
+    font: inherit;
+    color: var(--texto);
+}
+.pildora-v { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; padding: 6px 10px; border-radius: 12px; background: var(--tarjeta); border: 1px solid var(--borde); text-align: left; }
+.pildora-v strong { font-size: 0.8rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pildora-v .mini { display: flex; gap: 4px; }
+.pildora-v .mini i { flex: 1; height: 4px; border-radius: 999px; background: #0c0f1c; overflow: hidden; }
+.pildora-v .mini b { display: block; height: 100%; background: var(--acento-2); }
+.pildora-v .mini i + i b { background: var(--oro); }
+.pildora-v.rel { flex: 0 0 auto; align-items: center; text-align: center; background: #ff7a6b1f; border-color: #ff7a6b55; }
+.pildora-v.rel strong { color: var(--acento); }
+.pildora-v.rel small { font-size: 0.66rem; color: var(--texto-suave); font-weight: 700; }
+
+.panel-v { display: flex; flex-direction: column; gap: 10px; }
+.pregunta-v { padding: 14px; border-radius: 18px; background: linear-gradient(160deg, #232a4c, #181c31); border: 1px solid var(--borde); animation: aparecer-dec 0.3s ease-out; }
+.pregunta-v.juntos { background: linear-gradient(160deg, #4a2433, #1a1f35); border-color: #ff7a6b77; }
+.pregunta-v.propuesta { background: linear-gradient(160deg, #3d2a4f, #1a1f35); border-color: #b07cff77; }
+.pregunta-v h2 { margin: 0 0 4px; font-size: 1.05rem; line-height: 1.35; }
+.pregunta-v p { margin: 0 0 10px; color: var(--texto-suave); font-size: 0.82rem; line-height: 1.4; }
+.elecciones-v { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.elecciones-v.una-columna { grid-template-columns: 1fr; }
+.elecciones-v button {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 12px;
+    border-radius: 14px;
+    border: 1px solid var(--borde);
+    background: #0f1324;
+    color: var(--texto);
+    font: inherit;
+    font-weight: 800;
+    font-size: 0.9rem;
+    text-align: left;
+}
+.elecciones-v button small { font-size: 0.68rem; font-weight: 600; color: var(--texto-suave); }
+.elecciones-v button:disabled { opacity: 0.35; }
+.elecciones-v button:not(:disabled):active { background: #ff7a6b33; }
+.elecciones-v button.con-otro { border-color: #ff7a6b55; }
+.elecciones-v button.si { background: var(--acento); color: #1b0d0a; border-color: transparent; }
+.elecciones-v button.si small { color: #1b0d0aaa; }
+.esperando-v { display: flex; align-items: center; gap: 10px; }
+.esperando-v i { width: 10px; height: 10px; border-radius: 50%; background: var(--acento-2); animation: latido-v 1s ease-in-out infinite; flex-shrink: 0; }
+@keyframes latido-v { 50% { transform: scale(0.6); opacity: 0.5; } }
+.hoja-v { gap: 12px; }
