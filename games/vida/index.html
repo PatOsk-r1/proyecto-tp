@@ -54,24 +54,25 @@
     </section>
 
     <!-- El juego -->
-    <main id="juego" class="pantalla-v juego-v" hidden>
+    <main id="juego" class="escenario-v" hidden>
+        <button id="pildoras" class="pildoras-v" type="button" aria-label="Ver fichas, relación e historia"></button>
         <section class="escena-v">
             <canvas id="escena"></canvas>
             <p id="texto-escena"></p>
         </section>
-        <div id="turno" class="turno-v"></div>
-        <section id="decisiones" class="decisiones-v"></section>
-        <section id="propuestas" class="propuestas-v"></section>
-
-        <h3 class="titulo-v">¿A dónde vas? <small id="momento-texto"></small></h3>
-        <div id="lugares" class="lugares-v"></div>
-
-        <section id="fichas-v" class="fichas-v"></section>
-        <section id="tarjeta-relacion" class="tarjeta-v relacion-v"></section>
-
-        <h3 class="titulo-v">Lo que pasó</h3>
-        <ol id="diario" class="diario-v"></ol>
+        <section id="panel" class="panel-v"></section>
     </main>
+
+    <!-- Hoja con las fichas, la relación y la historia -->
+    <div id="hoja" class="capa-v" hidden>
+        <div class="ventana-v hoja-v">
+            <section id="fichas-v" class="fichas-v"></section>
+            <section id="tarjeta-relacion" class="tarjeta-v relacion-v"></section>
+            <h3 class="titulo-v">Lo que pasó</h3>
+            <ol id="diario" class="diario-v"></ol>
+            <button id="cerrar-hoja" class="boton-v" type="button">Volver</button>
+        </div>
+    </div>
 
     <!-- Ventanas -->
     <div id="capa" class="capa-v" hidden><div id="ventana" class="ventana-v"></div></div>
